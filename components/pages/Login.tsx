@@ -1,6 +1,8 @@
 'use client';
 
+import api from '@/lib/api';
 import Image from 'next/image';
+
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
