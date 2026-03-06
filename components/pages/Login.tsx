@@ -1,51 +1,27 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { LoginButton } from '@telegram-auth/react';
 
 export const Login = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const handleHashAuth = () => {
-      const hash = window.location.hash;
-      if (hash.includes('token=')) {
-        const params = new URLSearchParams(hash.replace('#', '?'));
-        const token = params.get('token');
-        if (token) {
-          localStorage.setItem('auth_token', token);
-          window.history.replaceState(null, '', window.location.pathname);
-          router.replace('/');
-        }
-      }
-    };
-    (window as any).onTelegramAuth = async (user: any) => {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/telegram-widget`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user),
-        }
-      );
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem('auth_token', data.token);
-        router.push('/');
-      }
-    };
+  const handleTelegramAuth = async (user: any) => {
+    try {
+      const { data } = await api.post('/auth/telegram/widget', user);
+      queryClient.setQueryData(['auth', 'me'], data.data.user);
+      toast.success('Logged in with Telegram!');
+      router.push('/');
+    } catch (e: any) {
+      console.error('Telegram login failed:', e);
+      toast.error('Telegram login failed');
+    }
+  };
 
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', process.env.NEXT_PUBLIC_BOT_USERNAME || '');
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    document.getElementById('tg-widget-container')?.appendChild(script);
-
-    handleHashAuth();
-  }, [router]);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
       <div className="absolute inset-0 w-screen h-screen opacity-20 z-0">
@@ -64,10 +40,14 @@ export const Login = () => {
         </div>
 
         <div className="space-y-4">
-          <div
-            id="tg-widget-container"
-            className="flex justify-center min-h-10"
-          ></div>
+            <LoginButton
+              botUsername="iamrdgbot"
+              onAuthCallback={handleTelegramAuth}
+              showAvatar={false}
+              buttonSize="large"
+              cornerRadius={12}
+              lang="ru"
+            />
         </div>
         <p className="text-[11px] text-muted-foreground px-4">
           Продолжая, вы соглашаетесь с условиями использования и политикой

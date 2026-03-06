@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 
@@ -18,6 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" className="dark">
+      <head>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+      </head>
+
       <body className={GeistSans.className}>
         <AuthProvider>
           <QueryProvider>{children}</QueryProvider>
