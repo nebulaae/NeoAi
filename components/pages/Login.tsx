@@ -42,14 +42,19 @@ export const Login = () => {
         </div>
 
         <div className="space-y-4">
-            <LoginButton
-              botUsername="iamrdgbot"
-              onAuthCallback={handleTelegramAuth}
-              showAvatar={false}
-              buttonSize="large"
-              cornerRadius={12}
-              lang="ru"
-            />
+          <LoginButton
+            botUsername="iamrdgbot"
+            onAuthCallback={(user) =>
+              handleTelegramAuth({
+                ...user,
+                bot_id: process.env.NEXT_PUBLIC_BOT_ID
+              })
+            }
+            showAvatar={false}
+            buttonSize="large"
+            cornerRadius={12}
+            lang="ru"
+          />
         </div>
         <p className="text-[11px] text-muted-foreground px-4">
           Продолжая, вы соглашаетесь с условиями использования и политикой
