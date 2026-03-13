@@ -8,11 +8,18 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoginButton } from '@telegram-auth/react';
 import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 export const Login = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { login } = useAuth();
+  const { user, login, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
 
   const handleTelegramAuth = async (user: any) => {
     try {
@@ -28,6 +35,51 @@ export const Login = () => {
       toast.error('Telegram login failed');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="hsl(var(--foreground))" />
+            <path
+              d="M8 16L13 21L24 10"
+              stroke="hsl(var(--background))"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div
+            style={{
+              width: 20,
+              height: 20,
+              border: '2px solid hsl(var(--border))',
+              borderTopColor: 'hsl(var(--foreground))',
+              borderRadius: '50%',
+              animation: 'spin 0.7s linear infinite',
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
+        <div>Redirecting...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
