@@ -1,7 +1,7 @@
 import { BottomBar } from '@/components/layout/BottomBar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Sidebar';
-import { AuthGuard } from '@/auth/AuthGuard';
+import { AuthGuard } from '@/components/layout/AuthGuard';
 
 export default function RootLayout({
   children,
