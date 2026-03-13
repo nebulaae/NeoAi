@@ -17,7 +17,7 @@ export const Login = () => {
       const { data } = await api.post('/api/auth/telegram', user);
 
       localStorage.setItem('auth_token', data.token);
-      queryClient.setQueryData(['auth', 'me'], data.user);
+      queryClient.setQueryData(['auth', 'me'], data.data.user);
 
       router.push('/');
       queryClient.setQueryData(['auth', 'me'], data.data.user);

@@ -9,7 +9,6 @@ export interface TelegramUser {
   username?: string;
   photo_url?: string;
   auth_date: number;
-  hash: string;
 }
 
 export interface AuthContextValue {
