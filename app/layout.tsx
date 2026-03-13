@@ -2,6 +2,7 @@ import Script from 'next/script';
 import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 
+import { TelegramProvider } from './providers/TelegramProvider';
 import { QueryProvider } from './providers/QueryProvider';
 import { AuthProvider } from './providers/AuthProvider';
 
@@ -28,7 +29,11 @@ export default function RootLayout({
 
       <body className={GeistSans.className}>
         <AuthProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <TelegramProvider>
+            <QueryProvider>
+              {children}
+            </QueryProvider>
+          </TelegramProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,66 +1,45 @@
-'use client';
+"use client";
 
-import api from '@/lib/api';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
+import api from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
-declare global {
-    interface Window {
-        Telegram?: {
-            WebApp: any;
-        };
-    }
-}
-
-export const TelegramProvider = ({ children }: { children: React.ReactNode }) => {
-    const sentRef = useRef(false);
+export const TelegramProvider = ({ children }: any) => {
+    const { login } = useAuth();
+    const sent = useRef(false);
 
     useEffect(() => {
-        const tryInit = () => {
-            const tg = window?.Telegram?.WebApp;
-            if (tg) {
-                tg.ready();
-                tg.expand();
-                if (tg.isVersionAtLeast('7.7')) {
-                    tg.disableVerticalSwipes();
-                }
-                tg.enableClosingConfirmation();
-            }
+        const init = async () => {
+            const tg = (window as any)?.Telegram?.WebApp;
 
-            if (!tg) return false;
+            if (!tg || !tg.initData || sent.current) return;
+
+            sent.current = true;
 
             tg.ready();
             tg.expand();
 
-            if (!tg.initData || sentRef.current) return false;
-
-            sentRef.current = true;
-
-            api
-                .post('/api/auth/tma', {
+            try {
+                const res = await api.post("/api/auth/tma", {
                     initData: tg.initData,
                     bot_id: process.env.NEXT_PUBLIC_BOT_ID
-                })
-                .then((res) => {
-                    localStorage.setItem('token', res.data.token)
-                })
-                .catch((err) => {
-                    console.error('Telegram WebApp auth error', err);
-                    sentRef.current = false;
                 });
 
-            return true;
+                localStorage.setItem("auth_token", res.data.token);
+
+                login(res.data.user);
+            } catch (e) {
+                console.error("TMA auth failed", e);
+                sent.current = false;
+            }
         };
 
-        // пробуем сразу
-        if (tryInit()) return;
+        init();
 
-        // fallback — ждём Telegram
-        const interval = setInterval(() => {
-            if (tryInit()) clearInterval(interval);
-        }, 300);
+        const interval = setInterval(init, 400);
 
         return () => clearInterval(interval);
     }, []);
 
-    return <>{children}</>;
+    return children;
 };
