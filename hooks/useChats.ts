@@ -12,6 +12,7 @@ export interface Chat {
   version: string;
   title?: string;
   avatar?: string;
+  role_id?: number | null;
   last_activity?: string;
   started_at?: string;
 }
@@ -29,6 +30,28 @@ export const useChats = () => {
     getNextPageParam: (lastPage, allPages) => {
       const loaded = allPages.flat().length;
       return lastPage.length >= 20 ? loaded : undefined;
+    },
+  });
+};
+
+export const useSetChatTitle = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      dialogueId,
+      title,
+    }: {
+      dialogueId: string;
+      title: string;
+    }) => {
+      const { data } = await api.post('/api/chat/title', {
+        dialogue_id: dialogueId,
+        title,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chats });
     },
   });
 };

@@ -16,7 +16,6 @@ api.interceptors.request.use((config) => {
     }
 
     const tg = (window as any)?.Telegram?.WebApp;
-
     if (!token && tg?.initData) {
       config.headers['X-Init-Data'] = tg.initData;
     }
@@ -24,8 +23,24 @@ api.interceptors.request.use((config) => {
     const botId = process.env.NEXT_PUBLIC_BOT_ID;
     config.params = { ...config.params, bot_id: botId };
   }
-
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('tg_user');
+      if (
+        typeof window !== 'undefined' &&
+        !window.location.pathname.includes('/login')
+      ) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

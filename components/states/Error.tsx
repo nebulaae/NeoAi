@@ -2,61 +2,42 @@
 
 import { AlertTriangle, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
+
+interface ErrorProps {
+  title: string;
+  description: string;
+  icon?: React.ElementType;
+  onRetry?: () => void;
+}
 
 export const ErrorComponent = ({
   title,
   description,
   icon: Icon = AlertTriangle,
   onRetry,
-}: {
-  title: string;
-  description: string;
-  icon?: React.ElementType;
-  onRetry?: () => void;
-}) => {
-  return (
-    <Empty className="max-w-md mx-auto bg-destructive/10 border-destructive/20 border rounded-xl p-6">
-      <EmptyHeader>
-        <EmptyMedia
-          variant="icon"
-          className="bg-destructive/20 p-3 rounded-full mb-4"
-        >
-          <Icon className="size-8 text-destructive" />
-        </EmptyMedia>
-        <EmptyTitle className="text-lg font-semibold text-foreground">
-          {title}
-        </EmptyTitle>
-        <EmptyDescription className="text-sm text-muted-foreground mt-2">
-          {description}
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent className="mt-6">
-        {onRetry && (
-          <Button
-            variant="outline"
-            onClick={onRetry}
-            className="border-destructive/30 hover:bg-destructive/20"
-          >
-            Попробовать снова
-          </Button>
-        )}
-      </EmptyContent>
-    </Empty>
-  );
-};
+}: ErrorProps) => (
+  <div className="flex flex-col items-center justify-center p-6 text-center gap-4 max-w-sm mx-auto">
+    <div className="size-14 rounded-3xl bg-destructive/10 flex items-center justify-center">
+      <Icon className="size-6 text-destructive" />
+    </div>
+    <div className="space-y-1">
+      <p className="text-base font-semibold">{title}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {description}
+      </p>
+    </div>
+    {onRetry && (
+      <Button variant="outline" onClick={onRetry} size="sm">
+        Попробовать снова
+      </Button>
+    )}
+  </div>
+);
 
 export const NetworkError = ({ onRetry }: { onRetry?: () => void }) => (
   <ErrorComponent
     title="Ошибка соединения"
-    description="Не удалось загрузить данные. Проверьте интернет-соединение."
+    description="Не удалось загрузить данные. Проверьте подключение."
     icon={WifiOff}
     onRetry={onRetry}
   />

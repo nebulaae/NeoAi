@@ -16,5 +16,6 @@ export const useRoles = () => {
       const { data } = await api.get('/api/roles');
       return data.roles;
     },
+    staleTime: 5 * 60_000,
   });
 };

@@ -8,14 +8,14 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
+
+interface EmptyProps {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  button?: string;
+  buttonLink?: string;
+}
 
 export const EmptyComponent = ({
   title,
@@ -23,39 +23,31 @@ export const EmptyComponent = ({
   icon: Icon,
   button,
   buttonLink,
-}: {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  button?: string;
-  buttonLink?: string;
-}) => {
-  return (
-    <Empty className="flex flex-col items-center justify-center p-8 text-center">
-      <EmptyHeader>
-        <EmptyMedia variant="icon" className="mb-4">
-          <Icon className="size-12 text-muted-foreground opacity-50" />
-        </EmptyMedia>
-        <EmptyTitle className="text-lg font-semibold">{title}</EmptyTitle>
-        <EmptyDescription className="text-sm text-muted-foreground max-w-62.5 mt-2">
-          {description}
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent className="mt-6">
-        {button && buttonLink && (
-          <Link href={buttonLink}>
-            <Button>{button}</Button>
-          </Link>
-        )}
-      </EmptyContent>
-    </Empty>
-  );
-};
+}: EmptyProps) => (
+  <div className="flex flex-col items-center justify-center p-8 text-center gap-4">
+    <div className="size-16 rounded-3xl bg-secondary/60 flex items-center justify-center">
+      <Icon className="size-7 text-muted-foreground/60" />
+    </div>
+    <div className="space-y-1">
+      <p className="text-base font-semibold">{title}</p>
+      <p className="text-sm text-muted-foreground max-w-60 leading-relaxed">
+        {description}
+      </p>
+    </div>
+    {button && buttonLink && (
+      <Link href={buttonLink}>
+        <Button size="sm" className="mt-1">
+          {button}
+        </Button>
+      </Link>
+    )}
+  </div>
+);
 
 export const ModelsEmpty = () => (
   <EmptyComponent
     title="Нет моделей"
-    description="В данной категории пока нет доступных ИИ-моделей."
+    description="В данной категории пока нет доступных AI-моделей."
     icon={BrainCircuit}
   />
 );
@@ -65,7 +57,7 @@ export const ChatsEmpty = () => (
     title="Нет чатов"
     description="Начните новый диалог с любым AI-ассистентом."
     icon={MessageSquareOff}
-    button="Создать чат"
+    button="Выбрать модель"
     buttonLink="/models"
   />
 );
@@ -73,7 +65,7 @@ export const ChatsEmpty = () => (
 export const GenerationsEmpty = () => (
   <EmptyComponent
     title="Нет генераций"
-    description="Вы еще ничего не создавали. Выберите модель и начните творить!"
+    description="Вы ещё ничего не создавали. Выберите модель и начните!"
     icon={History}
     button="Начать генерацию"
     buttonLink="/generate"

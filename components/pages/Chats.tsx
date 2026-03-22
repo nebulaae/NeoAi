@@ -1,23 +1,26 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { useChats } from '@/hooks/useChats';
+import { useAIModels } from '@/hooks/useModels';
+import { useRoles } from '@/hooks/useRoles';
+import { useGenerateAI } from '@/hooks/useGenerations';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ChatsLoader } from '@/components/states/Loading';
 import { ChatsEmpty } from '@/components/states/Empty';
 import { ErrorComponent } from '@/components/states/Error';
-import { MessageSquarePlus } from 'lucide-react';
-
-function timeAgo(dateStr?: string): string {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  if (diff < 60_000) return 'сейчас';
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} м`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} ч`;
-  return `${Math.floor(diff / 86_400_000)} д`;
-}
+import { MessageSquarePlus, Loader2 } from 'lucide-react';
+import { timeAgo, localize } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const Chats = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const modelParam = searchParams.get('model');
+  const roleParam = searchParams.get('role');
+
   const {
     data,
     isLoading,
@@ -27,11 +30,58 @@ export const Chats = () => {
     isFetchingNextPage,
     refetch,
   } = useChats();
+  const { data: models } = useAIModels();
+  const { data: roles } = useRoles();
+  const generate = useGenerateAI();
+
   const chats = data?.pages.flatMap((p) => p) ?? [];
+
+  // Auto-start new chat if model/role param passed
+  useEffect(() => {
+    if (!modelParam && !roleParam) return;
+    if (generate.isPending) return;
+
+    const model = models?.find((m) => m.tech_name === modelParam);
+    const role = roleParam
+      ? roles?.find((r) => r.id === parseInt(roleParam))
+      : null;
+
+    if (modelParam && !model) return; // wait for models to load
+    if (roleParam && !role && roles) {
+      toast.error('Ассистент не найден');
+      return;
+    }
+
+    const techName = model?.tech_name || (role ? 'openai/gpt-4o' : null);
+    if (!techName) return;
+
+    const defaultVersion =
+      model?.versions?.find((v) => v.default) || model?.versions?.[0];
+
+    generate.mutate(
+      {
+        tech_name: techName,
+        version: defaultVersion?.label,
+        inputs: { text: null, media: [] },
+        role_id: role ? role.id : null,
+      },
+      {
+        onSuccess: (data) => {
+          if (data.dialogue_id) {
+            router.replace(`/chats/${data.dialogue_id}`);
+          }
+        },
+        onError: () => {
+          // Clear params and show list
+          router.replace('/chats');
+        },
+      }
+    );
+  }, [modelParam, roleParam, models, roles]);
 
   if (isError) {
     return (
-      <div className="state-center section-padding">
+      <div className="flex items-center justify-center min-h-screen p-6">
         <ErrorComponent
           title="Ошибка"
           description="Не удалось загрузить чаты."
@@ -41,51 +91,83 @@ export const Chats = () => {
     );
   }
 
+  if (generate.isPending && (modelParam || roleParam)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Создаём диалог...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full pb-20">
-      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-md border-b border-border">
-        <span className="text-xl font-semibold tracking-tight">Чаты</span>
-        <Button variant="ghost" size="icon" className="size-8 rounded-full">
+    <div className="flex flex-col h-full pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-background/85 backdrop-blur-xl border-b border-border/50">
+        <span className="text-xl font-bold tracking-tight">Чаты</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9 rounded-full"
+          onClick={() => router.push('/models')}
+          title="Новый чат"
+        >
           <MessageSquarePlus className="size-5 text-muted-foreground" />
         </Button>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col flex-1 overflow-y-auto">
         {isLoading ? (
           <ChatsLoader />
         ) : chats.length === 0 ? (
-          <ChatsEmpty />
+          <div className="flex items-center justify-center flex-1 p-8">
+            <ChatsEmpty />
+          </div>
         ) : (
           <>
             {chats.map((chat) => (
               <button
                 key={chat.dialogue_id}
-                className="flex items-center gap-3 px-4 py-3 w-full border-b border-border/50 transition-colors hover:bg-secondary text-left"
+                onClick={() => router.push(`/chats/${chat.dialogue_id}`)}
+                className="flex items-center gap-3 px-4 py-3.5 w-full border-b border-border/40 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
               >
-                <Avatar className="size-11 rounded-xl border shrink-0">
+                <Avatar className="size-12 rounded-xl border border-border/50 shrink-0">
                   <AvatarImage
                     src={
                       chat.avatar ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.model)}&background=1c1c1c&color=ffffff`
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.model || 'AI')}&background=1c1c1c&color=ffffff`
                     }
                   />
-                  <AvatarFallback className="rounded-xl bg-muted text-xs font-semibold">
-                    {chat.model?.slice(0, 2) || 'AI'}
+                  <AvatarFallback className="rounded-xl bg-secondary text-xs font-bold">
+                    {(chat.model || 'AI').slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-foreground truncate">
-                    {chat.title || chat.model}
+                    {chat.title || chat.model || 'Диалог'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5 truncate">
                     {chat.version}
                   </div>
                 </div>
 
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {timeAgo(chat.last_activity || chat.started_at)}
-                </span>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="text-xs text-muted-foreground">
+                    {timeAgo(chat.last_activity || chat.started_at)}
+                  </span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-muted-foreground/40"
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
               </button>
             ))}
 
@@ -97,7 +179,14 @@ export const Chats = () => {
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
                 >
-                  {isFetchingNextPage ? 'Загрузка...' : 'Загрузить ещё'}
+                  {isFetchingNextPage ? (
+                    <>
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                      Загрузка...
+                    </>
+                  ) : (
+                    'Загрузить ещё'
+                  )}
                 </Button>
               </div>
             )}
@@ -108,4 +197,4 @@ export const Chats = () => {
   );
 };
 
-export { Chats as default };
+export default Chats;

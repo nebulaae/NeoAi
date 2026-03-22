@@ -3,11 +3,16 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 
 export interface GenerationRequest {
+  id: number;
   model: string;
   version: string;
   status: 'completed' | 'processing' | 'error';
   cost: number;
   created_at: string;
+  result?: {
+    text?: string;
+    media?: Array<{ type: string; url?: string; input?: string }>;
+  };
 }
 
 const getRequests = async (limit: number, offset: number) => {

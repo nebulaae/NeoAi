@@ -7,10 +7,13 @@ import { queryKeys } from '@/lib/queryKeys';
 export interface GenerateAIParams {
   tech_name: string;
   version?: string;
-  inputs: { text?: string | null; media?: any[] };
+  inputs: {
+    text?: string | null;
+    media?: Array<{ type: string; format: string; input: string }>;
+  };
   params?: Record<string, any>;
   dialogue_id?: string;
-  role_id?: number;
+  role_id?: number | null;
 }
 
 const generateContent = async (params: GenerateAIParams) => {
@@ -24,11 +27,16 @@ export const useGenerateAI = () => {
 
   return useMutation({
     mutationFn: generateContent,
-    onSuccess: () => {
-      toast.success('Генерация успешно запущена!');
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests });
       queryClient.invalidateQueries({ queryKey: queryKeys.chats });
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
+
+      if (data.dialogue_id) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.chatHistory(data.dialogue_id),
+        });
+      }
     },
     onError: (error: any) => {
       if (axios.isAxiosError(error)) {

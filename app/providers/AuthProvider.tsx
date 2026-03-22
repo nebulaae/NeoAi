@@ -15,7 +15,6 @@ function parseJwt(token: string) {
 
 function getInitialUser(): TelegramUser | null {
   if (typeof window === 'undefined') return null;
-
   try {
     const stored = sessionStorage.getItem('tg_user');
     if (stored) return JSON.parse(stored);
@@ -29,34 +28,34 @@ function getInitialUser(): TelegramUser | null {
       return decoded.user;
     }
   } catch {}
-
   return null;
 }
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<TelegramUser | null>(() => getInitialUser());
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<TelegramUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const initialUser = getInitialUser();
+    setUser(initialUser);
     setIsLoading(false);
   }, []);
 
-  const login = (userData: TelegramUser) => {
-    setUser(userData);
-    sessionStorage.setItem('tg_user', JSON.stringify(userData));
+  const login = (newUser: TelegramUser) => {
+    setUser(newUser);
+    sessionStorage.setItem('tg_user', JSON.stringify(newUser));
   };
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('tg_user');
     localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('tg_user');
+    window.location.href = '/login';
   };
-
-  if (isLoading) return null;
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
