@@ -1,5 +1,26 @@
 import axios from 'axios';
 
+function getUserId(): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = sessionStorage.getItem('tg_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      return user?.id ?? null;
+    }
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      const base64 = token.split('.')[1];
+      if (base64) {
+        const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+        const decoded = JSON.parse(json);
+        return decoded?.user?.id ?? null;
+      }
+    }
+  } catch { }
+  return null;
+}
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
@@ -21,7 +42,13 @@ api.interceptors.request.use((config) => {
     }
 
     const botId = process.env.NEXT_PUBLIC_BOT_ID;
-    config.params = { ...config.params, bot_id: botId };
+    const userId = getUserId();
+
+    config.params = {
+      ...config.params,
+      bot_id: botId,
+      ...(userId ? { user_id: userId } : {}),
+    };
   }
   return config;
 });

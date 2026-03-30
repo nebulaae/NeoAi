@@ -3,16 +3,25 @@
 import { useUser } from '@/hooks/useUser';
 import { useRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
-import { useReferrals, usePaymentLink } from '@/hooks/useApiExtras';
+import {
+  useReferrals,
+  usePaymentLink,
+  useApiTokens,
+  useGenerateApiToken,
+  useChangePassword,
+  useRemoveAuthMethod,
+  useAuthMethodLink,
+} from '@/hooks/useApiExtras';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut, Users, Star, Loader2, ExternalLink } from 'lucide-react';
+import { LogOut, Users, Star, Loader2, ExternalLink, Key, Copy, Check } from 'lucide-react';
 import { GenerationsEmpty } from '@/components/states/Empty';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   completed: { color: 'text-emerald-500', label: 'Готово' },
@@ -25,6 +34,8 @@ export const Profile = () => {
   const { data: userData, isLoading: userLoading } = useUser();
   const { data: refData } = useReferrals();
   const { data: paymentUrl } = usePaymentLink();
+  const { data: apiTokens } = useApiTokens();
+  const generateToken = useGenerateApiToken();
   const {
     data: reqData,
     isLoading: reqLoading,
@@ -32,6 +43,8 @@ export const Profile = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useRequests();
+
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const tokens = userData?.user?.tokens ?? 0;
   const isPremium = userData?.user?.premium ?? false;
@@ -45,11 +58,26 @@ export const Profile = () => {
   const username = tgUser?.username || '';
 
   const handleTopUp = () => {
-    if (paymentUrl) {
-      window.open(paymentUrl, '_blank');
-    } else {
-      toast.error('Ссылка на оплату недоступна');
-    }
+    if (paymentUrl) window.open(paymentUrl, '_blank');
+    else toast.error('Ссылка на оплату недоступна');
+  };
+
+  const handleCopyToken = (token: string) => {
+    navigator.clipboard.writeText(token).then(() => {
+      setCopiedToken(token);
+      toast.success('Токен скопирован');
+      setTimeout(() => setCopiedToken(null), 2000);
+    });
+  };
+
+  const handleGenerateToken = () => {
+    generateToken.mutate(undefined, {
+      onSuccess: (data) => {
+        toast.success('Новый API-токен создан');
+        handleCopyToken(data.token);
+      },
+      onError: () => toast.error('Не удалось создать токен'),
+    });
   };
 
   return (
@@ -124,9 +152,7 @@ export const Profile = () => {
         {/* Referrals */}
         <div className="flex flex-col gap-1 p-4 rounded-2xl bg-secondary/50 border border-border/50 text-left">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">
-              Рефералы
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Рефералы</p>
             <Users className="size-3.5 text-muted-foreground/50" />
           </div>
           {!refStats ? (
@@ -141,6 +167,57 @@ export const Profile = () => {
       </div>
 
       <Separator />
+
+      {/* API Tokens */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            API-токены
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1.5 text-primary"
+            onClick={handleGenerateToken}
+            disabled={generateToken.isPending}
+          >
+            {generateToken.isPending
+              ? <Loader2 className="size-3 animate-spin" />
+              : <Key className="size-3" />}
+            Создать
+          </Button>
+        </div>
+
+        {!apiTokens || apiTokens.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Нет токенов. Создайте для доступа к API.</p>
+        ) : (
+          <div className="space-y-2">
+            {apiTokens.map((t: any) => (
+              <div
+                key={t.id}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-secondary/50 border border-border/40"
+              >
+                <code className="flex-1 text-xs text-muted-foreground truncate font-mono">
+                  {t.token}
+                </code>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {t.generations} запросов
+                </span>
+                <button
+                  onClick={() => handleCopyToken(t.token)}
+                  className="shrink-0 p-1 rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  {copiedToken === t.token
+                    ? <Check className="size-3.5 text-emerald-500" />
+                    : <Copy className="size-3.5 text-muted-foreground" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Separator className="mt-3" />
 
       {/* Generation history */}
       <div className="px-4 pt-4">
@@ -178,17 +255,11 @@ export const Profile = () => {
                   >
                     <div className="size-9 rounded-xl bg-secondary/60 border border-border/40 flex items-center justify-center shrink-0">
                       <span className="text-base">
-                        {req.status === 'completed'
-                          ? '✅'
-                          : req.status === 'error'
-                            ? '❌'
-                            : '⏳'}
+                        {req.status === 'completed' ? '✅' : req.status === 'error' ? '❌' : '⏳'}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {req.model}
-                      </p>
+                      <p className="text-sm font-medium truncate">{req.model}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {req.version} · {timeAgo(req.created_at)}
                       </p>
@@ -215,13 +286,8 @@ export const Profile = () => {
                   disabled={isFetchingNextPage}
                 >
                   {isFetchingNextPage ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
-                      Загрузка...
-                    </>
-                  ) : (
-                    'Загрузить ещё'
-                  )}
+                    <><Loader2 className="size-4 mr-2 animate-spin" />Загрузка...</>
+                  ) : 'Загрузить ещё'}
                 </Button>
               </div>
             )}

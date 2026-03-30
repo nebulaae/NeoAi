@@ -9,14 +9,11 @@ export interface GenerationRequest {
   status: 'completed' | 'processing' | 'error';
   cost: number;
   created_at: string;
-  result?: {
-    text?: string;
-    media?: Array<{ type: string; url?: string; input?: string }>;
-  };
 }
 
+// GET /reqs — история генераций (без inputs/result, только базовая инфа)
 const getRequests = async (limit: number, offset: number) => {
-  const { data } = await api.get('/api/requests', {
+  const { data } = await api.get('/api/reqs', {
     params: { limit, offset },
   });
   return data.requests as GenerationRequest[];

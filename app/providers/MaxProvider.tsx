@@ -1,47 +1,45 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
+// Аналогично TelegramProvider — только тихий авто-вход вне /login.
+// На странице /login авто-вход делает сам Login компонент.
 export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
-    const { login } = useAuth();
-    const sent = useRef(false);
+    const { user, login } = useAuth();
+    const pathname = usePathname();
+    const expanded = useRef(false);
 
     useEffect(() => {
-        const init = async () => {
-            const maxApp =
-                (window as any)?.max?.WebApp ||
-                (window as any)?.MaxApp ||
-                (window as any)?.VKWebApp;
+        const max =
+            (window as any)?.max?.WebApp ||
+            (window as any)?.MaxApp ||
+            (window as any)?.VKWebApp;
 
-            if (!maxApp?.initData || sent.current) return;
+        if (!max?.initData) return;
 
-            sent.current = true;
+        if (!expanded.current) {
+            try { max.ready?.(); max.expand?.(); } catch { }
+            expanded.current = true;
+        }
 
-            try {
-                maxApp.ready?.();
-                maxApp.expand?.();
-            } catch { }
+        if (user) return;
+        if (pathname?.includes('/login')) return;
 
-            try {
-                const res = await api.post('/api/auth/tma', {
-                    initData: maxApp.initData,
-                    bot_id: process.env.NEXT_PUBLIC_BOT_ID,
-                });
+        const token = localStorage.getItem('auth_token');
+        if (token) return;
 
-                localStorage.setItem('auth_token', res.data.token);
-                login(res.data.user);
-            } catch (e) {
-                console.error('Max auth failed', e);
-                sent.current = false;
-            }
-        };
+        api.post('/api/auth/tma', {
+            initData: max.initData,
+            platform: 'max',
+            bot_id: process.env.NEXT_PUBLIC_BOT_ID,
+        }).then(({ data }) => {
+            localStorage.setItem('auth_token', data.token);
+            login(data.user);
+        }).catch(() => { });
+    }, [pathname, user]);
 
-        init();
-        const interval = setInterval(init, 400);
-        return () => clearInterval(interval);
-    }, []);
-
-    return children;
+    return <>{children}</>;
 };

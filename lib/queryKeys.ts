@@ -13,4 +13,7 @@ export const queryKeys = {
     ['referrals', period, level] as const,
   botInfo: ['bot-info'] as const,
   paymentLink: ['payment-link'] as const,
+  posts: (params?: object) => ['posts', params] as const,
+  postLikes: (postId: number) => ['post-likes', postId] as const,
+  apiTokens: ['api-tokens'] as const,
 };
