@@ -8,6 +8,7 @@ import {
   convertMediaToInputs,
   normalizeResultMedia,
 } from '@/hooks/useGenerations';
+import { useAIModels } from '@/hooks/useModels';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import {
@@ -37,7 +38,6 @@ interface Message {
     image?: string[];
     video?: string[];
     audio?: string[];
-    // Старый формат совместимости
     media?: MediaItem[];
   };
   result?: { text?: string; media?: MediaItem[] };
@@ -47,21 +47,17 @@ interface Message {
   created_at?: string;
 }
 
-// Извлекаем медиа из inputs в единый формат { url, type }
 function extractDisplayMedia(
   inputs: Message['inputs']
 ): Array<{ url: string; type: string }> {
   const result: Array<{ url: string; type: string }> = [];
   if (!inputs) return result;
 
-  // Новый формат по доке (массивы строк)
   (inputs.image || []).forEach((url) => result.push({ url, type: 'image' }));
   (inputs.video || []).forEach((url) => result.push({ url, type: 'video' }));
   (inputs.audio || []).forEach((url) => result.push({ url, type: 'audio' }));
 
-  // Старый формат (совместимость с историей)
   (inputs.media || []).forEach((m) => {
-    // ФИКС: m.input или m.url — оба являются строкой URL, не File/Blob
     const url = m.url || m.input || '';
     if (url) result.push({ url, type: m.type || 'image' });
   });
@@ -69,13 +65,10 @@ function extractDisplayMedia(
   return result;
 }
 
-// Извлекаем медиа из result
-// Бэкенд может вернуть { url, type } или { input, type, format }
 function extractResultMedia(
   result: Message['result']
 ): Array<{ url: string; type: string }> {
   if (!result?.media) return [];
-  // используем normalizeResultMedia из useGenerations для единообразия
   return normalizeResultMedia(result.media);
 }
 
@@ -100,11 +93,25 @@ export default function ChatPage({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: messages, isLoading } = useChatHistory(params.dialogueId);
+  const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
 
   const msgs = (messages as Message[]) || [];
   const isProcessing = msgs.some((m) => m.status === 'processing');
+
+  // ФИКС Bug 2: определяем лимиты медиа из текущей модели/версии
+  const firstMsg = msgs[0];
+  const currentModel = allModels?.find((m) => m.tech_name === firstMsg?.model);
+  const currentVersion = currentModel?.versions?.find(
+    (v) => v.label === firstMsg?.version
+  );
+  // limit_media: { image: 1, video: 0 } etc. — null означает без ограничений
+  const limitMedia = currentVersion?.limit_media ?? null;
+
+  // Принимает ли модель медиафайлы
+  const canAttachMedia =
+    currentModel?.input?.some((t) => ['image', 'video', 'audio'].includes(t)) ?? true;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,11 +139,35 @@ export default function ChatPage({
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
+
+    const file = files[0];
+    const fileType = file.type.startsWith('image/')
+      ? 'image'
+      : file.type.startsWith('video/')
+        ? 'video'
+        : 'audio';
+
+    // ФИКС Bug 2: проверяем лимит до загрузки
+    if (limitMedia !== null) {
+      const limit = limitMedia[fileType] ?? 0;
+      const currentCount = uploadedFiles.filter((f) => f.type === fileType).length;
+      if (limit === 0) {
+        toast.error(`Модель не принимает ${fileType === 'image' ? 'изображения' : fileType === 'video' ? 'видео' : 'аудио'}`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      if (currentCount >= limit) {
+        toast.error(`Максимум ${limit} файл(ов) типа ${fileType}`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+    }
+
     try {
-      const res = await upload.mutateAsync(files[0]);
+      const res = await upload.mutateAsync(file);
       setUploadedFiles((prev) => [
         ...prev,
-        { url: res.url, type: res.type, file: files[0] },
+        { url: res.url, type: res.type, file },
       ]);
     } catch {
       toast.error('Ошибка загрузки файла');
@@ -154,7 +185,6 @@ export default function ChatPage({
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
 
-    const firstMsg = msgs?.[0];
     if (!firstMsg?.model) {
       toast.error('Не удалось определить модель диалога');
       return;
@@ -179,6 +209,7 @@ export default function ChatPage({
         onSuccess: () => {
           setText('');
           setUploadedFiles([]);
+          // ФИКС Bug 3: инвалидируем историю чтобы начался polling
           queryClient.invalidateQueries({
             queryKey: queryKeys.chatHistory(params.dialogueId),
           });
@@ -194,8 +225,17 @@ export default function ChatPage({
     }
   };
 
-  const firstMsg = msgs[0];
   const chatTitle = firstMsg?.version || firstMsg?.model || 'Диалог';
+
+  // Допустимые типы файлов для input[accept]
+  const acceptTypes = (() => {
+    if (!currentModel) return 'image/*,.heic,video/*,audio/*';
+    const accepts: string[] = [];
+    if (currentModel.input?.includes('image')) accepts.push('image/*,.heic');
+    if (currentModel.input?.includes('video')) accepts.push('video/*');
+    if (currentModel.input?.includes('audio')) accepts.push('audio/*');
+    return accepts.join(',') || 'image/*,.heic,video/*,audio/*';
+  })();
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -263,8 +303,6 @@ export default function ChatPage({
                           {userMedia.map((m, i) => (
                             <button key={i} onClick={() => setViewerSrc(m)}>
                               {m.type === 'image' ? (
-                                // ФИКС: m.url — это строка URL с сервера, не File/Blob
-                                // Никогда не передаём в createObjectURL
                                 <img
                                   src={m.url}
                                   alt=""
@@ -315,7 +353,6 @@ export default function ChatPage({
                             {resultMedia.map((m, i) => (
                               <div key={i} className="relative group">
                                 {m.type === 'image' ? (
-                                  // ФИКС: m.url — строка URL, просто ставим в src
                                   <img
                                     src={m.url}
                                     alt="Generated"
@@ -415,8 +452,6 @@ export default function ChatPage({
                 className="relative size-16 rounded-xl overflow-hidden border border-border/50"
               >
                 {f.type === 'image' ? (
-                  // ФИКС: используем f.url (серверный URL) вместо createObjectURL
-                  // createObjectURL(file) кидает ошибку если file undefined/неверный тип
                   <img
                     src={f.url}
                     alt=""
@@ -439,24 +474,29 @@ export default function ChatPage({
         )}
 
         <div className="flex items-end gap-2">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={upload.isPending}
-            className="shrink-0 size-9 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/70 transition-colors disabled:opacity-50"
-          >
-            {upload.isPending ? (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            ) : (
-              <ImagePlus className="size-4 text-muted-foreground" />
-            )}
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/*,.heic,video/*,audio/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+          {/* ФИКС Bug 2: кнопка медиа скрыта если модель не принимает файлы */}
+          {canAttachMedia && (
+            <>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={upload.isPending}
+                className="shrink-0 size-9 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/70 transition-colors disabled:opacity-50"
+              >
+                {upload.isPending ? (
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <ImagePlus className="size-4 text-muted-foreground" />
+                )}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept={acceptTypes}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </>
+          )}
 
           <textarea
             ref={textareaRef}

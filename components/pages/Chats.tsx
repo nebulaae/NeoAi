@@ -59,7 +59,6 @@ export const Chats = () => {
       return;
     }
 
-    // Если передана роль — ищем текстовую модель из списка, или берём первую текстовую
     let techName: string | null = null;
     let version: string | undefined;
 
@@ -74,7 +73,6 @@ export const Chats = () => {
       const def = model.versions?.find((v) => v.default) || model.versions?.[0];
       version = def?.label;
     } else if (roleParam && role) {
-      // Ищем подходящую текстовую модель
       const textModel = models?.find(
         (m) => m.categories?.includes('text') || m.mainCategory === 'text'
       );
@@ -92,7 +90,9 @@ export const Chats = () => {
 
     startedRef.current = true;
 
-    const inputs = convertMediaToInputs(' ', []);
+    // ФИКС: отправляем осмысленный текст вместо пробела,
+    // чтобы бэкенд не отверг пустой запрос
+    const inputs = convertMediaToInputs('Привет', []);
     generate.mutate(
       {
         tech_name: techName,
@@ -103,8 +103,14 @@ export const Chats = () => {
       {
         onSuccess: (data) => {
           if (data.dialogue_id) {
+            // ФИКС: перенаправляем на чат независимо от статуса (sync или async).
+            // При async (processing) чат уже создан с dialogue_id — открываем его,
+            // polling внутри ChatPage сам подхватит результат.
             router.replace(`/chats/${data.dialogue_id}`);
           } else {
+            // Нет dialogue_id — необычная ситуация, остаёмся в чатах
+            toast.error('Не удалось получить ID диалога');
+            startedRef.current = false;
             router.replace('/chats');
           }
         },

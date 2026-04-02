@@ -41,7 +41,6 @@ export const useChatHistory = (dialogueId: string | null) => {
 };
 
 // GET /chats/history — polling последнего сообщения для Generate страницы
-// Используется когда бэкенд вернул status: "processing" (асинхронная генерация)
 export const useGenerationStatus = (
   dialogueId: string | null,
   enabled: boolean
@@ -61,7 +60,6 @@ export const useGenerationStatus = (
     refetchInterval: (query) => {
       const last = query.state.data;
       if (!last || last.status === 'processing') return 2000;
-      // Когда завершилось — инвалидируем связанные запросы
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
       queryClient.invalidateQueries({ queryKey: queryKeys.requests });
       queryClient.invalidateQueries({
@@ -272,19 +270,24 @@ export const useSetChatAvatar = () => {
 
 // ============================================================
 // GET /tokens — список API-токенов пользователя
-// ФИКС: interceptor добавляет bot_id + user_id автоматически
-// из localStorage.auth_user_id (выставляется при любом логине)
+// ФИКС Bug 5: если бэкенд вернул 404 (эндпоинт не существует),
+// возвращаем пустой массив вместо краша страницы профиля
 // ============================================================
 export const useApiTokens = () => {
   return useQuery({
     queryKey: queryKeys.apiTokens,
     queryFn: async () => {
-      const { data } = await api.get('/api/tokens');
-      if (!data.success)
-        throw new Error(data.error || 'Failed to fetch tokens');
-      return data.items || [];
+      try {
+        const { data } = await api.get('/api/tokens');
+        if (!data.success) return [];
+        return data.items || [];
+      } catch (err: any) {
+        // 404 — эндпоинт не реализован на сервере, gracefully возвращаем []
+        if (err?.response?.status === 404) return [];
+        throw err;
+      }
     },
-    retry: 1,
+    retry: false,
   });
 };
 
@@ -399,7 +402,6 @@ export const useAddAuthMethod = () => {
 };
 
 // POST /auth/create/email — регистрация нового пользователя по email
-// ВАЖНО: этот эндпоинт требует только bot_id в query, без Bearer / X-Init-Data
 export const useCreateEmailAccount = () => {
   return useMutation({
     mutationFn: async (payload: {
@@ -410,7 +412,6 @@ export const useCreateEmailAccount = () => {
       avatar?: string;
     }) => {
       const botId = process.env.NEXT_PUBLIC_BOT_ID;
-      // Используем прямой URL чтобы interceptor не добавил X-Init-Data
       const { data } = await api.post(
         `/api/auth/create/email?bot_id=${botId}`,
         {
@@ -424,6 +425,30 @@ export const useCreateEmailAccount = () => {
         session_hash: string;
         session_data: { id: number; time: number };
       };
+    },
+  });
+};
+
+// POST /chats/title — изменить заголовок диалога
+export const useSetChatTitle = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      dialogueId,
+      title,
+    }: {
+      dialogueId: string;
+      title: string;
+    }) => {
+      const { data } = await api.post('/api/chats/title', {
+        dialogue_id: dialogueId,
+        title,
+      });
+      if (!data.success) throw new Error(data.error);
+      return data as { success: true; title: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chats });
     },
   });
 };

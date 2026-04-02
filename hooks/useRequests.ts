@@ -15,7 +15,7 @@ export interface GenerationRequest {
 // ФИКС: bot_id и user_id добавляются через interceptor в api.ts автоматически
 // Убедись что пользователь авторизован перед вызовом
 const getRequests = async (limit: number, offset: number) => {
-  const { data } = await api.get('/api/reqs', {
+  const { data } = await api.get('/api/requests', {
     params: { limit, offset },
   });
   if (!data.success && data.error) throw new Error(data.error);
