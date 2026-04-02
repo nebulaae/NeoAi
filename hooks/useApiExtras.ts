@@ -272,9 +272,8 @@ export const useSetChatAvatar = () => {
 
 // ============================================================
 // GET /tokens — список API-токенов пользователя
-// ФИКС: /api/tokens требует bot_id + user_id в query.
-// Interceptor добавляет их автоматически, но только если
-// user_id доступен из sessionStorage/localStorage.
+// ФИКС: interceptor добавляет bot_id + user_id автоматически
+// из localStorage.auth_user_id (выставляется при любом логине)
 // ============================================================
 export const useApiTokens = () => {
   return useQuery({
@@ -285,7 +284,6 @@ export const useApiTokens = () => {
         throw new Error(data.error || 'Failed to fetch tokens');
       return data.items || [];
     },
-    // Не делаем запрос если нет авторизации
     retry: 1,
   });
 };
@@ -401,6 +399,7 @@ export const useAddAuthMethod = () => {
 };
 
 // POST /auth/create/email — регистрация нового пользователя по email
+// ВАЖНО: этот эндпоинт требует только bot_id в query, без Bearer / X-Init-Data
 export const useCreateEmailAccount = () => {
   return useMutation({
     mutationFn: async (payload: {
@@ -410,10 +409,15 @@ export const useCreateEmailAccount = () => {
       lang?: string;
       avatar?: string;
     }) => {
-      const { data } = await api.post('/api/auth/create/email', {
-        ...payload,
-        lang: payload.lang ?? 'ru',
-      });
+      const botId = process.env.NEXT_PUBLIC_BOT_ID;
+      // Используем прямой URL чтобы interceptor не добавил X-Init-Data
+      const { data } = await api.post(
+        `/api/auth/create/email?bot_id=${botId}`,
+        {
+          ...payload,
+          lang: payload.lang ?? 'ru',
+        }
+      );
       if (!data.success) throw new Error(data.error);
       return data as {
         success: true;

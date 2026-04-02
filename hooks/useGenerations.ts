@@ -22,6 +22,24 @@ export interface GenerateAIParams {
   callback_webhook?: string;
 }
 
+// Нормализует медиа из ответа бэкенда в единый формат { url, type }
+// Бэкенд может вернуть:
+//   { type: "image", format: "url", input: "https://..." }   ← старый формат
+//   { type: "image", url: "https://..." }                    ← новый формат
+//   { type: "image", format: "url", input: "https://..." }   ← смешанный
+export function normalizeResultMedia(
+  media: any[]
+): Array<{ url: string; type: string }> {
+  if (!Array.isArray(media)) return [];
+  return media
+    .map((m) => ({
+      // Поддерживаем оба формата: m.url и m.input
+      url: m.url || m.input || '',
+      type: m.type || 'image',
+    }))
+    .filter((m) => m.url);
+}
+
 // Хелпер: конвертирует старый формат media[] → новый inputs по доке
 export function convertMediaToInputs(
   text: string | null | undefined,

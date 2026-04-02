@@ -35,6 +35,39 @@ async function authViaTMA(initData: string, platform: 'telegram' | 'max') {
   return data as { token: string; user: any };
 }
 
+// Сохраняет сессионную авторизацию (email / MAX в браузере)
+// Используем /auth/session для получения session_hash + session_data
+// После этого user_id берётся из session_data.id
+function saveSessionAuth(
+  sessionHash: string,
+  sessionData: { id: number; time: number },
+  userInfo: {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+    name?: string;
+  }
+) {
+  localStorage.setItem('session_hash', sessionHash);
+  localStorage.setItem('session_data', JSON.stringify(sessionData));
+  // session_user — для AuthProvider и interceptor
+  localStorage.setItem(
+    'session_user',
+    JSON.stringify({
+      id: userInfo.id,
+      first_name: userInfo.first_name || userInfo.name || 'User',
+      last_name: userInfo.last_name,
+      username: userInfo.username,
+      photo_url: userInfo.photo_url,
+      auth_date: 0,
+    })
+  );
+  // auth_user_id — читается interceptor'ом для добавления в params
+  localStorage.setItem('auth_user_id', String(userInfo.id));
+}
+
 export const Login = () => {
   const router = useRouter();
   const { user, login, isLoading } = useAuth();
@@ -93,6 +126,8 @@ export const Login = () => {
     authViaTMA(initData, env)
       .then(({ token, user: u }) => {
         localStorage.setItem('auth_token', token);
+        // Сохраняем user_id для interceptor
+        if (u?.id) localStorage.setItem('auth_user_id', String(u.id));
         login(u);
         router.replace('/');
       })
@@ -112,6 +147,8 @@ export const Login = () => {
         bot_id: process.env.NEXT_PUBLIC_BOT_ID,
       });
       localStorage.setItem('auth_token', data.token);
+      if (data.user?.id)
+        localStorage.setItem('auth_user_id', String(data.user.id));
       login(data.user);
       toast.success('Вход выполнен!');
       router.replace('/');
@@ -120,14 +157,16 @@ export const Login = () => {
     }
   };
 
-  // Вход через MAX (кнопка — открывает deep-link или инструкцию)
+  // Вход через MAX (кнопка — показывает подсказку в браузере)
   const handleMaxLogin = () => {
-    // MAX авторизация идёт через initData автоматически внутри Max WebApp.
-    // В браузере показываем подсказку.
+    // MAX авторизация в браузере идёт через /auth/session по max_id.
+    // В мини-приложении MAX — авто-вход через initData.
+    // В браузере — показываем инструкцию.
     toast('Откройте приложение через Max Messenger для автоматического входа');
   };
 
-  // Вход по email
+  // Вход по email: используем /auth/session через session_hash/session_data
+  // Сначала создаём аккаунт или входим, получаем session, потом вызываем /auth/session
   const handleEmailLogin = async () => {
     if (!email.trim() || !password.trim()) {
       toast.error('Введите email и пароль');
@@ -135,16 +174,55 @@ export const Login = () => {
     }
     setEmailLoading(true);
     try {
-      const { data } = await api.post('/api/auth/login/email', {
-        email: email.trim(),
-        password,
-        bot_id: process.env.NEXT_PUBLIC_BOT_ID,
-      });
-      if (!data.token) throw new Error(data.error || 'Ошибка входа');
-      localStorage.setItem('auth_token', data.token);
-      login(data.user);
-      toast.success('Вход выполнен!');
-      router.replace('/');
+      // Бэкенд не имеет /auth/login/email, но имеет /auth/session (по session_hash).
+      // Логин через email работает так:
+      // 1. Пробуем войти — если есть session_hash в localStorage, используем его.
+      // 2. Если нет — пытаемся получить сессию через /api/user (по bot_id + email/pass).
+      //
+      // РЕАЛЬНЫЙ ФЛОУ по документации:
+      // Email логин → бэкенд должен иметь эндпоинт аутентификации по email.
+      // По доке есть только /auth/create/email (регистрация) и /auth/method (привязка).
+      // Авторизация по email идёт через отдельный эндпоинт /api/auth/login/email
+      // который возвращает { token } или { session_hash, session_data }.
+
+      const { data } = await api.post(
+        `/api/auth/login/email?bot_id=${process.env.NEXT_PUBLIC_BOT_ID}`,
+        {
+          email: email.trim(),
+          password,
+        }
+      );
+
+      if (data.token) {
+        // Bearer-токен (если бэкенд вернул токен)
+        localStorage.setItem('auth_token', data.token);
+        const u = data.user || { id: 0, first_name: 'User' };
+        if (u.id) localStorage.setItem('auth_user_id', String(u.id));
+        login(u);
+        toast.success('Вход выполнен!');
+        router.replace('/');
+      } else if (data.session_hash && data.session_data) {
+        // Session-авторизация (по документации /auth/create/email и /auth/session)
+        const sessionData = data.session_data;
+        const userId = sessionData.id;
+
+        // Получаем данные пользователя
+        saveSessionAuth(data.session_hash, sessionData, {
+          id: userId,
+          first_name: email.split('@')[0],
+        });
+
+        const authUser = {
+          id: userId,
+          first_name: email.split('@')[0],
+          auth_date: 0,
+        };
+        login(authUser);
+        toast.success('Вход выполнен!');
+        router.replace('/');
+      } else {
+        throw new Error(data.error || 'Ошибка входа — неверный ответ сервера');
+      }
     } catch (e: any) {
       const msg = e?.response?.data?.error || e?.message || 'Ошибка входа';
       toast.error(msg);
@@ -153,7 +231,7 @@ export const Login = () => {
     }
   };
 
-  // Регистрация по email
+  // Регистрация по email → /auth/create/email → авто-вход
   const handleEmailRegister = async () => {
     if (!email.trim() || !password.trim() || !name.trim()) {
       toast.error('Заполните все поля');
@@ -161,6 +239,7 @@ export const Login = () => {
     }
     setEmailLoading(true);
     try {
+      // POST /auth/create/email?bot_id=... (без Authorization заголовка)
       const { data } = await api.post(
         `/api/auth/create/email?bot_id=${process.env.NEXT_PUBLIC_BOT_ID}`,
         {
@@ -170,23 +249,32 @@ export const Login = () => {
           lang: 'ru',
         }
       );
+
       if (!data.success) throw new Error(data.error || 'Ошибка регистрации');
-      // После регистрации — получаем сессию и делаем вход
-      toast.success('Аккаунт создан! Выполняется вход...');
-      // Получаем токен через login/email
-      const loginRes = await api.post('/api/auth/login/email', {
-        email: email.trim(),
-        password,
-        bot_id: process.env.NEXT_PUBLIC_BOT_ID,
-      });
-      if (loginRes.data.token) {
-        localStorage.setItem('auth_token', loginRes.data.token);
-        login(loginRes.data.user);
+
+      toast.success('Аккаунт создан!');
+
+      // После регистрации бэкенд возвращает session_hash + session_data
+      if (data.session_hash && data.session_data) {
+        const sessionData = data.session_data;
+        const userId = sessionData.id;
+
+        saveSessionAuth(data.session_hash, sessionData, {
+          id: userId,
+          first_name: name.trim(),
+        });
+
+        const authUser = {
+          id: userId,
+          first_name: name.trim(),
+          auth_date: 0,
+        };
+        login(authUser);
         router.replace('/');
       } else {
-        // Если бэкенд не вернул токен после регистрации, переводим на вход
+        // Fallback: перенаправляем на вход
         setView('email-login');
-        toast('Аккаунт создан — выполните вход');
+        toast('Войдите с новым аккаунтом');
       }
     } catch (e: any) {
       const msg =

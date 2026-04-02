@@ -3,7 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChatHistory, useUpload } from '@/hooks/useApiExtras';
-import { useGenerateAI, convertMediaToInputs } from '@/hooks/useGenerations';
+import {
+  useGenerateAI,
+  convertMediaToInputs,
+  normalizeResultMedia,
+} from '@/hooks/useGenerations';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import {
@@ -20,6 +24,7 @@ interface MediaItem {
   type?: string;
   url?: string;
   input?: string;
+  format?: string;
 }
 
 interface Message {
@@ -29,11 +34,10 @@ interface Message {
   role_id?: number | null;
   inputs?: {
     text?: string;
-    // По доке: массивы строк
     image?: string[];
     video?: string[];
     audio?: string[];
-    // Старый формат для совместимости с историей
+    // Старый формат совместимости
     media?: MediaItem[];
   };
   result?: { text?: string; media?: MediaItem[] };
@@ -43,20 +47,21 @@ interface Message {
   created_at?: string;
 }
 
-// Извлекаем все медиа из сообщения истории в единый формат для отображения
+// Извлекаем медиа из inputs в единый формат { url, type }
 function extractDisplayMedia(
   inputs: Message['inputs']
 ): Array<{ url: string; type: string }> {
   const result: Array<{ url: string; type: string }> = [];
   if (!inputs) return result;
 
-  // Новый формат (по доке)
+  // Новый формат по доке (массивы строк)
   (inputs.image || []).forEach((url) => result.push({ url, type: 'image' }));
   (inputs.video || []).forEach((url) => result.push({ url, type: 'video' }));
   (inputs.audio || []).forEach((url) => result.push({ url, type: 'audio' }));
 
-  // Старый формат (совместимость)
+  // Старый формат (совместимость с историей)
   (inputs.media || []).forEach((m) => {
+    // ФИКС: m.input или m.url — оба являются строкой URL, не File/Blob
     const url = m.url || m.input || '';
     if (url) result.push({ url, type: m.type || 'image' });
   });
@@ -64,13 +69,14 @@ function extractDisplayMedia(
   return result;
 }
 
+// Извлекаем медиа из result
+// Бэкенд может вернуть { url, type } или { input, type, format }
 function extractResultMedia(
   result: Message['result']
 ): Array<{ url: string; type: string }> {
   if (!result?.media) return [];
-  return result.media
-    .map((m) => ({ url: m.url || m.input || '', type: m.type || 'image' }))
-    .filter((m) => m.url);
+  // используем normalizeResultMedia из useGenerations для единообразия
+  return normalizeResultMedia(result.media);
 }
 
 export default function ChatPage({
@@ -154,7 +160,6 @@ export default function ChatPage({
       return;
     }
 
-    // Конвертируем загруженные файлы в формат по документации
     const oldFormatMedia = uploadedFiles.map((f) => ({
       type: f.type,
       format: 'url',
@@ -258,6 +263,8 @@ export default function ChatPage({
                           {userMedia.map((m, i) => (
                             <button key={i} onClick={() => setViewerSrc(m)}>
                               {m.type === 'image' ? (
+                                // ФИКС: m.url — это строка URL с сервера, не File/Blob
+                                // Никогда не передаём в createObjectURL
                                 <img
                                   src={m.url}
                                   alt=""
@@ -267,9 +274,10 @@ export default function ChatPage({
                                 <video
                                   src={m.url}
                                   className="max-h-36 rounded-lg"
+                                  controls={false}
                                 />
                               ) : (
-                                <div className="flex items-center gap-1 text-xs opacity-80">
+                                <div className="px-3 py-2 bg-primary-foreground/10 rounded-lg text-xs flex items-center gap-1.5">
                                   🎵 Аудио
                                 </div>
                               )}
@@ -281,79 +289,72 @@ export default function ChatPage({
                   </div>
                 )}
 
-                {/* Assistant response */}
+                {/* AI result */}
                 <div className="flex justify-start">
-                  <div className="bg-secondary/70 border border-border/40 text-foreground rounded-2xl rounded-tl-md px-3.5 py-2.5 max-w-[82%] text-sm">
+                  <div className="max-w-[82%]">
                     {msg.status === 'processing' ? (
-                      <div className="flex items-center gap-2 text-muted-foreground py-0.5">
-                        <div className="flex gap-1">
-                          {[0, 1, 2].map((i) => (
-                            <span
-                              key={i}
-                              className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce"
-                              style={{ animationDelay: `${i * 0.15}s` }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs">Генерация...</span>
+                      <div className="flex items-center gap-2 px-3.5 py-2.5 bg-secondary rounded-2xl rounded-tl-md">
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Генерация...
+                        </span>
                       </div>
                     ) : msg.status === 'error' ? (
-                      <p className="text-red-400 text-sm">
-                        ❌ {msg.error || 'Ошибка генерации'}
-                      </p>
+                      <div className="px-3.5 py-2.5 bg-destructive/10 border border-destructive/20 rounded-2xl rounded-tl-md text-sm text-destructive">
+                        {msg.error || 'Ошибка генерации'}
+                      </div>
                     ) : (
-                      <>
+                      <div className="space-y-2">
                         {msg.result?.text && (
-                          <p className="whitespace-pre-wrap leading-relaxed">
+                          <div className="px-3.5 py-2.5 bg-secondary rounded-2xl rounded-tl-md text-sm leading-relaxed whitespace-pre-wrap">
                             {msg.result.text}
-                          </p>
+                          </div>
                         )}
                         {resultMedia.length > 0 && (
-                          <div className="mt-2 space-y-2">
+                          <div className="flex flex-wrap gap-2">
                             {resultMedia.map((m, i) => (
                               <div key={i} className="relative group">
                                 {m.type === 'image' ? (
-                                  <>
-                                    <img
-                                      src={m.url}
-                                      alt=""
-                                      className="rounded-xl max-w-full cursor-pointer hover:opacity-95 transition-opacity"
-                                      onClick={() => setViewerSrc(m)}
-                                    />
-                                    <a
-                                      href={m.url}
-                                      download
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg p-1.5 backdrop-blur-sm"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <Download className="size-3.5 text-white" />
-                                    </a>
-                                  </>
+                                  // ФИКС: m.url — строка URL, просто ставим в src
+                                  <img
+                                    src={m.url}
+                                    alt="Generated"
+                                    className="max-w-[260px] max-h-[260px] rounded-2xl object-cover cursor-pointer"
+                                    onClick={() => setViewerSrc(m)}
+                                  />
                                 ) : m.type === 'video' ? (
                                   <video
                                     src={m.url}
+                                    className="max-w-[260px] max-h-[260px] rounded-2xl"
                                     controls
-                                    className="rounded-xl max-w-full"
                                   />
-                                ) : m.type === 'audio' ? (
+                                ) : (
                                   <audio
                                     src={m.url}
                                     controls
-                                    className="w-full mt-1"
+                                    className="rounded-lg"
                                   />
-                                ) : null}
+                                )}
+                                <a
+                                  href={m.url}
+                                  download
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Download className="size-3.5" />
+                                </a>
                               </div>
                             ))}
                           </div>
                         )}
-                        {msg.cost && (
-                          <p className="text-[10px] text-muted-foreground/50 mt-1.5 text-right">
-                            {msg.cost} 💎
-                          </p>
+                        {!msg.result?.text && resultMedia.length === 0 && (
+                          <div className="px-3.5 py-2.5 bg-secondary rounded-2xl rounded-tl-md text-sm text-muted-foreground italic">
+                            Ответ получен
+                          </div>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -364,23 +365,65 @@ export default function ChatPage({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input bar */}
-      <div className="shrink-0 border-t border-border/50 bg-background/90 backdrop-blur-xl p-3">
+      {/* Media viewer */}
+      {viewerSrc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setViewerSrc(null)}
+        >
+          {viewerSrc.type === 'image' ? (
+            <img
+              src={viewerSrc.url}
+              alt=""
+              className="max-w-full max-h-full object-contain rounded-xl"
+            />
+          ) : viewerSrc.type === 'video' ? (
+            <video
+              src={viewerSrc.url}
+              className="max-w-full max-h-full rounded-xl"
+              controls
+              autoPlay
+            />
+          ) : null}
+          <button
+            className="absolute top-4 right-4 p-2 bg-white/10 rounded-full"
+            onClick={() => setViewerSrc(null)}
+          >
+            <X className="size-5 text-white" />
+          </button>
+          <a
+            href={viewerSrc.url}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-6 right-6 p-3 bg-white/10 rounded-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download className="size-5 text-white" />
+          </a>
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="shrink-0 border-t border-border/50 bg-background/90 backdrop-blur-xl px-4 py-3 pb-safe">
+        {/* Uploaded previews */}
         {uploadedFiles.length > 0 && (
           <div className="flex gap-2 mb-2 flex-wrap">
             {uploadedFiles.map((f, i) => (
               <div
                 key={i}
-                className="relative size-14 rounded-xl overflow-hidden border border-border/50"
+                className="relative size-16 rounded-xl overflow-hidden border border-border/50"
               >
                 {f.type === 'image' ? (
+                  // ФИКС: используем f.url (серверный URL) вместо createObjectURL
+                  // createObjectURL(file) кидает ошибку если file undefined/неверный тип
                   <img
-                    src={URL.createObjectURL(f.file)}
-                    className="w-full h-full object-cover"
+                    src={f.url}
                     alt=""
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-secondary flex items-center justify-center text-lg">
+                  <div className="w-full h-full bg-secondary flex items-center justify-center text-xl">
                     {f.type === 'video' ? '🎬' : '🎵'}
                   </div>
                 )}
@@ -388,102 +431,60 @@ export default function ChatPage({
                   onClick={() => removeFile(i)}
                   className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5"
                 >
-                  <X className="size-2.5 text-white" />
+                  <X className="size-3 text-white" />
                 </button>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex items-end gap-2 bg-secondary/50 rounded-2xl border border-border/40 px-2 py-2">
+        <div className="flex items-end gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={upload.isPending}
+            className="shrink-0 size-9 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/70 transition-colors disabled:opacity-50"
+          >
+            {upload.isPending ? (
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            ) : (
+              <ImagePlus className="size-4 text-muted-foreground" />
+            )}
+          </button>
           <input
-            ref={fileInputRef}
             type="file"
+            ref={fileInputRef}
             accept="image/*,.heic,video/*,audio/*"
             onChange={handleFileUpload}
             className="hidden"
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={upload.isPending}
-            className="size-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all shrink-0 active:scale-90"
-          >
-            {upload.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ImagePlus className="size-4" />
-            )}
-          </button>
 
           <textarea
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Сообщение..."
+            placeholder="Напишите сообщение..."
             rows={1}
-            disabled={isProcessing}
-            className="flex-1 bg-transparent text-sm resize-none outline-none leading-relaxed py-1.5 min-h-9 max-h-30 placeholder:text-muted-foreground/60 disabled:opacity-50"
+            className="flex-1 resize-none bg-secondary rounded-2xl px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground max-h-[120px] overflow-y-auto"
           />
 
           <button
             onClick={handleSend}
             disabled={
-              (!text.trim() && uploadedFiles.length === 0) ||
+              isProcessing ||
               generate.isPending ||
-              isProcessing
+              (!text.trim() && uploadedFiles.length === 0)
             }
-            className="size-9 flex items-center justify-center rounded-xl bg-primary text-primary-foreground shrink-0 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90"
+            className="shrink-0 size-9 flex items-center justify-center rounded-full bg-primary hover:bg-primary/90 transition-colors disabled:opacity-40"
           >
             {generate.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin text-primary-foreground" />
             ) : (
-              <Send className="size-4" />
+              <Send className="size-4 text-primary-foreground" />
             )}
           </button>
         </div>
       </div>
-
-      {/* Media viewer */}
-      {viewerSrc && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setViewerSrc(null)}
-        >
-          <button
-            className="absolute top-4 right-4 size-9 flex items-center justify-center rounded-full bg-white/10 text-white"
-            onClick={() => setViewerSrc(null)}
-          >
-            <X className="size-5" />
-          </button>
-          {viewerSrc.type === 'image' ? (
-            <img
-              src={viewerSrc.url}
-              alt=""
-              className="max-w-full max-h-full rounded-xl object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <video
-              src={viewerSrc.url}
-              controls
-              autoPlay
-              className="max-w-full max-h-full rounded-xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
-          <a
-            href={viewerSrc.url}
-            download
-            target="_blank"
-            rel="noreferrer"
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Download className="size-4" /> Скачать
-          </a>
-        </div>
-      )}
     </div>
   );
 }
