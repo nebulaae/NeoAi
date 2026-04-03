@@ -136,7 +136,11 @@ export const Generate = () => {
       format: 'url',
       input: m.url,
     }));
-    const inputs = convertMediaToInputs(prompt || null, oldFormatMedia);
+
+    const safeText = prompt.trim() || ' ';
+    const inputs = convertMediaToInputs(safeText, oldFormatMedia);
+
+    console.log('SEND INPUTS:', inputs);
 
     generate.mutate(
       {

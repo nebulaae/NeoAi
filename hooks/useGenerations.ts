@@ -40,20 +40,18 @@ export function normalizeResultMedia(
     .filter((m) => m.url);
 }
 
-// Хелпер: конвертирует старый формат media[] → новый inputs по доке
 export function convertMediaToInputs(
-  text: string | null | undefined,
-  media: Array<{ type: string; format: string; input: string }>
-): GenerateInputs {
-  const inputs: GenerateInputs = { text: text || null };
+  text: string | null,
+  media: { type: string; input: string }[]
+) {
+  const inputs: any = {};
 
-  const images = media.filter((m) => m.type === 'image').map((m) => m.input);
-  const videos = media.filter((m) => m.type === 'video').map((m) => m.input);
-  const audios = media.filter((m) => m.type === 'audio').map((m) => m.input);
+  if (text) inputs.text = text;
 
-  if (images.length) inputs.image = images;
-  if (videos.length) inputs.video = videos;
-  if (audios.length) inputs.audio = audios;
+  for (const m of media) {
+    if (!inputs[m.type]) inputs[m.type] = [];
+    inputs[m.type].push(m.input);
+  }
 
   return inputs;
 }

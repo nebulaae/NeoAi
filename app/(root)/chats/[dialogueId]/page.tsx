@@ -195,7 +195,11 @@ export default function ChatPage({
       format: 'url',
       input: f.url,
     }));
-    const inputs = convertMediaToInputs(text.trim() || null, oldFormatMedia);
+
+    const safeText = text.trim() || 'Опиши изображение';
+    const inputs = convertMediaToInputs(safeText, oldFormatMedia);
+
+    console.log('SEND INPUTS:', inputs);
 
     generate.mutate(
       {
