@@ -15,7 +15,6 @@ const items = [
 
 export const BottomBar = () => {
   const pathname = usePathname();
-
   const isChat = /^\/chats\/.+/.test(pathname);
   if (isChat) return null;
 
@@ -24,7 +23,6 @@ export const BottomBar = () => {
   useEffect(() => {
     let lastY = window.scrollY;
     let timer: ReturnType<typeof setTimeout>;
-
     const onScroll = () => {
       const curr = window.scrollY;
       setVisible(curr <= lastY || curr < 80);
@@ -32,23 +30,15 @@ export const BottomBar = () => {
       clearTimeout(timer);
       timer = setTimeout(() => setVisible(true), 1500);
     };
-
     const onActivity = () => {
       setVisible(true);
       clearTimeout(timer);
-      timer = setTimeout(() => setVisible(true), 3000);
     };
-
     window.addEventListener('scroll', onScroll, { passive: true });
-    ['touchstart', 'mousedown', 'keydown'].forEach((e) =>
-      window.addEventListener(e, onActivity, { passive: true })
-    );
-
+    ['touchstart', 'mousedown'].forEach(e => window.addEventListener(e, onActivity, { passive: true }));
     return () => {
       window.removeEventListener('scroll', onScroll);
-      ['touchstart', 'mousedown', 'keydown'].forEach((e) =>
-        window.removeEventListener(e, onActivity)
-      );
+      ['touchstart', 'mousedown'].forEach(e => window.removeEventListener(e, onActivity));
       clearTimeout(timer);
     };
   }, []);
@@ -58,37 +48,93 @@ export const BottomBar = () => {
 
   return (
     <nav
-      className="fixed md:hidden left-0 right-0 bottom-0 z-50 flex justify-center px-3 pb-3"
+      className="fixed md:hidden left-0 right-0 bottom-0 z-50 flex justify-center px-4"
       style={{
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         transform: visible ? 'translateY(0)' : 'translateY(120%)',
-        transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+        transition: 'transform 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
       }}
     >
-      <div className="flex items-center justify-evenly w-full max-w-[min(320px,calc(100vw-1rem))] rounded-3xl border border-border/40 py-1.5 px-1 backdrop-blur-2xl bg-background/85 shadow-2xl shadow-black/30">
-        {items.map((item) => {
+      {/* Pill container — chromeMaterial */}
+      <div
+        className="flex items-center justify-around w-full"
+        style={{
+          maxWidth: '320px',
+          padding: '8px 6px',
+          borderRadius: '9999px',
+          background: 'var(--glass-chrome)',
+          backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+          WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+          border: 'var(--glass-border-thick)',
+          boxShadow: 'var(--glass-specular), var(--glass-shadow-lg)',
+        }}
+      >
+        {items.map(item => {
           const active = isActive(item.href);
           const isCreate = item.id === 3;
+
           return (
             <Link
               key={item.id}
               href={item.href}
-              className={`relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-2xl transition-all duration-200 active:scale-90 ${isCreate
-                  ? 'bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 px-3'
-                  : active
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '6px 1px 6px 1px',
+                borderRadius: '9999px',
+                textDecoration: 'none',
+                transition: 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+                willChange: 'transform',
+                color: active || isCreate ? 'var(--sys-label)' : 'var(--sys-label-secondary)',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.88)')}
+              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              <item.icon
-                className="size-5"
-                strokeWidth={active || isCreate ? 2.2 : 1.6}
-              />
-              <span className="text-[9px] font-semibold leading-none tracking-wide">
+              {/* Icon container */}
+              <div
+                style={{
+                  width: '100%',
+                  height: 28,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '9999px',
+                  transition: 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+                  ...(isCreate ? {
+                    background: 'rgba(0, 122, 255, 0.85)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(0, 122, 255, 0.3)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 16px rgba(0,122,255,0.4)',
+                    color: '#fff',
+                  } : active ? {
+                    background: 'var(--glass-regular)',
+                    backdropFilter: 'blur(30px)',
+                    WebkitBackdropFilter: 'blur(30px)',
+                    border: 'var(--glass-border-thin)',
+                    boxShadow: 'var(--glass-specular), var(--glass-shadow-sm)',
+                  } : {}),
+                }}
+              >
+                <item.icon
+                  size={16}
+                  strokeWidth={active || isCreate ? 2.2 : 1.6}
+                />
+              </div>
+
+              {/* Label */}
+              <span style={{
+                fontSize: '9.5px',
+                fontWeight: 600,
+                letterSpacing: '0.1px',
+                lineHeight: 1,
+              }}>
                 {item.label}
               </span>
-              {active && !isCreate && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-              )}
             </Link>
           );
         })}

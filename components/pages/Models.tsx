@@ -45,8 +45,8 @@ export const Models = () => {
     tab === 'all'
       ? models || []
       : (models || []).filter(
-          (m) => m.categories?.includes(tab) || m.mainCategory === tab
-        );
+        (m) => m.categories?.includes(tab) || m.mainCategory === tab
+      );
 
   const handleModelClick = (techName: string, mainCategory?: string) => {
     if (mainCategory === 'text') {
@@ -57,9 +57,17 @@ export const Models = () => {
   };
 
   return (
-    <div className="flex flex-col h-full pb-24">
+    <div className="flex flex-col h-full pb-24" style={{ paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl px-4 py-3 border-b border-border/50">
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px',
+        backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+        WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+        borderBottom: 'var(--glass-border-thin)',
+        boxShadow: 'var(--glass-specular)',
+      }}>
         <span className="text-xl font-bold tracking-tight">Модели</span>
       </div>
 
@@ -69,11 +77,10 @@ export const Models = () => {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap active:scale-95 ${
-              tab === t.key
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap active:scale-95 ${tab === t.key
                 ? 'bg-foreground text-background'
                 : 'bg-secondary text-secondary-foreground hover:bg-secondary/70'
-            }`}
+              }`}
           >
             {t.label}
           </button>

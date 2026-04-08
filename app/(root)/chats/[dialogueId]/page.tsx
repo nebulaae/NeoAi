@@ -3,90 +3,83 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChatHistory, useUpload } from '@/hooks/useApiExtras';
-import {
-  useGenerateAI,
-  convertMediaToInputs,
-  normalizeResultMedia,
-} from '@/hooks/useGenerations';
+import { useGenerateAI, convertMediaToInputs, normalizeResultMedia } from '@/hooks/useGenerations';
 import { useAIModels } from '@/hooks/useModels';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import {
-  ChevronLeft,
-  Send,
-  ImagePlus,
-  Loader2,
-  X,
-  Download,
-} from 'lucide-react';
+import { ChevronLeft, Send, ImagePlus, Loader2, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface MediaItem {
-  type?: string;
-  url?: string;
-  input?: string;
-  format?: string;
-}
-
+/* ── Types ── */
+interface MediaItem { type?: string; url?: string; input?: string; format?: string; }
 interface Message {
-  id: number;
-  model: string;
-  version: string;
-  role_id?: number | null;
-  inputs?: {
-    text?: string;
-    image?: string[];
-    video?: string[];
-    audio?: string[];
-    media?: MediaItem[];
-  };
+  id: number; model: string; version: string; role_id?: number | null;
+  inputs?: { text?: string; image?: string[]; video?: string[]; audio?: string[]; media?: MediaItem[]; };
   result?: { text?: string; media?: MediaItem[] };
   status: 'completed' | 'processing' | 'error';
-  error?: string | null;
-  cost?: number;
-  created_at?: string;
+  error?: string | null; cost?: number; created_at?: string;
 }
 
-function extractDisplayMedia(
-  inputs: Message['inputs']
-): Array<{ url: string; type: string }> {
-  const result: Array<{ url: string; type: string }> = [];
-  if (!inputs) return result;
-
-  (inputs.image || []).forEach((url) => result.push({ url, type: 'image' }));
-  (inputs.video || []).forEach((url) => result.push({ url, type: 'video' }));
-  (inputs.audio || []).forEach((url) => result.push({ url, type: 'audio' }));
-
-  (inputs.media || []).forEach((m) => {
-    const url = m.url || m.input || '';
-    if (url) result.push({ url, type: m.type || 'image' });
-  });
-
-  return result;
+function extractDisplayMedia(inputs: Message['inputs']): Array<{ url: string; type: string }> {
+  const r: Array<{ url: string; type: string }> = [];
+  if (!inputs) return r;
+  (inputs.image || []).forEach(url => r.push({ url, type: 'image' }));
+  (inputs.video || []).forEach(url => r.push({ url, type: 'video' }));
+  (inputs.audio || []).forEach(url => r.push({ url, type: 'audio' }));
+  (inputs.media || []).forEach(m => { const url = m.url || m.input || ''; if (url) r.push({ url, type: m.type || 'image' }); });
+  return r;
+}
+function extractResultMedia(result: Message['result']) {
+  return result?.media ? normalizeResultMedia(result.media) : [];
 }
 
-function extractResultMedia(
-  result: Message['result']
-): Array<{ url: string; type: string }> {
-  if (!result?.media) return [];
-  return normalizeResultMedia(result.media);
-}
+/* ── Glass styles ── */
+const glass = (level: 'ultra-thin' | 'thin' | 'regular' | 'thick' | 'chrome' = 'regular') => ({
+  'ultra-thin': {
+    background: 'var(--glass-ultra-thin)',
+    backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+    WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+    border: 'var(--glass-border-thin)',
+    boxShadow: 'var(--glass-specular)',
+  },
+  thin: {
+    background: 'var(--glass-thin)',
+    backdropFilter: 'var(--blur-thin) var(--vibrancy)',
+    WebkitBackdropFilter: 'var(--blur-thin) var(--vibrancy)',
+    border: 'var(--glass-border-thin)',
+    boxShadow: 'var(--glass-specular), var(--glass-shadow-sm)',
+  },
+  regular: {
+    background: 'var(--glass-regular)',
+    backdropFilter: 'var(--blur-regular) var(--vibrancy)',
+    WebkitBackdropFilter: 'var(--blur-regular) var(--vibrancy)',
+    border: 'var(--glass-border-regular)',
+    boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
+  },
+  thick: {
+    background: 'var(--glass-thick)',
+    backdropFilter: 'var(--blur-thick) var(--vibrancy)',
+    WebkitBackdropFilter: 'var(--blur-thick) var(--vibrancy)',
+    border: 'var(--glass-border-thick)',
+    boxShadow: 'var(--glass-specular), var(--glass-shadow-lg)',
+  },
+  chrome: {
+    background: 'var(--glass-chrome)',
+    backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+    WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+    border: 'var(--glass-border-thick)',
+    boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
+  },
+})[level] as React.CSSProperties;
 
-export default function ChatPage({
-  params,
-}: {
-  params: { dialogueId: string };
-}) {
+const springTransition = 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+
+export default function ChatPage({ params }: { params: { dialogueId: string } }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<
-    { url: string; type: string; file: File }[]
-  >([]);
-  const [viewerSrc, setViewerSrc] = useState<{
-    url: string;
-    type: string;
-  } | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{ url: string; type: string; file: File }[]>([]);
+  const [viewerSrc, setViewerSrc] = useState<{ url: string; type: string } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -98,28 +91,16 @@ export default function ChatPage({
   const upload = useUpload();
 
   const msgs = (messages as Message[]) || [];
-  const isProcessing = msgs.some((m) => m.status === 'processing');
+  const isProcessing = msgs.some(m => m.status === 'processing');
 
-  // ФИКС Bug 2: определяем лимиты медиа из текущей модели/версии
   const firstMsg = msgs[0];
-  const currentModel = allModels?.find((m) => m.tech_name === firstMsg?.model);
-  const currentVersion = currentModel?.versions?.find(
-    (v) => v.label === firstMsg?.version
-  );
-  // limit_media: { image: 1, video: 0 } etc. — null означает без ограничений
+  const currentModel = allModels?.find(m => m.tech_name === firstMsg?.model);
+  const currentVersion = currentModel?.versions?.find(v => v.label === firstMsg?.version);
   const limitMedia = currentVersion?.limit_media ?? null;
+  const canAttachMedia = currentModel?.input?.some(t => ['image', 'video', 'audio'].includes(t)) ?? true;
 
-  // Принимает ли модель медиафайлы
-  const canAttachMedia =
-    currentModel?.input?.some((t) => ['image', 'video', 'audio'].includes(t)) ?? true;
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  const scrollToBottom = useCallback(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, []);
+  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -130,159 +111,115 @@ export default function ChatPage({
 
   const prevProcessingRef = useRef(false);
   useEffect(() => {
-    if (prevProcessingRef.current && !isProcessing && msgs.length > 0) {
+    if (prevProcessingRef.current && !isProcessing && msgs.length > 0)
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
-    }
     prevProcessingRef.current = isProcessing;
   }, [isProcessing, msgs.length, queryClient]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-
     const file = files[0];
-    const fileType = file.type.startsWith('image/')
-      ? 'image'
-      : file.type.startsWith('video/')
-        ? 'video'
-        : 'audio';
-
-    // ФИКС Bug 2: проверяем лимит до загрузки
+    const fileType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'audio';
     if (limitMedia !== null) {
       const limit = limitMedia[fileType] ?? 0;
-      const currentCount = uploadedFiles.filter((f) => f.type === fileType).length;
-      if (limit === 0) {
-        toast.error(`Модель не принимает ${fileType === 'image' ? 'изображения' : fileType === 'video' ? 'видео' : 'аудио'}`);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-      if (currentCount >= limit) {
-        toast.error(`Максимум ${limit} файл(ов) типа ${fileType}`);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
+      const currentCount = uploadedFiles.filter(f => f.type === fileType).length;
+      if (limit === 0) { toast.error(`Модель не принимает ${fileType}`); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
+      if (currentCount >= limit) { toast.error(`Максимум ${limit} файл(ов) типа ${fileType}`); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
     }
-
     try {
       const res = await upload.mutateAsync(file);
-      setUploadedFiles((prev) => [
-        ...prev,
-        { url: res.url, type: res.type, file },
-      ]);
-    } catch {
-      toast.error('Ошибка загрузки файла');
-    }
+      setUploadedFiles(prev => [...prev, { url: res.url, type: res.type, file }]);
+    } catch { toast.error('Ошибка загрузки файла'); }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeFile = (i: number) =>
-    setUploadedFiles((prev) => prev.filter((_, idx) => idx !== i));
+  const removeFile = (i: number) => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSend = () => {
-    if (isProcessing) {
-      toast('Дождитесь окончания генерации');
-      return;
-    }
+    if (isProcessing) { toast('Дождитесь окончания генерации'); return; }
     if (!text.trim() && uploadedFiles.length === 0) return;
-
-    if (!firstMsg?.model) {
-      toast.error('Не удалось определить модель диалога');
-      return;
-    }
-
-    const oldFormatMedia = uploadedFiles.map((f) => ({
-      type: f.type,
-      format: 'url',
-      input: f.url,
-    }));
-
+    if (!firstMsg?.model) { toast.error('Не удалось определить модель диалога'); return; }
+    const oldFormatMedia = uploadedFiles.map(f => ({ type: f.type, format: 'url', input: f.url }));
     const safeText = text.trim() || 'Опиши изображение';
     const inputs = convertMediaToInputs(safeText, oldFormatMedia);
-
-    console.log('SEND INPUTS:', inputs);
-
     generate.mutate(
-      {
-        tech_name: firstMsg.model,
-        version: firstMsg.version || undefined,
-        dialogue_id: params.dialogueId,
-        role_id: firstMsg.role_id ?? null,
-        inputs,
-      },
-      {
-        onSuccess: () => {
-          setText('');
-          setUploadedFiles([]);
-          // ФИКС Bug 3: инвалидируем историю чтобы начался polling
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.chatHistory(params.dialogueId),
-          });
-        },
-      }
+      { tech_name: firstMsg.model, version: firstMsg.version || undefined, dialogue_id: params.dialogueId, role_id: firstMsg.role_id ?? null, inputs },
+      { onSuccess: () => { setText(''); setUploadedFiles([]); queryClient.invalidateQueries({ queryKey: queryKeys.chatHistory(params.dialogueId) }); } }
     );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const chatTitle = firstMsg?.version || firstMsg?.model || 'Диалог';
 
-  // Допустимые типы файлов для input[accept]
   const acceptTypes = (() => {
     if (!currentModel) return 'image/*,.heic,video/*,audio/*';
-    const accepts: string[] = [];
-    if (currentModel.input?.includes('image')) accepts.push('image/*,.heic');
-    if (currentModel.input?.includes('video')) accepts.push('video/*');
-    if (currentModel.input?.includes('audio')) accepts.push('audio/*');
-    return accepts.join(',') || 'image/*,.heic,video/*,audio/*';
+    const a: string[] = [];
+    if (currentModel.input?.includes('image')) a.push('image/*,.heic');
+    if (currentModel.input?.includes('video')) a.push('video/*');
+    if (currentModel.input?.includes('audio')) a.push('audio/*');
+    return a.join(',') || 'image/*,.heic,video/*,audio/*';
   })();
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <div className="shrink-0 sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-background/90 backdrop-blur-xl border-b border-border/50">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100svh', background: 'var(--page-bg)' }}>
+
+      {/* ── Header ── */}
+      <header style={{
+        flexShrink: 0, position: 'sticky', top: 0, zIndex: 10,
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+        ...glass('ultra-thin'),
+        borderRadius: 0,
+        boxShadow: 'var(--glass-specular), 0 1px 0 var(--sys-separator)',
+      }}>
         <button
           onClick={() => router.back()}
-          className="flex items-center justify-center size-8 rounded-full hover:bg-secondary/60 transition-colors active:scale-90"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 34, height: 34, borderRadius: '9999px',
+            ...glass('thin'), cursor: 'pointer', transition: springTransition,
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.88)')}
+          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          <ChevronLeft className="size-5 text-foreground" />
+          <ChevronLeft size={18} style={{ color: 'var(--tint-blue)' }} />
         </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{chatTitle}</p>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {chatTitle}
+          </p>
           {isProcessing && (
-            <p className="text-xs text-amber-500 flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Генерация...
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '9999px', background: '#FF9500', display: 'inline-block', animation: 'pulse-opacity 1s infinite' }} />
+              <span style={{ fontSize: 11, color: '#FF9500', fontWeight: 500 }}>Генерация...</span>
+            </div>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-6">
+      {/* ── Messages ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {isLoading ? (
-          <div className="flex justify-center pt-8">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 32 }}>
+            <div className="spinner" />
           </div>
         ) : msgs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-16">
-            <div className="size-12 rounded-2xl bg-secondary flex items-center justify-center">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, textAlign: 'center', padding: '64px 0' }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 'var(--radius-lg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              ...glass('regular'),
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p style={{ fontSize: 14, color: 'var(--sys-label-secondary)', maxWidth: 240, lineHeight: 1.5 }}>
               Начните диалог — напишите что-нибудь
             </p>
           </div>
@@ -290,39 +227,34 @@ export default function ChatPage({
           msgs.map((msg, idx) => {
             const userMedia = extractDisplayMedia(msg.inputs);
             const resultMedia = extractResultMedia(msg.result);
-
             return (
-              <div key={msg.id || idx} className="space-y-3">
-                {/* User input */}
+              <div key={msg.id || idx} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* User bubble */}
                 {(msg.inputs?.text || userMedia.length > 0) && (
-                  <div className="flex justify-end">
-                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-3.5 py-2.5 max-w-[78%] text-sm">
-                      {msg.inputs?.text && (
-                        <p className="whitespace-pre-wrap leading-relaxed">
-                          {msg.inputs.text}
-                        </p>
-                      )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{
+                      background: 'rgba(0, 122, 255, 0.85)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(0,122,255,0.3)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 4px 16px rgba(0,122,255,0.25)',
+                      color: '#fff',
+                      borderRadius: '20px 20px 4px 20px',
+                      padding: '10px 14px',
+                      maxWidth: '78%',
+                      fontSize: 15, lineHeight: 1.45,
+                    }}>
+                      {msg.inputs?.text && <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.inputs.text}</p>}
                       {userMedia.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
+                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           {userMedia.map((m, i) => (
-                            <button key={i} onClick={() => setViewerSrc(m)}>
-                              {m.type === 'image' ? (
-                                <img
-                                  src={m.url}
-                                  alt=""
-                                  className="max-h-36 rounded-lg object-cover"
-                                />
-                              ) : m.type === 'video' ? (
-                                <video
-                                  src={m.url}
-                                  className="max-h-36 rounded-lg"
-                                  controls={false}
-                                />
-                              ) : (
-                                <div className="px-3 py-2 bg-primary-foreground/10 rounded-lg text-xs flex items-center gap-1.5">
-                                  🎵 Аудио
-                                </div>
-                              )}
+                            <button key={i} onClick={() => setViewerSrc(m)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                              {m.type === 'image'
+                                ? <img src={m.url} alt="" style={{ maxHeight: 140, borderRadius: 10, objectFit: 'cover' }} />
+                                : m.type === 'video'
+                                  ? <video src={m.url} style={{ maxHeight: 140, borderRadius: 10 }} />
+                                  : <div style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.15)', borderRadius: 8, fontSize: 12 }}>🎵 Аудио</div>
+                              }
                             </button>
                           ))}
                         </div>
@@ -331,67 +263,70 @@ export default function ChatPage({
                   </div>
                 )}
 
-                {/* AI result */}
-                <div className="flex justify-start">
-                  <div className="max-w-[82%]">
+                {/* AI bubble */}
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div style={{ maxWidth: '82%' }}>
                     {msg.status === 'processing' ? (
-                      <div className="flex items-center gap-2 px-3.5 py-2.5 bg-secondary rounded-2xl rounded-tl-md">
-                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          Генерация...
-                        </span>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '10px 14px', borderRadius: '20px 20px 20px 4px',
+                        ...glass('regular'),
+                      }}>
+                        {[0, 1, 2].map(i => (
+                          <div key={i} style={{
+                            width: 6, height: 6, borderRadius: '9999px',
+                            background: 'var(--sys-label-secondary)',
+                            animation: 'pulse-dot 1.2s infinite ease-in-out',
+                            animationDelay: `${i * 0.15}s`,
+                          }} />
+                        ))}
                       </div>
                     ) : msg.status === 'error' ? (
-                      <div className="px-3.5 py-2.5 bg-destructive/10 border border-destructive/20 rounded-2xl rounded-tl-md text-sm text-destructive">
+                      <div style={{
+                        padding: '10px 14px', borderRadius: '20px 20px 20px 4px',
+                        background: 'rgba(255,59,48,0.12)',
+                        border: '1px solid rgba(255,59,48,0.25)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        fontSize: 15, color: '#FF3B30',
+                      }}>
                         {msg.error || 'Ошибка генерации'}
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {msg.result?.text && (
-                          <div className="px-3.5 py-2.5 bg-secondary rounded-2xl rounded-tl-md text-sm leading-relaxed whitespace-pre-wrap">
+                          <div style={{
+                            padding: '10px 14px', borderRadius: '20px 20px 20px 4px',
+                            ...glass('regular'),
+                            fontSize: 15, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                          }}>
                             {msg.result.text}
                           </div>
                         )}
                         {resultMedia.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                             {resultMedia.map((m, i) => (
-                              <div key={i} className="relative group">
-                                {m.type === 'image' ? (
-                                  <img
-                                    src={m.url}
-                                    alt="Generated"
-                                    className="max-w-[260px] max-h-[260px] rounded-2xl object-cover cursor-pointer"
-                                    onClick={() => setViewerSrc(m)}
-                                  />
-                                ) : m.type === 'video' ? (
-                                  <video
-                                    src={m.url}
-                                    className="max-w-[260px] max-h-[260px] rounded-2xl"
-                                    controls
-                                  />
-                                ) : (
-                                  <audio
-                                    src={m.url}
-                                    controls
-                                    className="rounded-lg"
-                                  />
-                                )}
-                                <a
-                                  href={m.url}
-                                  download
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="absolute top-2 right-2 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
+                              <div key={i} style={{ position: 'relative' }}>
+                                {m.type === 'image'
+                                  ? <img src={m.url} alt="Generated" style={{ maxWidth: 260, maxHeight: 260, borderRadius: 'var(--radius-lg)', objectFit: 'cover', cursor: 'pointer', border: 'var(--glass-border-regular)', boxShadow: 'var(--glass-shadow-md)' }} onClick={() => setViewerSrc(m)} />
+                                  : m.type === 'video'
+                                    ? <video src={m.url} controls style={{ maxWidth: 260, maxHeight: 260, borderRadius: 'var(--radius-lg)' }} />
+                                    : <audio src={m.url} controls style={{ borderRadius: 'var(--radius-sm)' }} />
+                                }
+                                <a href={m.url} download target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                  style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '9999px', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#fff', opacity: 0, transition: 'opacity 0.2s' }}
+                                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                                  onMouseLeave={e => (e.currentTarget.style.opacity = '0')}
                                 >
-                                  <Download className="size-3.5" />
+                                  <Download size={14} />
                                 </a>
                               </div>
                             ))}
                           </div>
                         )}
                         {!msg.result?.text && resultMedia.length === 0 && (
-                          <div className="px-3.5 py-2.5 bg-secondary rounded-2xl rounded-tl-md text-sm text-muted-foreground italic">
+                          <div style={{ padding: '10px 14px', borderRadius: '20px 20px 20px 4px', ...glass('thin'), fontSize: 14, color: 'var(--sys-label-secondary)', fontStyle: 'italic' }}>
                             Ответ получен
                           </div>
                         )}
@@ -406,129 +341,168 @@ export default function ChatPage({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Media viewer */}
+      {/* ── Media Viewer ── */}
       {viewerSrc && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setViewerSrc(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
         >
-          {viewerSrc.type === 'image' ? (
-            <img
-              src={viewerSrc.url}
-              alt=""
-              className="max-w-full max-h-full object-contain rounded-xl"
-            />
-          ) : viewerSrc.type === 'video' ? (
-            <video
-              src={viewerSrc.url}
-              className="max-w-full max-h-full rounded-xl"
-              controls
-              autoPlay
-            />
-          ) : null}
-          <button
-            className="absolute top-4 right-4 p-2 bg-white/10 rounded-full"
-            onClick={() => setViewerSrc(null)}
-          >
-            <X className="size-5 text-white" />
+          {viewerSrc.type === 'image'
+            ? <img src={viewerSrc.url} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--glass-shadow-xl)' }} />
+            : viewerSrc.type === 'video'
+              ? <video src={viewerSrc.url} controls autoPlay style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 'var(--radius-xl)' }} />
+              : null
+          }
+          <button onClick={() => setViewerSrc(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '9999px', padding: 8, cursor: 'pointer', color: '#fff', display: 'flex' }}>
+            <X size={18} />
           </button>
-          <a
-            href={viewerSrc.url}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute bottom-6 right-6 p-3 bg-white/10 rounded-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Download className="size-5 text-white" />
+          <a href={viewerSrc.url} download target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 28, right: 20, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '9999px', padding: 10, display: 'flex', color: '#fff', textDecoration: 'none' }}>
+            <Download size={18} />
           </a>
         </div>
       )}
 
-      {/* Input */}
-      <div className="shrink-0 border-t border-border/50 bg-background/90 backdrop-blur-xl px-4 py-3 pb-safe">
-        {/* Uploaded previews */}
+      {/* ── Input Bar ── */}
+      <div style={{
+        flexShrink: 0,
+        ...glass('ultra-thin'),
+        borderRadius: 0,
+        borderTop: 'var(--glass-border-thin)',
+        borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
+        padding: '10px 14px',
+        paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
+      }}>
+        {/* File previews */}
         {uploadedFiles.length > 0 && (
-          <div className="flex gap-2 mb-2 flex-wrap">
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
             {uploadedFiles.map((f, i) => (
-              <div
-                key={i}
-                className="relative size-16 rounded-xl overflow-hidden border border-border/50"
-              >
-                {f.type === 'image' ? (
-                  <img
-                    src={f.url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-secondary flex items-center justify-center text-xl">
+              <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: 'var(--glass-border-regular)', boxShadow: 'var(--glass-shadow-sm)' }}>
+                {f.type === 'image'
+                  ? <img src={f.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', background: 'var(--glass-regular)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                     {f.type === 'video' ? '🎬' : '🎵'}
                   </div>
-                )}
-                <button
-                  onClick={() => removeFile(i)}
-                  className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5"
-                >
-                  <X className="size-3 text-white" />
+                }
+                <button onClick={() => removeFile(i)} style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: 'none', borderRadius: '9999px', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', padding: 0 }}>
+                  <X size={10} />
                 </button>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex items-end gap-2">
-          {/* ФИКС Bug 2: кнопка медиа скрыта если модель не принимает файлы */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+          {/* Attach button */}
           {canAttachMedia && (
             <>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={upload.isPending}
-                className="shrink-0 size-9 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/70 transition-colors disabled:opacity-50"
+                style={{
+                  flexShrink: 0, width: 38, height: 38,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '9999px',
+                  ...glass('regular'),
+                  cursor: 'pointer', transition: springTransition,
+                  opacity: upload.isPending ? 0.5 : 1,
+                  ...{
+                    background: 'var(--glass-regular)',
+                    backdropFilter: 'var(--blur-regular)',
+                    WebkitBackdropFilter: 'var(--blur-regular)',
+                    border: 'var(--glass-border-regular)',
+                    boxShadow: 'var(--glass-specular), var(--glass-shadow-sm)',
+                  }
+                }}
               >
-                {upload.isPending ? (
-                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                ) : (
-                  <ImagePlus className="size-4 text-muted-foreground" />
-                )}
+                {upload.isPending
+                  ? <Loader2 size={16} style={{ animation: 'spin 0.65s linear infinite', color: 'var(--sys-label-secondary)' }} />
+                  : <ImagePlus size={16} style={{ color: 'var(--sys-label-secondary)' }} />
+                }
               </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept={acceptTypes}
-                onChange={handleFileUpload}
-                className="hidden"
-              />
+              <input type="file" ref={fileInputRef} accept={acceptTypes} onChange={handleFileUpload} style={{ display: 'none' }} />
             </>
           )}
 
+          {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Напишите сообщение..."
             rows={1}
-            className="flex-1 resize-none bg-secondary rounded-2xl px-3.5 py-2.5 text-sm outline-none placeholder:text-muted-foreground max-h-[120px] overflow-y-auto"
+            style={{
+              flex: 1, resize: 'none', outline: 'none',
+              padding: '10px 14px', fontSize: 15, lineHeight: 1.45,
+              borderRadius: 'var(--radius-lg)',
+              background: 'var(--glass-thin)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: 'var(--glass-border-thin)',
+              boxShadow: 'var(--glass-specular)',
+              color: 'var(--sys-label)',
+              maxHeight: 120, overflowY: 'auto',
+              transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
+              fontFamily: 'var(--font-sf)',
+            }}
+            onFocus={e => {
+              e.currentTarget.style.background = 'var(--glass-regular)';
+              e.currentTarget.style.border = '1px solid rgba(0,122,255,0.4)';
+              e.currentTarget.style.boxShadow = 'var(--glass-specular), 0 0 0 3px rgba(0,122,255,0.12)';
+            }}
+            onBlur={e => {
+              e.currentTarget.style.background = 'var(--glass-thin)';
+              e.currentTarget.style.border = 'var(--glass-border-thin)';
+              e.currentTarget.style.boxShadow = 'var(--glass-specular)';
+            }}
           />
 
+          {/* Send button */}
           <button
             onClick={handleSend}
-            disabled={
-              isProcessing ||
-              generate.isPending ||
-              (!text.trim() && uploadedFiles.length === 0)
-            }
-            className="shrink-0 size-9 flex items-center justify-center rounded-full bg-primary hover:bg-primary/90 transition-colors disabled:opacity-40"
+            disabled={isProcessing || generate.isPending || (!text.trim() && uploadedFiles.length === 0)}
+            style={{
+              flexShrink: 0, width: 38, height: 38,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '9999px',
+              background: 'rgba(0,122,255,0.85)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0,122,255,0.3)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 16px rgba(0,122,255,0.35)',
+              cursor: 'pointer', transition: springTransition,
+              opacity: (isProcessing || generate.isPending || (!text.trim() && uploadedFiles.length === 0)) ? 0.4 : 1,
+              color: '#fff',
+            }}
+            onMouseDown={e => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(0.88)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            {generate.isPending ? (
-              <Loader2 className="size-4 animate-spin text-primary-foreground" />
-            ) : (
-              <Send className="size-4 text-primary-foreground" />
-            )}
+            {generate.isPending
+              ? <Loader2 size={16} style={{ animation: 'apple-spin 0.65s linear infinite' }} />
+              : <Send size={16} />
+            }
           </button>
         </div>
       </div>
+
+      {/* ── Keyframes ── */}
+      <style>{`
+        @keyframes apple-spin { to { transform: rotate(360deg); } }
+        @keyframes pulse-dot {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes pulse-opacity {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        textarea::placeholder { color: var(--sys-label-tertiary); }
+      `}</style>
     </div>
   );
 }

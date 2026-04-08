@@ -3,39 +3,33 @@
 import { useUser } from '@/hooks/useUser';
 import { useRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  useReferrals,
-  usePaymentLink,
-  useApiTokens,
-  useGenerateApiToken,
-  useChangePassword,
-  useRemoveAuthMethod,
-  useAuthMethodLink,
-} from '@/hooks/useApiExtras';
+import { useReferrals, usePaymentLink, useApiTokens, useGenerateApiToken } from '@/hooks/useApiExtras';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  LogOut,
-  Users,
-  Star,
-  Loader2,
-  ExternalLink,
-  Key,
-  Copy,
-  Check,
-} from 'lucide-react';
-import { GenerationsEmpty } from '@/components/states/Empty';
+import { LogOut, Users, Star, Loader2, ExternalLink, Key, Copy, Check } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
-const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  completed: { color: 'text-emerald-500', label: 'Готово' },
-  error: { color: 'text-red-500', label: 'Ошибка' },
-  processing: { color: 'text-amber-500', label: 'Обработка' },
+const spring = 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+
+const GlassCard = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <div style={{
+    background: 'var(--glass-regular)',
+    backdropFilter: 'blur(40px) saturate(180%) contrast(110%)',
+    WebkitBackdropFilter: 'blur(40px) saturate(180%) contrast(110%)',
+    border: 'var(--glass-border-regular)',
+    borderRadius: 'var(--radius-xl)',
+    boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
+    ...style,
+  }}>
+    {children}
+  </div>
+);
+
+const STATUS: Record<string, { icon: string; color: string; label: string }> = {
+  completed: { icon: '✅', color: '#34C759', label: 'Готово' },
+  error: { icon: '❌', color: '#FF3B30', label: 'Ошибка' },
+  processing: { icon: '⏳', color: '#FF9500', label: 'Обработка' },
 };
 
 export const Profile = () => {
@@ -45,32 +39,19 @@ export const Profile = () => {
   const { data: paymentUrl } = usePaymentLink();
   const { data: apiTokens } = useApiTokens();
   const generateToken = useGenerateApiToken();
-  const {
-    data: reqData,
-    isLoading: reqLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useRequests();
+  const { data: reqData, isLoading: reqLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useRequests();
 
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const tokens = userData?.user?.tokens ?? 0;
   const isPremium = userData?.user?.premium ?? false;
   const premiumEnd = userData?.user?.premium_end;
-  const requests = reqData?.pages.flatMap((p) => p) ?? [];
+  const requests = reqData?.pages.flatMap(p => p) ?? [];
   const refStats = (refData as any)?.stats;
-
-  const name = tgUser
-    ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim()
-    : 'Пользователь';
+  const name = tgUser ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim() : 'Пользователь';
   const username = tgUser?.username || '';
 
-  const handleTopUp = () => {
-    if (paymentUrl) window.open(paymentUrl, '_blank');
-    else toast.error('Ссылка на оплату недоступна');
-  };
-
+  const handleTopUp = () => paymentUrl ? window.open(paymentUrl, '_blank') : toast.error('Ссылка на оплату недоступна');
   const handleCopyToken = (token: string) => {
     navigator.clipboard.writeText(token).then(() => {
       setCopiedToken(token);
@@ -78,250 +59,287 @@ export const Profile = () => {
       setTimeout(() => setCopiedToken(null), 2000);
     });
   };
-
   const handleGenerateToken = () => {
     generateToken.mutate(undefined, {
-      onSuccess: (data) => {
-        toast.success('Новый API-токен создан');
-        handleCopyToken(data.token);
-      },
+      onSuccess: d => { toast.success('Новый API-токен создан'); handleCopyToken(d.token); },
       onError: () => toast.error('Не удалось создать токен'),
     });
   };
 
   return (
-    <div className="flex flex-col pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-background/85 backdrop-blur-xl border-b border-border/50">
-        <span className="text-xl font-bold tracking-tight">Профиль</span>
-        <Button
-          variant="ghost"
-          size="sm"
+    <div style={{ paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))' }}>
+      {/* ── Nav Bar ── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px',
+        backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+        WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+        borderBottom: 'var(--glass-border-thin)',
+        boxShadow: 'var(--glass-specular)',
+      }}>
+        <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>Профиль</span>
+        <button
           onClick={logout}
-          className="h-8 text-muted-foreground hover:text-destructive gap-1.5"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 'var(--radius-pill)',
+            background: 'rgba(255,59,48,0.12)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,59,48,0.22)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+            color: '#FF3B30', fontSize: 13, fontWeight: 600,
+            cursor: 'pointer', transition: spring,
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          <LogOut className="size-3.5" />
-          <span className="text-xs">Выйти</span>
-        </Button>
-      </div>
+          <LogOut size={13} />
+          Выйти
+        </button>
+      </header>
 
-      {/* User card */}
-      <div className="px-4 pt-5 pb-4">
-        <div className="flex items-center gap-4">
-          <Avatar className="size-16 border-2 border-border/50 shadow-sm">
-            <AvatarImage src={tgUser?.photo_url} />
-            <AvatarFallback className="bg-secondary text-xl font-bold">
-              {name[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-lg font-bold truncate">{name}</p>
-              {isPremium && (
-                <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 text-[10px] px-1.5">
-                  <Star className="size-2.5 mr-0.5 fill-current" />
-                  Premium
-                </Badge>
+      {/* ── User Hero ── */}
+      <div style={{ padding: '24px 20px 20px' }}>
+        <GlassCard style={{ padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Avatar */}
+            <div style={{
+              width: 64, height: 64, borderRadius: '9999px',
+              overflow: 'hidden',
+              border: '2px solid rgba(255,255,255,0.3)',
+              boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
+            }}>
+              <Avatar className="size-full">
+                <AvatarImage src={tgUser?.photo_url} />
+                <AvatarFallback style={{ fontSize: 22, fontWeight: 700 }}>{name[0]}</AvatarFallback>
+              </Avatar>
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <p style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {name}
+                </p>
+                {isPremium && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    padding: '2px 8px', borderRadius: '9999px',
+                    background: 'rgba(255,204,0,0.18)',
+                    border: '1px solid rgba(255,204,0,0.3)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    fontSize: 10, fontWeight: 700, color: '#b38600',
+                  }}>
+                    <Star size={9} style={{ fill: 'currentColor' }} />
+                    Premium
+                  </div>
+                )}
+              </div>
+              {username && <p style={{ fontSize: 14, color: 'var(--sys-label-secondary)' }}>@{username}</p>}
+              {isPremium && premiumEnd && (
+                <p style={{ fontSize: 12, color: 'var(--sys-label-tertiary)', marginTop: 2 }}>
+                  до {new Date(premiumEnd * 1000).toLocaleDateString('ru-RU')}
+                </p>
               )}
             </div>
-            {username && (
-              <p className="text-sm text-muted-foreground">@{username}</p>
-            )}
-            {isPremium && premiumEnd && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                до {new Date(premiumEnd * 1000).toLocaleDateString('ru-RU')}
-              </p>
-            )}
           </div>
-        </div>
+        </GlassCard>
       </div>
 
-      {/* Stats */}
-      <div className="px-4 grid grid-cols-2 gap-3 mb-4">
+      {/* ── Stats Grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 20px 20px' }}>
         {/* Balance */}
         <button
           onClick={handleTopUp}
-          className="flex flex-col gap-1 p-4 rounded-2xl bg-secondary/50 border border-border/50 hover:bg-secondary/70 active:scale-[0.98] transition-all text-left"
+          style={{
+            display: 'flex', flexDirection: 'column', gap: 6, padding: 18,
+            borderRadius: 'var(--radius-xl)',
+            background: 'var(--glass-regular)',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+            border: 'var(--glass-border-regular)',
+            boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
+            textAlign: 'left', cursor: 'pointer', transition: spring,
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.96)')}
+          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Токены</p>
-            <ExternalLink className="size-3.5 text-muted-foreground/50" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.4px', textTransform: 'uppercase', color: 'var(--sys-label-secondary)' }}>Токены</span>
+            <ExternalLink size={12} style={{ color: 'var(--sys-label-tertiary)' }} />
           </div>
-          {userLoading ? (
-            <Skeleton className="w-16 h-7" />
-          ) : (
-            <div className="flex items-end gap-1">
-              <span className="text-2xl font-bold">{tokens}</span>
-              <span className="text-xs text-muted-foreground mb-0.5">💎</span>
+          {userLoading
+            ? <div style={{ width: 64, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--glass-thin)' }} />
+            : <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+              <span style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1 }}>{tokens}</span>
+              <span style={{ fontSize: 14, marginBottom: 2 }}>💎</span>
             </div>
-          )}
-          <p className="text-[10px] text-primary font-medium">Пополнить →</p>
+          }
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--tint-blue)' }}>Пополнить →</span>
         </button>
 
         {/* Referrals */}
-        <div className="flex flex-col gap-1 p-4 rounded-2xl bg-secondary/50 border border-border/50 text-left">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">
-              Рефералы
-            </p>
-            <Users className="size-3.5 text-muted-foreground/50" />
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 6, padding: 18,
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--glass-regular)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          border: 'var(--glass-border-regular)',
+          boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.4px', textTransform: 'uppercase', color: 'var(--sys-label-secondary)' }}>Рефералы</span>
+            <Users size={12} style={{ color: 'var(--sys-label-tertiary)' }} />
           </div>
-          {!refStats ? (
-            <Skeleton className="w-12 h-7" />
-          ) : (
-            <span className="text-2xl font-bold">{refStats?.total ?? 0}</span>
-          )}
-          <p className="text-[10px] text-muted-foreground">
-            {refStats?.earned ?? 0} 💎 заработано
-          </p>
+          {!refStats
+            ? <div style={{ width: 48, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--glass-thin)' }} />
+            : <span style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.8px', lineHeight: 1 }}>{refStats?.total ?? 0}</span>
+          }
+          <span style={{ fontSize: 11, color: 'var(--sys-label-secondary)' }}>{refStats?.earned ?? 0} 💎 заработано</span>
         </div>
       </div>
 
-      <Separator />
+      {/* ── Separator ── */}
+      <div style={{ height: 0.5, background: 'var(--sys-separator)', margin: '0 0 20px' }} />
 
-      {/* API Tokens */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            API-токены
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs gap-1.5 text-primary"
+      {/* ── API Tokens ── */}
+      <div style={{ padding: '0 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.7px', textTransform: 'uppercase', color: 'var(--sys-label-secondary)' }}>API-токены</span>
+          <button
             onClick={handleGenerateToken}
             disabled={generateToken.isPending}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 12px', borderRadius: 'var(--radius-pill)',
+              background: 'rgba(0,122,255,0.12)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0,122,255,0.22)',
+              color: 'var(--tint-blue)', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', transition: spring,
+              opacity: generateToken.isPending ? 0.6 : 1,
+            }}
           >
-            {generateToken.isPending ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Key className="size-3" />
-            )}
+            {generateToken.isPending ? <Loader2 size={11} style={{ animation: 'apple-spin 0.65s linear infinite' }} /> : <Key size={11} />}
             Создать
-          </Button>
+          </button>
         </div>
 
         {!apiTokens || apiTokens.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p style={{ fontSize: 13, color: 'var(--sys-label-secondary)', padding: '0 4px' }}>
             Нет токенов. Создайте для доступа к API.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {apiTokens.map((t: any) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-secondary/50 border border-border/40"
-              >
-                <code className="flex-1 text-xs text-muted-foreground truncate font-mono">
+              <GlassCard key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+                <code style={{ flex: 1, fontSize: 12, color: 'var(--sys-label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
                   {t.token}
                 </code>
-                <span className="text-[10px] text-muted-foreground shrink-0">
-                  {t.generations} запросов
-                </span>
+                <span style={{ fontSize: 10, color: 'var(--sys-label-tertiary)', flexShrink: 0 }}>{t.generations} reqs</span>
                 <button
                   onClick={() => handleCopyToken(t.token)}
-                  className="shrink-0 p-1 rounded-lg hover:bg-secondary/80 transition-colors"
+                  style={{
+                    flexShrink: 0, padding: 6, borderRadius: 'var(--radius-sm)',
+                    background: 'none', border: 'none', cursor: 'pointer', transition: spring,
+                  }}
                 >
-                  {copiedToken === t.token ? (
-                    <Check className="size-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="size-3.5 text-muted-foreground" />
-                  )}
+                  {copiedToken === t.token
+                    ? <Check size={14} style={{ color: '#34C759' }} />
+                    : <Copy size={14} style={{ color: 'var(--sys-label-secondary)' }} />
+                  }
                 </button>
-              </div>
+              </GlassCard>
             ))}
           </div>
         )}
       </div>
 
-      <Separator className="mt-3" />
+      <div style={{ height: 0.5, background: 'var(--sys-separator)', margin: '0 0 20px' }} />
 
-      {/* Generation history */}
-      <div className="px-4 pt-4">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+      {/* ── Generation History ── */}
+      <div style={{ padding: '0 20px' }}>
+        <span style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.7px', textTransform: 'uppercase', color: 'var(--sys-label-secondary)', marginBottom: 12 }}>
           История генераций
-        </p>
+        </span>
 
         {reqLoading ? (
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 py-2">
-                <Skeleton className="size-9 rounded-xl shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="w-1/2 h-3.5" />
-                  <Skeleton className="w-1/3 h-2.5" />
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--glass-thin)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', flexShrink: 0 }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ width: '50%', height: 13, borderRadius: 'var(--radius-xs)', background: 'var(--glass-thin)' }} />
+                  <div style={{ width: '30%', height: 10, borderRadius: 'var(--radius-xs)', background: 'var(--glass-thin)' }} />
                 </div>
-                <Skeleton className="w-12 h-5 rounded-full" />
               </div>
             ))}
           </div>
         ) : requests.length === 0 ? (
-          <GenerationsEmpty />
+          <p style={{ fontSize: 14, color: 'var(--sys-label-secondary)', padding: '16px 4px' }}>Нет генераций</p>
         ) : (
-          <>
-            <div className="space-y-1">
-              {requests.map((req) => {
-                const status = STATUS_CONFIG[req.status] || {
-                  color: 'text-muted-foreground',
-                  label: req.status,
-                };
-                return (
-                  <div
-                    key={req.id}
-                    className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0"
-                  >
-                    <div className="size-9 rounded-xl bg-secondary/60 border border-border/40 flex items-center justify-center shrink-0">
-                      <span className="text-base">
-                        {req.status === 'completed'
-                          ? '✅'
-                          : req.status === 'error'
-                            ? '❌'
-                            : '⏳'}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {req.model}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {req.version} · {timeAgo(req.created_at)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className={`text-xs font-medium ${status.color}`}>
-                        {status.label}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {req.cost} 💎
-                      </span>
-                    </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {requests.map(req => {
+              const st = STATUS[req.status] || { icon: '⏳', color: 'var(--sys-label-secondary)', label: req.status };
+              return (
+                <div key={req.id} style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '0.5px solid var(--sys-separator)' }}>
+                  {/* Status icon */}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 'var(--radius-md)', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                    background: 'var(--glass-thin)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: 'var(--glass-border-thin)',
+                    boxShadow: 'var(--glass-specular)',
+                  }}>
+                    {st.icon}
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.model}</p>
+                    <p style={{ fontSize: 12, color: 'var(--sys-label-secondary)', marginTop: 2 }}>{req.version} · {timeAgo(req.created_at)}</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: st.color }}>{st.label}</span>
+                    <span style={{ fontSize: 11, color: 'var(--sys-label-tertiary)' }}>{req.cost} 💎</span>
+                  </div>
+                </div>
+              );
+            })}
 
             {hasNextPage && (
-              <div className="pt-3">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                >
-                  {isFetchingNextPage ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
-                      Загрузка...
-                    </>
-                  ) : (
-                    'Загрузить ещё'
-                  )}
-                </Button>
-              </div>
+              <button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                style={{
+                  width: '100%', padding: '12px 0', borderRadius: 'var(--radius-lg)',
+                  background: 'var(--glass-thin)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: 'var(--glass-border-thin)',
+                  boxShadow: 'var(--glass-specular)',
+                  fontSize: 14, fontWeight: 600, color: 'var(--tint-blue)',
+                  cursor: 'pointer', transition: spring, marginTop: 4,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                {isFetchingNextPage ? <><Loader2 size={14} style={{ animation: 'apple-spin 0.65s linear infinite' }} /> Загрузка...</> : 'Загрузить ещё'}
+              </button>
             )}
-          </>
+          </div>
         )}
       </div>
+
+      <style>{`@keyframes apple-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

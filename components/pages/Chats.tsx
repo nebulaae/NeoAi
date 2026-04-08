@@ -144,9 +144,17 @@ export const Chats = () => {
   }
 
   return (
-    <div className="flex flex-col h-full pb-24">
+    <div className="flex flex-col h-full pb-24" style={{ paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-background/85 backdrop-blur-xl border-b border-border/50">
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px',
+        backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+        WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
+        borderBottom: 'var(--glass-border-thin)',
+        boxShadow: 'var(--glass-specular)',
+      }}>
         <span className="text-xl font-bold tracking-tight">Чаты</span>
         <Button
           variant="ghost"
