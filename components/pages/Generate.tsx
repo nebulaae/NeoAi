@@ -504,8 +504,6 @@ export const Generate = () => {
         >
           <div
             style={{
-              maxWidth: 760,
-              marginInline: 'auto',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

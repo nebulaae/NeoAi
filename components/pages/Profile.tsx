@@ -106,6 +106,8 @@ export const Profile = () => {
     <div
       style={{
         paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))',
+        maxWidth: 1280,
+        marginInline: 'auto',
       }}
     >
       {/* ── Nav Bar ── */}

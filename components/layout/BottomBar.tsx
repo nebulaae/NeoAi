@@ -60,19 +60,14 @@ export const BottomBar = () => {
 
   return (
     <>
-      {/*
-        ─── Mobile bottom bar (hidden on md+) ───
-        Fixed to bottom, shows a floating pill with glass chrome material.
-      */}
       <nav
-        className="md:hidden"
+        className="flex sm:hidden"
         style={{
           position: 'fixed',
           left: 0,
           right: 0,
           bottom: 0,
           zIndex: 50,
-          display: 'flex',
           justifyContent: 'center',
           /* horizontal padding so pill doesn't touch screen edges */
           padding: '0 16px',
