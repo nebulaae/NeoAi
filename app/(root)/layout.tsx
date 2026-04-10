@@ -4,7 +4,11 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/Sidebar';
 import { AuthGuard } from '@/components/layout/AuthGuard';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <AuthGuard>
       <SidebarProvider open={false}>

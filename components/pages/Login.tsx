@@ -8,6 +8,8 @@ import { LoginButton } from '@telegram-auth/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState, useRef } from 'react';
 import { Loader2, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
 
 type AppEnv = 'telegram' | 'max' | 'browser';
 type LoginView = 'main' | 'email-login' | 'email-register';
@@ -34,9 +36,9 @@ async function authViaTMA(initData: string, platform: 'telegram' | 'max') {
 }
 
 function saveSessionAuth(
-  sessionHash: string,
-  sessionData: { id: number; time: number },
-  userInfo: {
+  hash: string,
+  sd: { id: number; time: number },
+  u: {
     id: number;
     first_name: string;
     last_name?: string;
@@ -45,52 +47,43 @@ function saveSessionAuth(
     name?: string;
   }
 ) {
-  localStorage.setItem('session_hash', sessionHash);
-  localStorage.setItem('session_data', JSON.stringify(sessionData));
+  localStorage.setItem('session_hash', hash);
+  localStorage.setItem('session_data', JSON.stringify(sd));
   localStorage.setItem(
     'session_user',
     JSON.stringify({
-      id: userInfo.id,
-      first_name: userInfo.first_name || userInfo.name || 'User',
-      last_name: userInfo.last_name,
-      username: userInfo.username,
-      photo_url: userInfo.photo_url,
+      id: u.id,
+      first_name: u.first_name || u.name || 'User',
+      last_name: u.last_name,
+      username: u.username,
+      photo_url: u.photo_url,
       auth_date: 0,
     })
   );
-  localStorage.setItem('auth_user_id', String(userInfo.id));
+  localStorage.setItem('auth_user_id', String(u.id));
 }
 
-/* ─── Shared glass styles ─── */
-const spring = 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+/* ── Shared classes ── */
+const glassCard = cn(
+  'bg-white/[.10] dark:bg-black/[.55] backdrop-blur-[50px] backdrop-saturate-180',
+  'border border-white/[.18]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_8px_32px_rgba(0,0,0,0.28)]',
+  'rounded-[22px]'
+);
+const glassThin = cn(
+  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
+  'border border-white/[.14]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+);
+const glassBlue = cn(
+  'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
+  'border border-[rgba(0,122,255,0.30)]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_6px_24px_rgba(0,122,255,0.40)]'
+);
+const spring =
+  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
-const glassCard: React.CSSProperties = {
-  background: 'var(--glass-regular)',
-  backdropFilter: 'blur(50px) saturate(180%) contrast(110%)',
-  WebkitBackdropFilter: 'blur(50px) saturate(180%) contrast(110%)',
-  border: 'var(--glass-border-regular)',
-  boxShadow: 'var(--glass-specular), var(--glass-shadow-lg)',
-  borderRadius: 22,
-};
-
-const glassInput: React.CSSProperties = {
-  background: 'var(--glass-thin)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: 'var(--glass-border-thin)',
-  boxShadow: 'var(--glass-specular)',
-};
-
-const glassButtonBlue: React.CSSProperties = {
-  background: 'rgba(0,122,255,0.85)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(0,122,255,0.3)',
-  boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 24px rgba(0,122,255,0.4)',
-};
-
-/* ─── Reusable glass input field ─── */
+/* ── Glass Input ── */
 const GlassInput = ({
   type = 'text',
   placeholder,
@@ -108,7 +101,7 @@ const GlassInput = ({
   autoComplete?: string;
   rightSlot?: React.ReactNode;
 }) => (
-  <div style={{ position: 'relative' }}>
+  <div className="relative">
     <input
       type={type}
       placeholder={placeholder}
@@ -116,68 +109,28 @@ const GlassInput = ({
       onChange={onChange}
       onKeyDown={onKeyDown}
       autoComplete={autoComplete}
-      style={{
-        width: '100%',
-        boxSizing: 'border-box',
-        padding: rightSlot ? '13px 48px 13px 16px' : '13px 16px',
-        borderRadius: 14,
-        fontSize: 16,
-        outline: 'none',
-        color: 'var(--sys-label)',
-        fontFamily: 'var(--font-sf)',
-        transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
-        ...glassInput,
-      }}
-      onFocus={(e) => {
-        e.currentTarget.style.border = '1px solid rgba(0,122,255,0.45)';
-        e.currentTarget.style.boxShadow =
-          'var(--glass-specular), 0 0 0 3px rgba(0,122,255,0.12)';
-        e.currentTarget.style.background = 'var(--glass-regular)';
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.border = 'var(--glass-border-thin)';
-        e.currentTarget.style.boxShadow = 'var(--glass-specular)';
-        e.currentTarget.style.background = 'var(--glass-thin)';
-      }}
+      className={cn(
+        'w-full box-border py-[13px] rounded-[14px] text-[16px] outline-none text-white',
+        rightSlot ? 'pl-4 pr-12' : 'px-4',
+        glassThin,
+        spring,
+        'placeholder:text-white/30',
+        'focus:border-[rgba(0,122,255,0.45)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_0_3px_rgba(0,122,255,0.12)] focus:bg-white/[.10]'
+      )}
     />
     {rightSlot && (
-      <div
-        style={{
-          position: 'absolute',
-          right: 14,
-          top: '50%',
-          transform: 'translateY(-50%)',
-        }}
-      >
+      <div className="absolute right-[14px] top-1/2 -translate-y-1/2">
         {rightSlot}
       </div>
     )}
   </div>
 );
 
-/* ─── Layout wrapper (keeps background intact) ─── */
+/* ── Page wrapper ── */
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div
-    style={{
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100svh',
-      overflowX: 'hidden',
-      padding: '24px 20px',
-    }}
-  >
-    {/* Background image — НЕ трогаем, только glass поверх */}
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 0,
-        pointerEvents: 'none',
-      }}
-    >
+  <div className="relative flex flex-col items-center justify-center min-h-[100svh] overflow-x-hidden px-5 py-6">
+    {/* Background */}
+    <div className="absolute inset-0 z-0 pointer-events-none">
       <Image
         src="/background.jpg"
         alt="background"
@@ -185,29 +138,17 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => (
         className="object-cover opacity-25"
         priority
       />
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'linear-gradient(to top, var(--page-bg) 0%, color-mix(in srgb, var(--page-bg) 55%, transparent) 50%, transparent 100%)',
-        }}
-      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--page-bg)] via-[color-mix(in_srgb,var(--page-bg)_55%,transparent)] to-transparent" />
     </div>
-
-    {/* Content */}
-    <div
-      style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 380 }}
-    >
-      {children}
-    </div>
+    <div className="relative z-10 w-full max-w-[380px]">{children}</div>
   </div>
 );
 
-/* ─── Main export ─── */
+/* ── Main ── */
 export const Login = () => {
   const router = useRouter();
   const { user, login, isLoading } = useAuth();
+  const haptic = useHaptic();
   const [env, setEnv] = useState<AppEnv>('browser');
   const [autoLogging, setAutoLogging] = useState(false);
   const [autoError, setAutoError] = useState(false);
@@ -228,8 +169,7 @@ export const Login = () => {
   }, []);
 
   useEffect(() => {
-    if (env === 'browser' || attempted.current || isLoading) return;
-    if (user) return;
+    if (env === 'browser' || attempted.current || isLoading || user) return;
     const tg = (window as any)?.Telegram?.WebApp;
     const max =
       (window as any)?.max?.WebApp ||
@@ -272,15 +212,13 @@ export const Login = () => {
       if (data.user?.id)
         localStorage.setItem('auth_user_id', String(data.user.id));
       login(data.user);
+      haptic.success();
       toast.success('Вход выполнен!');
       router.replace('/');
     } catch {
+      haptic.error();
       toast.error('Ошибка входа через Telegram');
     }
-  };
-
-  const handleMaxLogin = () => {
-    toast('Откройте приложение через Max Messenger для автоматического входа');
   };
 
   const handleEmailLogin = async () => {
@@ -299,25 +237,22 @@ export const Login = () => {
         const u = data.user || { id: 0, first_name: 'User' };
         if (u.id) localStorage.setItem('auth_user_id', String(u.id));
         login(u);
+        haptic.success();
         toast.success('Вход выполнен!');
         router.replace('/');
       } else if (data.session_hash && data.session_data) {
-        const sessionData = data.session_data;
-        saveSessionAuth(data.session_hash, sessionData, {
-          id: sessionData.id,
+        const sd = data.session_data;
+        saveSessionAuth(data.session_hash, sd, {
+          id: sd.id,
           first_name: email.split('@')[0],
         });
-        login({
-          id: sessionData.id,
-          first_name: email.split('@')[0],
-          auth_date: 0,
-        });
+        login({ id: sd.id, first_name: email.split('@')[0], auth_date: 0 });
+        haptic.success();
         toast.success('Вход выполнен!');
         router.replace('/');
-      } else {
-        throw new Error(data.error || 'Неверный ответ сервера');
-      }
+      } else throw new Error(data.error || 'Неверный ответ сервера');
     } catch (e: any) {
+      haptic.error();
       toast.error(e?.response?.data?.error || e?.message || 'Ошибка входа');
     } finally {
       setEmailLoading(false);
@@ -336,20 +271,22 @@ export const Login = () => {
         { email: email.trim(), password, name: name.trim(), lang: 'ru' }
       );
       if (!data.success) throw new Error(data.error || 'Ошибка регистрации');
+      haptic.success();
       toast.success('Аккаунт создан!');
       if (data.session_hash && data.session_data) {
-        const sessionData = data.session_data;
-        saveSessionAuth(data.session_hash, sessionData, {
-          id: sessionData.id,
+        const sd = data.session_data;
+        saveSessionAuth(data.session_hash, sd, {
+          id: sd.id,
           first_name: name.trim(),
         });
-        login({ id: sessionData.id, first_name: name.trim(), auth_date: 0 });
+        login({ id: sd.id, first_name: name.trim(), auth_date: 0 });
         router.replace('/');
       } else {
         setView('email-login');
         toast('Войдите с новым аккаунтом');
       }
     } catch (e: any) {
+      haptic.error();
       if (e?.response?.status === 409)
         toast.error('Пользователь с таким email уже существует');
       else
@@ -361,109 +298,58 @@ export const Login = () => {
     }
   };
 
-  /* ─── Loader ─── */
-  if (isLoading || autoLogging) {
+  /* Loader */
+  if (isLoading || autoLogging)
     return (
       <PageWrapper>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 16,
-          }}
-        >
+        <div className="flex flex-col items-center gap-4">
           <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 18,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'var(--glass-thick)',
-              backdropFilter: 'blur(40px)',
-              WebkitBackdropFilter: 'blur(40px)',
-              border: 'var(--glass-border-thick)',
-              boxShadow: 'var(--glass-specular), var(--glass-shadow-lg)',
-            }}
+            className={cn(
+              'w-[52px] h-[52px] rounded-[18px] flex items-center justify-center',
+              'bg-white/[.13] dark:bg-black/[.65] backdrop-blur-3xl border border-white/[.22]',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.28)]'
+            )}
           >
-            <Loader2
-              size={22}
-              style={{
-                animation: 'apple-spin 0.7s linear infinite',
-                color: 'var(--sys-label-secondary)',
-              }}
-            />
+            <Loader2 size={22} className="animate-spin text-white/50" />
           </div>
-          <p style={{ fontSize: 14, color: 'var(--sys-label-secondary)' }}>
+          <p className="text-[14px] text-white/50">
             {autoLogging ? 'Выполняется вход...' : 'Загрузка...'}
           </p>
         </div>
-        <style>{`@keyframes apple-spin { to { transform: rotate(360deg); } }`}</style>
       </PageWrapper>
     );
-  }
 
   if (user) return null;
 
-  /* ─── Back button ─── */
+  /* Back button */
   const BackBtn = ({ onClick }: { onClick: () => void }) => (
     <button
-      onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        fontSize: 15,
-        fontWeight: 500,
-        color: 'var(--tint-blue)',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '6px 0',
-        transition: spring,
-        marginBottom: 24,
+      onClick={() => {
+        haptic.light();
+        onClick();
       }}
-      onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-      onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      className={cn(
+        'inline-flex items-center gap-1 text-[15px] font-medium text-[#0A84FF] bg-none border-none cursor-pointer py-1.5 mb-6',
+        spring,
+        'active:scale-[0.92]'
+      )}
     >
       <ArrowLeft size={17} /> Назад
     </button>
   );
 
-  /* ─── Email Login ─── */
-  if (view === 'email-login') {
+  /* Email Login */
+  if (view === 'email-login')
     return (
       <PageWrapper>
         <BackBtn onClick={() => setView('main')} />
-
-        <div style={{ marginBottom: 28 }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: '-0.6px',
-              marginBottom: 4,
-            }}
-          >
-            Вход
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--sys-label-secondary)' }}>
+        <div className="mb-7">
+          <h2 className="text-[28px] font-bold tracking-[-0.6px] mb-1">Вход</h2>
+          <p className="text-[14px] text-white/50">
             Войдите с помощью email и пароля
           </p>
         </div>
-
-        <div
-          style={{
-            ...glassCard,
-            padding: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
+        <div className={cn(glassCard, 'p-5 flex flex-col gap-3')}>
           <GlassInput
             type="email"
             placeholder="Email"
@@ -482,115 +368,54 @@ export const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  color: 'var(--sys-label-tertiary)',
-                }}
+                className="bg-none border-none cursor-pointer flex text-white/30"
               >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             }
           />
-
           <button
             onClick={handleEmailLogin}
             disabled={emailLoading}
-            style={{
-              width: '100%',
-              padding: '14px 24px',
-              borderRadius: 14,
-              fontSize: 16,
-              fontWeight: 700,
-              ...glassButtonBlue,
-              color: '#fff',
-              cursor: 'pointer',
-              transition: spring,
-              marginTop: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: emailLoading ? 0.6 : 1,
-            }}
-            onMouseDown={(e) =>
-              !emailLoading && (e.currentTarget.style.transform = 'scale(0.97)')
-            }
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            {emailLoading && (
-              <Loader2
-                size={16}
-                style={{ animation: 'apple-spin 0.65s linear infinite' }}
-              />
+            className={cn(
+              'w-full py-[14px] rounded-[14px] text-[16px] font-bold text-white mt-1 flex items-center justify-center gap-2',
+              glassBlue,
+              spring,
+              'active:scale-[0.97]',
+              emailLoading && 'opacity-60'
             )}
+          >
+            {emailLoading && <Loader2 size={16} className="animate-spin" />}
             Войти
           </button>
         </div>
-
-        <p
-          style={{
-            textAlign: 'center',
-            fontSize: 13,
-            color: 'var(--sys-label-secondary)',
-            marginTop: 20,
-          }}
-        >
+        <p className="text-center text-[13px] text-white/50 mt-5">
           Нет аккаунта?{' '}
           <button
-            onClick={() => setView('email-register')}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--tint-blue)',
-              fontWeight: 600,
-              fontSize: 13,
+            onClick={() => {
+              haptic.light();
+              setView('email-register');
             }}
+            className="bg-none border-none cursor-pointer text-[#0A84FF] font-semibold text-[13px]"
           >
             Зарегистрироваться
           </button>
         </p>
-
-        <style>{`@keyframes apple-spin { to { transform: rotate(360deg); } }`}</style>
       </PageWrapper>
     );
-  }
 
-  /* ─── Email Register ─── */
-  if (view === 'email-register') {
+  /* Email Register */
+  if (view === 'email-register')
     return (
       <PageWrapper>
         <BackBtn onClick={() => setView('email-login')} />
-
-        <div style={{ marginBottom: 28 }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: '-0.6px',
-              marginBottom: 4,
-            }}
-          >
+        <div className="mb-7">
+          <h2 className="text-[28px] font-bold tracking-[-0.6px] mb-1">
             Регистрация
           </h2>
-          <p style={{ fontSize: 14, color: 'var(--sys-label-secondary)' }}>
-            Создайте аккаунт по email
-          </p>
+          <p className="text-[14px] text-white/50">Создайте аккаунт по email</p>
         </div>
-
-        <div
-          style={{
-            ...glassCard,
-            padding: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
+        <div className={cn(glassCard, 'p-5 flex flex-col gap-3')}>
           <GlassInput
             type="text"
             placeholder="Ваше имя"
@@ -615,136 +440,68 @@ export const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  color: 'var(--sys-label-tertiary)',
-                }}
+                className="bg-none border-none cursor-pointer flex text-white/30"
               >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             }
           />
-
           <button
             onClick={handleEmailRegister}
             disabled={emailLoading}
-            style={{
-              width: '100%',
-              padding: '14px 24px',
-              borderRadius: 14,
-              fontSize: 16,
-              fontWeight: 700,
-              ...glassButtonBlue,
-              color: '#fff',
-              cursor: 'pointer',
-              transition: spring,
-              marginTop: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: emailLoading ? 0.6 : 1,
-            }}
-            onMouseDown={(e) =>
-              !emailLoading && (e.currentTarget.style.transform = 'scale(0.97)')
-            }
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            {emailLoading && (
-              <Loader2
-                size={16}
-                style={{ animation: 'apple-spin 0.65s linear infinite' }}
-              />
+            className={cn(
+              'w-full py-[14px] rounded-[14px] text-[16px] font-bold text-white mt-1 flex items-center justify-center gap-2',
+              glassBlue,
+              spring,
+              'active:scale-[0.97]',
+              emailLoading && 'opacity-60'
             )}
+          >
+            {emailLoading && <Loader2 size={16} className="animate-spin" />}
             Создать аккаунт
           </button>
         </div>
-
-        <p
-          style={{
-            textAlign: 'center',
-            fontSize: 13,
-            color: 'var(--sys-label-secondary)',
-            marginTop: 20,
-          }}
-        >
+        <p className="text-center text-[13px] text-white/50 mt-5">
           Уже есть аккаунт?{' '}
           <button
-            onClick={() => setView('email-login')}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--tint-blue)',
-              fontWeight: 600,
-              fontSize: 13,
+            onClick={() => {
+              haptic.light();
+              setView('email-login');
             }}
+            className="bg-none border-none cursor-pointer text-[#0A84FF] font-semibold text-[13px]"
           >
             Войти
           </button>
         </p>
-
-        <style>{`@keyframes apple-spin { to { transform: rotate(360deg); } }`}</style>
       </PageWrapper>
     );
-  }
 
-  /* ─── Main login screen ─── */
+  /* Main login */
   return (
     <PageWrapper>
-      {/* Logo / title */}
-      <div style={{ textAlign: 'center', marginBottom: 44 }}>
+      <div className="text-center mb-11">
         <div
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: 22,
-            marginInline: 'auto',
-            marginBottom: 16,
-            background: 'var(--glass-thick)',
-            backdropFilter: 'blur(50px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(50px) saturate(180%)',
-            border: 'var(--glass-border-regular)',
-            boxShadow: 'var(--glass-specular), var(--glass-shadow-xl)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 30,
-          }}
+          className={cn(
+            'w-[72px] h-[72px] rounded-[22px] mx-auto mb-4 flex items-center justify-center text-[30px]',
+            'bg-white/[.13] dark:bg-black/[.65] backdrop-blur-3xl',
+            'border border-white/[.22]',
+            'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.38)]'
+          )}
         >
           🧠
         </div>
-        <h1
-          style={{
-            fontSize: 32,
-            fontWeight: 800,
-            letterSpacing: '-0.8px',
-            marginBottom: 4,
-          }}
-        >
+        <h1 className="text-[32px] font-extrabold tracking-[-0.8px] mb-1">
           Sibneuro
         </h1>
-        <p style={{ fontSize: 15, color: 'var(--sys-label-secondary)' }}>
+        <p className="text-[15px] text-white/50">
           AI-платформа нового поколения
         </p>
       </div>
 
-      {/* Auth methods */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Telegram widget */}
-        <div style={{ ...glassCard, padding: '16px 20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
+      <div className="flex flex-col gap-3">
+        {/* Telegram */}
+        <div className={cn(glassCard, 'p-5')}>
+          <div className="flex items-center gap-2 mb-3">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="12" fill="#229ED9" />
               <path
@@ -753,9 +510,9 @@ export const Login = () => {
               />
               <path d="M8.3 12.5l.3 3.4 1.7-2" fill="#B0D8F5" />
             </svg>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>Telegram</span>
+            <span className="text-[15px] font-semibold">Telegram</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="flex justify-center">
             <LoginButton
               botUsername={
                 process.env.NEXT_PUBLIC_TG_BOT_USERNAME || 'iamrdgbot'
@@ -769,52 +526,28 @@ export const Login = () => {
           </div>
         </div>
 
-        {/* Max Messenger */}
+        {/* Max */}
         <button
-          onClick={handleMaxLogin}
-          style={{
-            ...glassCard,
-            padding: '16px 20px',
-            width: '100%',
-            textAlign: 'left',
-            cursor: 'pointer',
-            transition: spring,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
+          onClick={() => {
+            haptic.light();
+            toast(
+              'Откройте приложение через Max Messenger для автоматического входа'
+            );
           }}
-          onMouseDown={(e) =>
-            (e.currentTarget.style.transform = 'scale(0.985)')
-          }
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          className={cn(
+            glassCard,
+            'p-5 w-full text-left cursor-pointer flex flex-col gap-1.5',
+            spring,
+            'active:scale-[0.985]'
+          )}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: '#0077FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ color: '#fff', fontWeight: 700, fontSize: 11 }}>
-                M
-              </span>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-[#0077FF] flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-[11px]">M</span>
             </div>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>Max Messenger</span>
+            <span className="text-[15px] font-semibold">Max Messenger</span>
           </div>
-          <p
-            style={{
-              fontSize: 13,
-              color: 'var(--sys-label-secondary)',
-              lineHeight: 1.4,
-            }}
-          >
+          <p className="text-[13px] text-white/50 leading-[1.4]">
             Откройте сервис через мини-приложение в Max — вход произойдёт
             автоматически
           </p>
@@ -822,60 +555,36 @@ export const Login = () => {
 
         {/* Email */}
         <button
-          onClick={() => setView('email-login')}
-          style={{
-            ...glassCard,
-            padding: '16px 20px',
-            width: '100%',
-            cursor: 'pointer',
-            transition: spring,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
+          onClick={() => {
+            haptic.light();
+            setView('email-login');
           }}
-          onMouseDown={(e) =>
-            (e.currentTarget.style.transform = 'scale(0.985)')
-          }
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          className={cn(
+            glassCard,
+            'p-5 w-full cursor-pointer flex items-center gap-2.5',
+            spring,
+            'active:scale-[0.985]'
+          )}
         >
           <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: 'var(--glass-thin)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: 'var(--glass-border-thin)',
-              boxShadow: 'var(--glass-specular)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
+            className={cn(
+              'w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0',
+              glassThin
+            )}
           >
-            <Mail size={16} style={{ color: 'var(--sys-label-secondary)' }} />
+            <Mail size={16} className="text-white/50" />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600 }}>Войти по Email</span>
+          <span className="text-[15px] font-semibold">Войти по Email</span>
         </button>
 
         {autoError && (
-          <p style={{ textAlign: 'center', fontSize: 13, color: '#FF3B30' }}>
+          <p className="text-center text-[13px] text-[#FF3B30]">
             Не удалось войти автоматически. Попробуйте через кнопку выше.
           </p>
         )}
       </div>
 
-      <p
-        style={{
-          textAlign: 'center',
-          fontSize: 12,
-          color: 'var(--sys-label-tertiary)',
-          marginTop: 28,
-          lineHeight: 1.5,
-        }}
-      >
+      <p className="text-center text-[12px] text-white/30 mt-7 leading-[1.5]">
         Продолжая, вы соглашаетесь с условиями использования и политикой
         конфиденциальности.
       </p>

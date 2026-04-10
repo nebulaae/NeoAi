@@ -7,17 +7,24 @@ import { useAIModels } from '@/hooks/useModels';
 import { useRoles } from '@/hooks/useRoles';
 import { convertMediaToInputs, useGenerateAI } from '@/hooks/useGenerations';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { ChatsLoader } from '@/components/states/Loading';
 import { ChatsEmpty } from '@/components/states/Empty';
 import { ErrorComponent } from '@/components/states/Error';
 import { MessageSquarePlus, Loader2 } from 'lucide-react';
-import { timeAgo, localize } from '@/lib/utils';
+import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
+
+const glassThin = cn(
+  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl',
+  'border border-white/[.14]'
+);
 
 export const Chats = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const haptic = useHaptic();
   const modelParam = searchParams.get('model');
   const roleParam = searchParams.get('role');
 
@@ -33,18 +40,12 @@ export const Chats = () => {
   const { data: models } = useAIModels();
   const { data: roles } = useRoles();
   const generate = useGenerateAI();
-
   const chats = data?.pages.flatMap((p) => p) ?? [];
-
-  // Предотвращаем двойной запуск
   const startedRef = useRef(false);
 
   useEffect(() => {
     if (!modelParam && !roleParam) return;
-    if (startedRef.current) return;
-    if (generate.isPending) return;
-
-    // Ждём загрузки данных
+    if (startedRef.current || generate.isPending) return;
     const modelsReady = !!models;
     const rolesReady = roleParam ? !!roles : true;
     if (!modelsReady || !rolesReady) return;
@@ -52,16 +53,14 @@ export const Chats = () => {
     const role = roleParam
       ? roles?.find((r) => r.id === parseInt(roleParam))
       : null;
-
     if (roleParam && !role) {
       toast.error('Ассистент не найден');
       router.replace('/chats');
       return;
     }
 
-    let techName: string | null = null;
-    let version: string | undefined;
-
+    let techName: string | null = null,
+      version: string | undefined;
     if (modelParam) {
       const model = models?.find((m) => m.tech_name === modelParam);
       if (!model) {
@@ -70,18 +69,17 @@ export const Chats = () => {
         return;
       }
       techName = model.tech_name;
-      const def = model.versions?.find((v) => v.default) || model.versions?.[0];
-      version = def?.label;
+      version = (model.versions?.find((v) => v.default) || model.versions?.[0])
+        ?.label;
     } else if (roleParam && role) {
       const textModel = models?.find(
         (m) => m.categories?.includes('text') || m.mainCategory === 'text'
       );
       techName = textModel?.tech_name || null;
-      const def =
-        textModel?.versions?.find((v) => v.default) || textModel?.versions?.[0];
-      version = def?.label;
+      version = (
+        textModel?.versions?.find((v) => v.default) || textModel?.versions?.[0]
+      )?.label;
     }
-
     if (!techName) {
       toast.error('Подходящая модель не найдена');
       router.replace('/chats');
@@ -89,26 +87,13 @@ export const Chats = () => {
     }
 
     startedRef.current = true;
-
-    // ФИКС: отправляем осмысленный текст вместо пробела,
-    // чтобы бэкенд не отверг пустой запрос
     const inputs = convertMediaToInputs('Привет', []);
     generate.mutate(
+      { tech_name: techName, version, inputs, role_id: role ? role.id : null },
       {
-        tech_name: techName,
-        version,
-        inputs,
-        role_id: role ? role.id : null,
-      },
-      {
-        onSuccess: (data) => {
-          if (data.dialogue_id) {
-            // ФИКС: перенаправляем на чат независимо от статуса (sync или async).
-            // При async (processing) чат уже создан с dialogue_id — открываем его,
-            // polling внутри ChatPage сам подхватит результат.
-            router.replace(`/chats/${data.dialogue_id}`);
-          } else {
-            // Нет dialogue_id — необычная ситуация, остаёмся в чатах
+        onSuccess: (d) => {
+          if (d.dialogue_id) router.replace(`/chats/${d.dialogue_id}`);
+          else {
             toast.error('Не удалось получить ID диалога');
             startedRef.current = false;
             router.replace('/chats');
@@ -122,7 +107,7 @@ export const Chats = () => {
     );
   }, [modelParam, roleParam, models, roles]);
 
-  if (isError) {
+  if (isError)
     return (
       <div className="flex items-center justify-center min-h-screen p-6">
         <ErrorComponent
@@ -132,54 +117,45 @@ export const Chats = () => {
         />
       </div>
     );
-  }
 
-  if (generate.isPending && (modelParam || roleParam)) {
+  if (generate.isPending && (modelParam || roleParam))
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Создаём диалог...</p>
+        <Loader2 className="size-8 animate-spin text-white/40" />
+        <p className="text-[14px] text-white/50">Создаём диалог...</p>
       </div>
     );
-  }
 
   return (
-    <div
-      className="flex flex-col h-full pb-24"
-      style={{
-        paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))',
-        maxWidth: 1280,
-        marginInline: 'auto',
-      }}
-    >
+    <div className="flex flex-col h-full pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] max-w-7xl mx-auto">
       {/* Header */}
       <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 20px',
-          backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-          WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-          borderBottom: 'var(--glass-border-thin)',
-          boxShadow: 'var(--glass-specular)',
-        }}
+        className={cn(
+          'sticky top-0 z-40 flex items-center justify-between px-5 py-3.5',
+          'bg-white/4 dark:bg-black/35 backdrop-blur-2xl backdrop-saturate-150',
+          'border-b border-white/10',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+        )}
       >
-        <span className="text-xl font-bold tracking-tight">Чаты</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9 rounded-full"
-          onClick={() => router.push('/models')}
+        <span className="text-[22px] font-bold tracking-[-0.5px]">Чаты</span>
+        <button
+          onClick={() => {
+            haptic.light();
+            router.push('/models');
+          }}
+          className={cn(
+            'size-9 rounded-full flex items-center justify-center',
+            glassThin,
+            'transition-all duration-280 ease-[cubic-bezier(0.32,0.72,0,1)]',
+            'active:scale-[0.88]'
+          )}
           title="Новый чат"
         >
-          <MessageSquarePlus className="size-5 text-muted-foreground" />
-        </Button>
+          <MessageSquarePlus className="size-5 text-white/60" />
+        </button>
       </div>
 
+      {/* Chat list */}
       <div className="flex flex-col flex-1 overflow-y-auto">
         {isLoading ? (
           <ChatsLoader />
@@ -192,32 +168,40 @@ export const Chats = () => {
             {chats.map((chat) => (
               <button
                 key={chat.dialogue_id}
-                onClick={() => router.push(`/chats/${chat.dialogue_id}`)}
-                className="flex items-center gap-3 px-4 py-3.5 w-full border-b border-border/40 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
+                onClick={() => {
+                  haptic.light();
+                  router.push(`/chats/${chat.dialogue_id}`);
+                }}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3.5 w-full text-left',
+                  'border-b border-white/6',
+                  'bg-transparent transition-colors duration-200',
+                  'hover:bg-white/4 active:bg-white/[.07]'
+                )}
               >
-                <Avatar className="size-12 rounded-xl border border-border/50 shrink-0">
+                <Avatar className="size-12 rounded-xl border border-white/[.14] shrink-0">
                   <AvatarImage
                     src={
                       chat.avatar ||
                       `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.model || 'AI')}&background=1c1c1c&color=ffffff`
                     }
                   />
-                  <AvatarFallback className="rounded-xl bg-secondary text-xs font-bold">
+                  <AvatarFallback className="rounded-xl bg-white/10 text-xs font-bold">
                     {(chat.model || 'AI').slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-foreground truncate">
+                  <div className="text-[14px] font-semibold text-white truncate">
                     {chat.title || chat.model || 'Диалог'}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <div className="text-[12px] text-white/50 mt-0.5 truncate">
                     {chat.version}
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[12px] text-white/40">
                     {timeAgo(chat.last_activity || chat.started_at)}
                   </span>
                   <svg
@@ -227,7 +211,7 @@ export const Chats = () => {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="text-muted-foreground/40"
+                    className="text-white/25"
                   >
                     <path d="M9 18l6-6-6-6" />
                   </svg>
@@ -237,21 +221,27 @@ export const Chats = () => {
 
             {hasNextPage && (
               <div className="p-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fetchNextPage()}
+                <button
+                  onClick={() => {
+                    haptic.light();
+                    fetchNextPage();
+                  }}
                   disabled={isFetchingNextPage}
+                  className={cn(
+                    'w-full py-3 rounded-2xl text-[14px] font-semibold text-[#0A84FF]',
+                    glassThin,
+                    'transition-all duration-280 active:scale-[0.97]'
+                  )}
                 >
                   {isFetchingNextPage ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
                       Загрузка...
-                    </>
+                    </span>
                   ) : (
                     'Загрузить ещё'
                   )}
-                </Button>
+                </button>
               </div>
             )}
           </>

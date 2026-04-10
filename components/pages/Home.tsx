@@ -199,89 +199,89 @@ export const Home = () => {
         >
           {modelsLoading
             ? Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <GlassSkeleton w="52px" h="52px" circle />
-                <GlassSkeleton w="44px" h="10px" />
-              </div>
-            ))
-            : displayModels.map((m) => (
-              <button
-                key={m.tech_name}
-                onClick={() => handleModelClick(m.tech_name, m.mainCategory)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 6,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  transition: 'transform 0.22s cubic-bezier(0.32,0.72,0,1)',
-                  willChange: 'transform',
-                }}
-                onMouseDown={(e) =>
-                  (e.currentTarget.style.transform = 'scale(0.88)')
-                }
-                onMouseUp={(e) =>
-                  (e.currentTarget.style.transform = 'scale(1)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.transform = 'scale(1)')
-                }
-              >
-                {/* Avatar with glass ring */}
                 <div
+                  key={i}
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: '9999px',
-                    overflow: 'hidden',
-                    border: 'var(--glass-border-regular)',
-                    boxShadow:
-                      'var(--glass-specular), var(--glass-shadow-sm)',
-                    background: 'var(--glass-thin)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
                   }}
                 >
-                  <Avatar className="size-full">
-                    <AvatarImage
-                      src={
-                        m.avatar ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=1c1c1c&color=fff`
-                      }
-                    />
-                    <AvatarFallback style={{ fontSize: 13, fontWeight: 700 }}>
-                      {m.model_name.slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <GlassSkeleton w="52px" h="52px" circle />
+                  <GlassSkeleton w="44px" h="10px" />
                 </div>
-                <span
+              ))
+            : displayModels.map((m) => (
+                <button
+                  key={m.tech_name}
+                  onClick={() => handleModelClick(m.tech_name, m.mainCategory)}
                   style={{
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color: 'var(--sys-label-secondary)',
-                    maxWidth: 56,
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'transform 0.22s cubic-bezier(0.32,0.72,0,1)',
+                    willChange: 'transform',
                   }}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = 'scale(0.88)')
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = 'scale(1)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = 'scale(1)')
+                  }
                 >
-                  {m.model_name}
-                </span>
-              </button>
-            ))}
+                  {/* Avatar with glass ring */}
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '9999px',
+                      overflow: 'hidden',
+                      border: 'var(--glass-border-regular)',
+                      boxShadow:
+                        'var(--glass-specular), var(--glass-shadow-sm)',
+                      background: 'var(--glass-thin)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                    }}
+                  >
+                    <Avatar className="size-full">
+                      <AvatarImage
+                        src={
+                          m.avatar ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=1c1c1c&color=fff`
+                        }
+                      />
+                      <AvatarFallback style={{ fontSize: 13, fontWeight: 700 }}>
+                        {m.model_name.slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      color: 'var(--sys-label-secondary)',
+                      maxWidth: 56,
+                      textAlign: 'center',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {m.model_name}
+                  </span>
+                </button>
+              ))}
         </div>
       </section>
 
@@ -341,86 +341,86 @@ export const Home = () => {
         >
           {rolesLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  flexShrink: 0,
-                  width: 72,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <GlassSkeleton w="56px" h="56px" />
-                <GlassSkeleton w="56px" h="10px" />
-              </div>
-            ))
-            : displayRoles.map((role) => (
-              <button
-                key={role.id}
-                onClick={() => handleRoleClick(role.id)}
-                style={{
-                  flexShrink: 0,
-                  width: 72,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  transition: 'transform 0.22s cubic-bezier(0.32,0.72,0,1)',
-                }}
-                onMouseDown={(e) =>
-                  (e.currentTarget.style.transform = 'scale(0.88)')
-                }
-                onMouseUp={(e) =>
-                  (e.currentTarget.style.transform = 'scale(1)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.transform = 'scale(1)')
-                }
-              >
                 <div
+                  key={i}
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 'var(--radius-md)',
-                    overflow: 'hidden',
-                    border: 'var(--glass-border-regular)',
-                    boxShadow:
-                      'var(--glass-specular), var(--glass-shadow-sm)',
-                    background: 'var(--glass-thin)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
+                    flexShrink: 0,
+                    width: 72,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
                   }}
                 >
-                  <Avatar className="size-full rounded-none">
-                    <AvatarImage src={role.image || ''} />
-                    <AvatarFallback style={{ fontSize: 22 }}>
-                      {localize(role.label).slice(0, 1)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <GlassSkeleton w="56px" h="56px" />
+                  <GlassSkeleton w="56px" h="10px" />
                 </div>
-                <span
+              ))
+            : displayRoles.map((role) => (
+                <button
+                  key={role.id}
+                  onClick={() => handleRoleClick(role.id)}
                   style={{
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color: 'var(--sys-label-secondary)',
-                    width: '100%',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
+                    flexShrink: 0,
+                    width: 72,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'transform 0.22s cubic-bezier(0.32,0.72,0,1)',
                   }}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = 'scale(0.88)')
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = 'scale(1)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = 'scale(1)')
+                  }
                 >
-                  {localize(role.label)}
-                </span>
-              </button>
-            ))}
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 'var(--radius-md)',
+                      overflow: 'hidden',
+                      border: 'var(--glass-border-regular)',
+                      boxShadow:
+                        'var(--glass-specular), var(--glass-shadow-sm)',
+                      background: 'var(--glass-thin)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                    }}
+                  >
+                    <Avatar className="size-full rounded-none">
+                      <AvatarImage src={role.image || ''} />
+                      <AvatarFallback style={{ fontSize: 22 }}>
+                        {localize(role.label).slice(0, 1)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      color: 'var(--sys-label-secondary)',
+                      width: '100%',
+                      textAlign: 'center',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {localize(role.label)}
+                  </span>
+                </button>
+              ))}
         </div>
       </section>
 
@@ -452,148 +452,66 @@ export const Home = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {trendsLoading
             ? Array.from({ length: 4 }).map((_, i) => (
-              <GlassSkeleton key={i} w="100%" h="52px" />
-            ))
+                <GlassSkeleton key={i} w="100%" h="52px" />
+              ))
             : ((trends as any[]) || []).length === 0
               ? (
-                [
-                  /* static fallback */
-                  {
-                    icon: '🎨',
-                    title: 'Создай свой 2D-аватар',
-                    href: '/generate',
-                  },
-                  {
-                    icon: '🤖',
-                    title: 'Открой возможности GPT',
-                    href: '/chats',
-                  },
-                  {
-                    icon: '📸',
-                    title: 'Фотореалистичные изображения',
-                    href: '/generate',
-                  },
-                  {
-                    icon: '🎵',
-                    title: 'Генерация музыки',
-                    href: '/generate',
-                  },
-                ] as any[]
-              ).map((item) => (
-                <button
-                  key={item.title}
-                  onClick={() => router.push(item.href)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-lg)',
-                    background: 'var(--glass-thin)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    border: 'var(--glass-border-thin)',
-                    boxShadow: 'var(--glass-specular)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    width: '100%',
-                    transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
-                  }}
-                  onMouseDown={(e) => {
-                    e.currentTarget.style.transform = 'scale(0.985)';
-                    e.currentTarget.style.background = 'var(--glass-regular)';
-                  }}
-                  onMouseUp={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.background = 'var(--glass-thin)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.background = 'var(--glass-thin)';
-                  }}
-                >
-                  <span
+                  [
+                    /* static fallback */
+                    {
+                      icon: '🎨',
+                      title: 'Создай свой 2D-аватар',
+                      href: '/generate',
+                    },
+                    {
+                      icon: '🤖',
+                      title: 'Открой возможности GPT',
+                      href: '/chats',
+                    },
+                    {
+                      icon: '📸',
+                      title: 'Фотореалистичные изображения',
+                      href: '/generate',
+                    },
+                    {
+                      icon: '🎵',
+                      title: 'Генерация музыки',
+                      href: '/generate',
+                    },
+                  ] as any[]
+                ).map((item) => (
+                  <button
+                    key={item.title}
+                    onClick={() => router.push(item.href)}
                     style={{
-                      fontSize: 20,
-                      width: 32,
-                      textAlign: 'center',
-                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-lg)',
+                      background: 'var(--glass-thin)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: 'var(--glass-border-thin)',
+                      boxShadow: 'var(--glass-specular)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                      transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
+                    }}
+                    onMouseDown={(e) => {
+                      e.currentTarget.style.transform = 'scale(0.985)';
+                      e.currentTarget.style.background = 'var(--glass-regular)';
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.background = 'var(--glass-thin)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.background = 'var(--glass-thin)';
                     }}
                   >
-                    {item.icon}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      flex: 1,
-                      color: 'var(--sys-label)',
-                    }}
-                  >
-                    {item.title}
-                  </span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    style={{
-                      color: 'var(--sys-label-tertiary)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
-              ))
-              : (trends as any[]).map((item: any, i: number) => (
-                <button
-                  key={i}
-                  onClick={() => handleTrendClick(item)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-lg)',
-                    background: 'var(--glass-thin)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    border: 'var(--glass-border-thin)',
-                    boxShadow: 'var(--glass-specular)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    width: '100%',
-                    transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
-                  }}
-                  onMouseDown={(e) => {
-                    e.currentTarget.style.transform = 'scale(0.985)';
-                    e.currentTarget.style.background = 'var(--glass-regular)';
-                  }}
-                  onMouseUp={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.background = 'var(--glass-thin)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.background = 'var(--glass-thin)';
-                  }}
-                >
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt=""
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 'var(--radius-sm)',
-                        objectFit: 'cover',
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
                     <span
                       style={{
                         fontSize: 20,
@@ -602,35 +520,117 @@ export const Home = () => {
                         flexShrink: 0,
                       }}
                     >
-                      ✨
+                      {item.icon}
                     </span>
-                  )}
-                  <span
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        flex: 1,
+                        color: 'var(--sys-label)',
+                      }}
+                    >
+                      {item.title}
+                    </span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      style={{
+                        color: 'var(--sys-label-tertiary)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </button>
+                ))
+              : (trends as any[]).map((item: any, i: number) => (
+                  <button
+                    key={i}
+                    onClick={() => handleTrendClick(item)}
                     style={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      flex: 1,
-                      color: 'var(--sys-label)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-lg)',
+                      background: 'var(--glass-thin)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: 'var(--glass-border-thin)',
+                      boxShadow: 'var(--glass-specular)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                      transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
+                    }}
+                    onMouseDown={(e) => {
+                      e.currentTarget.style.transform = 'scale(0.985)';
+                      e.currentTarget.style.background = 'var(--glass-regular)';
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.background = 'var(--glass-thin)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.background = 'var(--glass-thin)';
                     }}
                   >
-                    {localize(item.title)}
-                  </span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    style={{
-                      color: 'var(--sys-label-tertiary)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
-              ))}
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt=""
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 'var(--radius-sm)',
+                          objectFit: 'cover',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: 20,
+                          width: 32,
+                          textAlign: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        ✨
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        flex: 1,
+                        color: 'var(--sys-label)',
+                      }}
+                    >
+                      {localize(item.title)}
+                    </span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      style={{
+                        color: 'var(--sys-label-tertiary)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </button>
+                ))}
         </div>
       </section>
     </div>

@@ -23,27 +23,31 @@ import {
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
 
-const spring = 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+/* ── Shared ── */
+const glassRegular = cn(
+  'bg-white/[.10] dark:bg-black/[.55] backdrop-blur-2xl backdrop-saturate-180',
+  'border border-white/[.18]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_16px_rgba(0,0,0,0.22)]'
+);
+const glassThin = cn(
+  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
+  'border border-white/[.14]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+);
+const spring =
+  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
 const GlassCard = ({
   children,
-  style,
+  className,
 }: {
   children: React.ReactNode;
-  style?: React.CSSProperties;
+  className?: string;
 }) => (
-  <div
-    style={{
-      background: 'var(--glass-regular)',
-      backdropFilter: 'blur(40px) saturate(180%) contrast(110%)',
-      WebkitBackdropFilter: 'blur(40px) saturate(180%) contrast(110%)',
-      border: 'var(--glass-border-regular)',
-      borderRadius: 'var(--radius-xl)',
-      boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-      ...style,
-    }}
-  >
+  <div className={cn(glassRegular, 'rounded-[20px]', className)}>
     {children}
   </div>
 );
@@ -55,6 +59,7 @@ const STATUS: Record<string, { icon: string; color: string; label: string }> = {
 };
 
 export const Profile = () => {
+  const haptic = useHaptic();
   const { user: tgUser, logout } = useAuth();
   const { data: userData, isLoading: userLoading } = useUser();
   const { data: refData } = useReferrals();
@@ -81,11 +86,14 @@ export const Profile = () => {
     : 'Пользователь';
   const username = tgUser?.username || '';
 
-  const handleTopUp = () =>
+  const handleTopUp = () => {
+    haptic.medium();
     paymentUrl
       ? window.open(paymentUrl, '_blank')
       : toast.error('Ссылка на оплату недоступна');
+  };
   const handleCopyToken = (token: string) => {
+    haptic.success();
     navigator.clipboard.writeText(token).then(() => {
       setCopiedToken(token);
       toast.success('Токен скопирован');
@@ -93,66 +101,44 @@ export const Profile = () => {
     });
   };
   const handleGenerateToken = () => {
+    haptic.light();
     generateToken.mutate(undefined, {
       onSuccess: (d) => {
         toast.success('Новый API-токен создан');
         handleCopyToken(d.token);
       },
-      onError: () => toast.error('Не удалось создать токен'),
+      onError: () => {
+        haptic.error();
+        toast.error('Не удалось создать токен');
+      },
     });
   };
 
   return (
-    <div
-      style={{
-        paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))',
-        maxWidth: 1280,
-        marginInline: 'auto',
-      }}
-    >
+    <div className="pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] max-w-[1280px] mx-auto">
       {/* ── Nav Bar ── */}
       <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 20px',
-          backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-          WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-          borderBottom: 'var(--glass-border-thin)',
-          boxShadow: 'var(--glass-specular)',
-        }}
+        className={cn(
+          'sticky top-0 z-40 flex items-center justify-between px-5 py-[14px]',
+          'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
+          'border-b border-white/[.10]',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+        )}
       >
-        <span
-          style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}
-        >
-          Профиль
-        </span>
+        <span className="text-[22px] font-bold tracking-[-0.5px]">Профиль</span>
         <button
-          onClick={logout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-pill)',
-            background: 'rgba(255,59,48,0.12)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,59,48,0.22)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-            color: '#FF3B30',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: spring,
+          onClick={() => {
+            haptic.heavy();
+            logout();
           }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.94)')}
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
+            'bg-[rgba(255,59,48,0.12)] backdrop-blur-xl border border-[rgba(255,59,48,0.22)]',
+            'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]',
+            'text-[#FF3B30] text-[13px] font-semibold',
+            spring,
+            'active:scale-[0.94]'
+          )}
         >
           <LogOut size={13} />
           Выйти
@@ -160,86 +146,34 @@ export const Profile = () => {
       </header>
 
       {/* ── User Hero ── */}
-      <div style={{ padding: '24px 20px 20px' }}>
-        <GlassCard style={{ padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Avatar */}
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: '9999px',
-                overflow: 'hidden',
-                border: '2px solid rgba(255,255,255,0.3)',
-                boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-              }}
-            >
+      <div className="px-5 pt-6 pb-5">
+        <GlassCard className="p-5">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_16px_rgba(0,0,0,0.22)] flex-shrink-0">
               <Avatar className="size-full">
                 <AvatarImage src={tgUser?.photo_url} />
-                <AvatarFallback style={{ fontSize: 22, fontWeight: 700 }}>
+                <AvatarFallback className="text-[22px] font-bold">
                   {name[0]}
                 </AvatarFallback>
               </Avatar>
             </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 2,
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    letterSpacing: '-0.3px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-[18px] font-bold tracking-[-0.3px] truncate">
                   {name}
                 </p>
                 {isPremium && (
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      padding: '2px 8px',
-                      borderRadius: '9999px',
-                      background: 'rgba(255,204,0,0.18)',
-                      border: '1px solid rgba(255,204,0,0.3)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: '#b38600',
-                    }}
-                  >
-                    <Star size={9} style={{ fill: 'currentColor' }} />
+                  <div className="inline-flex items-center gap-[3px] px-2 py-[2px] rounded-full bg-[rgba(255,204,0,0.18)] border border-[rgba(255,204,0,0.30)] backdrop-blur-xl text-[10px] font-bold text-[#b38600] flex-shrink-0">
+                    <Star size={9} fill="currentColor" />
                     Premium
                   </div>
                 )}
               </div>
               {username && (
-                <p
-                  style={{ fontSize: 14, color: 'var(--sys-label-secondary)' }}
-                >
-                  @{username}
-                </p>
+                <p className="text-[14px] text-white/50">@{username}</p>
               )}
               {isPremium && premiumEnd && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--sys-label-tertiary)',
-                    marginTop: 2,
-                  }}
-                >
+                <p className="text-[12px] text-white/30 mt-0.5">
                   до {new Date(premiumEnd * 1000).toLocaleDateString('ru-RU')}
                 </p>
               )}
@@ -249,208 +183,86 @@ export const Profile = () => {
       </div>
 
       {/* ── Stats Grid ── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          padding: '0 20px 20px',
-        }}
-      >
+      <div className="grid grid-cols-2 gap-3 px-5 pb-5">
         {/* Balance */}
         <button
           onClick={handleTopUp}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            padding: 18,
-            borderRadius: 'var(--radius-xl)',
-            background: 'var(--glass-regular)',
-            backdropFilter: 'blur(40px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-            border: 'var(--glass-border-regular)',
-            boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-            textAlign: 'left',
-            cursor: 'pointer',
-            transition: spring,
-          }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          className={cn(
+            'flex flex-col gap-1.5 p-[18px] rounded-[20px] text-left',
+            glassRegular,
+            spring,
+            'active:scale-[0.96]'
+          )}
         >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.4px',
-                textTransform: 'uppercase',
-                color: 'var(--sys-label-secondary)',
-              }}
-            >
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-semibold tracking-[0.4px] uppercase text-white/50">
               Токены
             </span>
-            <ExternalLink
-              size={12}
-              style={{ color: 'var(--sys-label-tertiary)' }}
-            />
+            <ExternalLink size={12} className="text-white/30" />
           </div>
           {userLoading ? (
-            <div
-              style={{
-                width: 64,
-                height: 32,
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--glass-thin)',
-              }}
-            />
+            <div className={cn('w-16 h-8 rounded-lg', glassThin)} />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
-              <span
-                style={{
-                  fontSize: 30,
-                  fontWeight: 700,
-                  letterSpacing: '-0.8px',
-                  lineHeight: 1,
-                }}
-              >
+            <div className="flex items-end gap-1">
+              <span className="text-[30px] font-bold tracking-[-0.8px] leading-none">
                 {tokens}
               </span>
-              <span style={{ fontSize: 14, marginBottom: 2 }}>💎</span>
+              <span className="text-[14px] mb-0.5">💎</span>
             </div>
           )}
-          <span
-            style={{ fontSize: 11, fontWeight: 600, color: 'var(--tint-blue)' }}
-          >
+          <span className="text-[11px] font-semibold text-[#0A84FF]">
             Пополнить →
           </span>
         </button>
 
         {/* Referrals */}
         <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-            padding: 18,
-            borderRadius: 'var(--radius-xl)',
-            background: 'var(--glass-regular)',
-            backdropFilter: 'blur(40px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-            border: 'var(--glass-border-regular)',
-            boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-          }}
+          className={cn(
+            'flex flex-col gap-1.5 p-[18px] rounded-[20px]',
+            glassRegular
+          )}
         >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.4px',
-                textTransform: 'uppercase',
-                color: 'var(--sys-label-secondary)',
-              }}
-            >
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-semibold tracking-[0.4px] uppercase text-white/50">
               Рефералы
             </span>
-            <Users size={12} style={{ color: 'var(--sys-label-tertiary)' }} />
+            <Users size={12} className="text-white/30" />
           </div>
           {!refStats ? (
-            <div
-              style={{
-                width: 48,
-                height: 32,
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--glass-thin)',
-              }}
-            />
+            <div className={cn('w-12 h-8 rounded-lg', glassThin)} />
           ) : (
-            <span
-              style={{
-                fontSize: 30,
-                fontWeight: 700,
-                letterSpacing: '-0.8px',
-                lineHeight: 1,
-              }}
-            >
+            <span className="text-[30px] font-bold tracking-[-0.8px] leading-none">
               {refStats?.total ?? 0}
             </span>
           )}
-          <span style={{ fontSize: 11, color: 'var(--sys-label-secondary)' }}>
+          <span className="text-[11px] text-white/50">
             {refStats?.earned ?? 0} 💎 заработано
           </span>
         </div>
       </div>
 
-      {/* ── Separator ── */}
-      <div
-        style={{
-          height: 0.5,
-          background: 'var(--sys-separator)',
-          margin: '0 0 20px',
-        }}
-      />
+      <div className="h-px bg-white/[.08] mb-5" />
 
       {/* ── API Tokens ── */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: '0.7px',
-              textTransform: 'uppercase',
-              color: 'var(--sys-label-secondary)',
-            }}
-          >
+      <div className="px-5 pb-5">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] font-bold tracking-[0.7px] uppercase text-white/50">
             API-токены
           </span>
           <button
             onClick={handleGenerateToken}
             disabled={generateToken.isPending}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 12px',
-              borderRadius: 'var(--radius-pill)',
-              background: 'rgba(0,122,255,0.12)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(0,122,255,0.22)',
-              color: 'var(--tint-blue)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: spring,
-              opacity: generateToken.isPending ? 0.6 : 1,
-            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-[5px] rounded-full',
+              'bg-[rgba(0,122,255,0.12)] backdrop-blur-xl border border-[rgba(0,122,255,0.22)]',
+              'text-[#0A84FF] text-[12px] font-semibold',
+              spring,
+              'active:scale-[0.94]',
+              generateToken.isPending && 'opacity-60'
+            )}
           >
             {generateToken.isPending ? (
-              <Loader2
-                size={11}
-                style={{ animation: 'apple-spin 0.65s linear infinite' }}
-              />
+              <Loader2 size={11} className="animate-spin" />
             ) : (
               <Key size={11} />
             )}
@@ -459,68 +271,34 @@ export const Profile = () => {
         </div>
 
         {!apiTokens || apiTokens.length === 0 ? (
-          <p
-            style={{
-              fontSize: 13,
-              color: 'var(--sys-label-secondary)',
-              padding: '0 4px',
-            }}
-          >
+          <p className="text-[13px] text-white/50 px-1">
             Нет токенов. Создайте для доступа к API.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {apiTokens.map((t: any) => (
               <GlassCard
                 key={t.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 14px',
-                }}
+                className="flex items-center gap-2.5 px-[14px] py-[10px]"
               >
-                <code
-                  style={{
-                    flex: 1,
-                    fontSize: 12,
-                    color: 'var(--sys-label-secondary)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    fontFamily: 'monospace',
-                  }}
-                >
+                <code className="flex-1 text-[12px] text-white/50 overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                   {t.token}
                 </code>
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: 'var(--sys-label-tertiary)',
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="text-[10px] text-white/30 flex-shrink-0">
                   {t.generations} reqs
                 </span>
                 <button
                   onClick={() => handleCopyToken(t.token)}
-                  style={{
-                    flexShrink: 0,
-                    padding: 6,
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: spring,
-                  }}
+                  className={cn(
+                    'flex-shrink-0 p-1.5 rounded-lg',
+                    spring,
+                    'active:scale-[0.88]'
+                  )}
                 >
                   {copiedToken === t.token ? (
-                    <Check size={14} style={{ color: '#34C759' }} />
+                    <Check size={14} className="text-[#34C759]" />
                   ) : (
-                    <Copy
-                      size={14}
-                      style={{ color: 'var(--sys-label-secondary)' }}
-                    />
+                    <Copy size={14} className="text-white/50" />
                   )}
                 </button>
               </GlassCard>
@@ -529,168 +307,70 @@ export const Profile = () => {
         )}
       </div>
 
-      <div
-        style={{
-          height: 0.5,
-          background: 'var(--sys-separator)',
-          margin: '0 0 20px',
-        }}
-      />
+      <div className="h-px bg-white/[.08] mb-5" />
 
-      {/* ── Generation History ── */}
-      <div style={{ padding: '0 20px' }}>
-        <span
-          style={{
-            display: 'block',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.7px',
-            textTransform: 'uppercase',
-            color: 'var(--sys-label-secondary)',
-            marginBottom: 12,
-          }}
-        >
+      {/* ── History ── */}
+      <div className="px-5">
+        <span className="block text-[11px] font-bold tracking-[0.7px] uppercase text-white/50 mb-3">
           История генераций
         </span>
 
         {reqLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="flex flex-col gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-              >
+              <div key={i} className="flex items-center gap-3">
                 <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--glass-thin)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    flexShrink: 0,
-                  }}
+                  className={cn(
+                    'w-10 h-10 rounded-2xl flex-shrink-0',
+                    glassThin
+                  )}
                 />
-                <div
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '50%',
-                      height: 13,
-                      borderRadius: 'var(--radius-xs)',
-                      background: 'var(--glass-thin)',
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: '30%',
-                      height: 10,
-                      borderRadius: 'var(--radius-xs)',
-                      background: 'var(--glass-thin)',
-                    }}
-                  />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <div className={cn('w-1/2 h-[13px] rounded', glassThin)} />
+                  <div className={cn('w-1/3 h-[10px] rounded', glassThin)} />
                 </div>
               </div>
             ))}
           </div>
         ) : requests.length === 0 ? (
-          <p
-            style={{
-              fontSize: 14,
-              color: 'var(--sys-label-secondary)',
-              padding: '16px 4px',
-            }}
-          >
-            Нет генераций
-          </p>
+          <p className="text-[14px] text-white/50 py-4">Нет генераций</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="flex flex-col">
             {requests.map((req) => {
               const st = STATUS[req.status] || {
                 icon: '⏳',
-                color: 'var(--sys-label-secondary)',
+                color: 'rgba(255,255,255,0.5)',
                 label: req.status,
               };
               return (
                 <div
                   key={req.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingBottom: 14,
-                    marginBottom: 14,
-                    borderBottom: '0.5px solid var(--sys-separator)',
-                  }}
+                  className="flex items-center gap-3 pb-[14px] mb-[14px] border-b border-white/[.06]"
                 >
-                  {/* Status icon */}
                   <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 'var(--radius-md)',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 18,
-                      background: 'var(--glass-thin)',
-                      backdropFilter: 'blur(20px)',
-                      WebkitBackdropFilter: 'blur(20px)',
-                      border: 'var(--glass-border-thin)',
-                      boxShadow: 'var(--glass-specular)',
-                    }}
+                    className={cn(
+                      'w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center text-[18px]',
+                      glassThin
+                    )}
                   >
                     {st.icon}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold truncate">
                       {req.model}
                     </p>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--sys-label-secondary)',
-                        marginTop: 2,
-                      }}
-                    >
+                    <p className="text-[12px] text-white/50 mt-0.5">
                       {req.version} · {timeAgo(req.created_at)}
                     </p>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: 3,
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div className="flex flex-col items-end gap-[3px] flex-shrink-0">
                     <span
-                      style={{ fontSize: 12, fontWeight: 600, color: st.color }}
+                      className="text-[12px] font-semibold"
+                      style={{ color: st.color }}
                     >
                       {st.label}
                     </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: 'var(--sys-label-tertiary)',
-                      }}
-                    >
+                    <span className="text-[11px] text-white/30">
                       {req.cost} 💎
                     </span>
                   </div>
@@ -700,44 +380,22 @@ export const Profile = () => {
 
             {hasNextPage && (
               <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                style={{
-                  width: '100%',
-                  padding: '12px 0',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--glass-thin)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: 'var(--glass-border-thin)',
-                  boxShadow: 'var(--glass-specular)',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: 'var(--tint-blue)',
-                  cursor: 'pointer',
-                  transition: spring,
-                  marginTop: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
+                onClick={() => {
+                  haptic.light();
+                  fetchNextPage();
                 }}
-                onMouseDown={(e) =>
-                  (e.currentTarget.style.transform = 'scale(0.97)')
-                }
-                onMouseUp={(e) =>
-                  (e.currentTarget.style.transform = 'scale(1)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.transform = 'scale(1)')
-                }
+                disabled={isFetchingNextPage}
+                className={cn(
+                  'w-full py-3 rounded-2xl text-[14px] font-semibold text-[#0A84FF] mt-1',
+                  glassThin,
+                  spring,
+                  'active:scale-[0.97]',
+                  'flex items-center justify-center gap-2'
+                )}
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2
-                      size={14}
-                      style={{ animation: 'apple-spin 0.65s linear infinite' }}
-                    />{' '}
+                    <Loader2 size={14} className="animate-spin" />
                     Загрузка...
                   </>
                 ) : (
@@ -749,7 +407,7 @@ export const Profile = () => {
         )}
       </div>
 
-      <style>{`@keyframes apple-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes apple-spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 };

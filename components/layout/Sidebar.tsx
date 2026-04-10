@@ -12,9 +12,10 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  useSidebar,
 } from '@/components/ui/sidebar';
 import { Brain, Home, MessageCircle, Sparkle, UserRound } from 'lucide-react';
+import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 const items = [
@@ -23,23 +24,12 @@ const items = [
   { id: 3, href: '/generate', label: 'Создать', icon: Sparkle },
   { id: 4, href: '/chats', label: 'Чаты', icon: MessageCircle },
   { id: 5, href: '/profile', label: 'Профиль', icon: UserRound },
-];
-
-/* Inline style constants */
-const glassStyles = {
-  sidebarInner: {
-    background: 'var(--glass-thick)',
-    backdropFilter: 'var(--blur-thick) var(--vibrancy)',
-    WebkitBackdropFilter: 'var(--blur-thick) var(--vibrancy)',
-    borderRadius: 'var(--radius-xl)',
-    border: 'var(--glass-border-regular)',
-    boxShadow: 'var(--glass-specular), var(--glass-shadow-xl)',
-  } as React.CSSProperties,
-};
+] as const;
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const haptic = useHaptic();
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -52,15 +42,12 @@ export function AppSidebar() {
   return (
     <Sidebar variant="floating" collapsible="icon">
       <SidebarContent
-        className="rounded-xl py-1"
-        style={{
-          background: 'var(--glass-thick)',
-          backdropFilter: 'blur(50px) saturate(180%) contrast(110%)',
-          WebkitBackdropFilter: 'blur(50px) saturate(180%) contrast(110%)',
-          borderRadius: 'var(--radius-xl)',
-          border: 'var(--glass-border-regular)',
-          boxShadow: 'var(--glass-specular), var(--glass-shadow-xl)',
-        }}
+        className={cn(
+          'rounded-xl py-1',
+          'bg-black/65 backdrop-blur-3xl backdrop-saturate-200',
+          'border border-white/22',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.38)]'
+        )}
       >
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 py-2">
@@ -87,32 +74,29 @@ export function AppSidebar() {
                     >
                       <Link
                         href={item.href}
-                        style={{
-                          borderRadius: 'var(--radius-md)',
-                          fontWeight: 500,
-                          transition:
-                            'all 0.22s cubic-bezier(0.32, 0.72, 0, 1)',
-                          ...(active
-                            ? {
-                                background: 'var(--glass-thick)',
-                                backdropFilter: 'blur(40px)',
-                                WebkitBackdropFilter: 'blur(40px)',
-                                border: 'var(--glass-border-regular)',
-                                boxShadow:
-                                  'var(--glass-specular), var(--glass-shadow-md)',
-                              }
-                            : isCreate
-                              ? {
-                                  background: 'rgba(0, 122, 255, 0.75)',
-                                  backdropFilter: 'blur(30px)',
-                                  WebkitBackdropFilter: 'blur(30px)',
-                                  border: '1px solid rgba(0, 122, 255, 0.3)',
-                                  boxShadow:
-                                    'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 16px rgba(0,122,255,0.3)',
-                                  color: '#fff',
-                                }
-                              : {}),
+                        onClick={() => {
+                          if (isCreate) haptic.medium();
+                          else haptic.selection();
                         }}
+                        className={cn(
+                          'rounded-xl font-medium',
+                          'transition-all duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                          'active:scale-[0.96]',
+                          active
+                            ? cn(
+                                'bg-white/[.14] backdrop-blur-xl',
+                                'border border-white/18',
+                                'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_12px_rgba(0,0,0,0.18)]'
+                              )
+                            : isCreate
+                              ? cn(
+                                  'bg-[rgba(0,122,255,0.75)] backdrop-blur-xl',
+                                  'border border-[rgba(0,122,255,0.30)]',
+                                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_16px_rgba(0,122,255,0.32)]',
+                                  'text-white'
+                                )
+                              : 'hover:bg-white/[.07]'
+                        )}
                       >
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>

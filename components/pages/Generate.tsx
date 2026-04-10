@@ -21,13 +21,15 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
 
-/* ─── Polling hook ─── */
+/* ── Polling ── */
 function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ['gen-status', dialogueId],
     queryFn: async () => {
-      const { data } = await api.get(`/api/chats/history`, {
+      const { data } = await api.get('/api/chats/history', {
         params: { dialogue_id: dialogueId },
       });
       const msgs = data.messages || data || [];
@@ -38,50 +40,38 @@ function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   });
 }
 
-/* ─── Spring / glass tokens ─── */
-const spring = 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+/* ── Shared classes ── */
+const glassThin = cn(
+  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
+  'border border-white/[.14]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+);
+const glassRegular = cn(
+  'bg-white/[.10] dark:bg-black/[.55] backdrop-blur-2xl backdrop-saturate-180',
+  'border border-white/[.18]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_16px_rgba(0,0,0,0.22)]'
+);
+const glassThick = cn(
+  'bg-white/[.13] dark:bg-black/[.65] backdrop-blur-3xl backdrop-saturate-200',
+  'border border-white/[.22]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.28)]'
+);
+const glassBlue = cn(
+  'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
+  'border border-[rgba(0,122,255,0.30)]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_6px_24px_rgba(0,122,255,0.38)]'
+);
+const spring =
+  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
-const glassRegular: React.CSSProperties = {
-  background: 'var(--glass-regular)',
-  backdropFilter: 'var(--blur-regular) var(--vibrancy)',
-  WebkitBackdropFilter: 'var(--blur-regular) var(--vibrancy)',
-  border: 'var(--glass-border-regular)',
-  boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-};
-
-const glassThick: React.CSSProperties = {
-  background: 'var(--glass-thick)',
-  backdropFilter: 'var(--blur-thick) var(--vibrancy)',
-  WebkitBackdropFilter: 'var(--blur-thick) var(--vibrancy)',
-  border: 'var(--glass-border-thick)',
-  boxShadow: 'var(--glass-specular), var(--glass-shadow-lg)',
-};
-
-const glassThin: React.CSSProperties = {
-  background: 'var(--glass-thin)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: 'var(--glass-border-thin)',
-  boxShadow: 'var(--glass-specular)',
-};
-
-/* ─── Section header ─── */
+/* ── Section label ── */
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p
-    style={{
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.6px',
-      textTransform: 'uppercase',
-      color: 'var(--sys-label-secondary)',
-      marginBottom: 10,
-    }}
-  >
+  <p className="text-[11px] font-bold tracking-[0.6px] uppercase text-white/50 mb-2.5">
     {children}
   </p>
 );
 
-/* ─── Pill button ─── */
+/* ── Pill button ── */
 const PillBtn = ({
   active,
   onClick,
@@ -90,42 +80,29 @@ const PillBtn = ({
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-}) => (
-  <button
-    onClick={onClick}
-    style={{
-      padding: '6px 14px',
-      borderRadius: 9999,
-      fontSize: 13,
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: spring,
-      flexShrink: 0,
-      ...(active
-        ? {
-            background: 'rgba(0,122,255,0.85)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0,122,255,0.3)',
-            boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 14px rgba(0,122,255,0.35)',
-            color: '#fff',
-          }
-        : {
-            ...glassThin,
-            color: 'var(--sys-label-secondary)',
-          }),
-    }}
-    onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-    onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-  >
-    {children}
-  </button>
-);
+}) => {
+  const haptic = useHaptic();
+  return (
+    <button
+      onClick={() => {
+        haptic.selection();
+        onClick();
+      }}
+      className={cn(
+        'px-[14px] py-1.5 rounded-full text-[13px] font-semibold cursor-pointer flex-shrink-0',
+        spring,
+        'active:scale-[0.92]',
+        active ? glassBlue + ' text-white' : glassThin + ' text-white/50'
+      )}
+    >
+      {children}
+    </button>
+  );
+};
 
-/* ─── Model row ─── */
+/* ── Model row ── */
 const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
+  const haptic = useHaptic();
   const cost =
     m.versions?.find((v: any) => v.default)?.cost ?? m.versions?.[0]?.cost ?? 1;
   const avatarUrl =
@@ -134,98 +111,40 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
 
   return (
     <button
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        padding: '13px 20px',
-        width: '100%',
-        textAlign: 'left',
-        background: 'transparent',
-        border: 'none',
-        borderBottom: '1px solid var(--sys-separator)',
-        cursor: 'pointer',
-        transition: spring,
-        WebkitTapHighlightColor: 'transparent',
+      onClick={() => {
+        haptic.light();
+        onClick();
       }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.background = 'var(--glass-ultra-thin)')
-      }
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'transparent';
-        e.currentTarget.style.transform = 'scale(1)';
-      }}
-      onMouseDown={(e) => {
-        e.currentTarget.style.transform = 'scale(0.985)';
-        e.currentTarget.style.background = 'var(--glass-thin)';
-      }}
-      onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      className={cn(
+        'flex items-center gap-[14px] px-5 py-[13px] w-full text-left',
+        'bg-transparent border-none border-b border-white/[.06] cursor-pointer',
+        spring,
+        'hover:bg-white/[.04] active:bg-white/[.07] active:scale-[0.985]'
+      )}
     >
-      <div
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: 14,
-          overflow: 'hidden',
-          flexShrink: 0,
-          border: 'var(--glass-border-thin)',
-          boxShadow: 'var(--glass-specular)',
-        }}
-      >
-        <Avatar style={{ width: '100%', height: '100%' }}>
+      <div className="w-[46px] h-[46px] rounded-[14px] overflow-hidden flex-shrink-0 border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+        <Avatar className="size-full">
           <AvatarImage src={avatarUrl} />
-          <AvatarFallback
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              background: 'var(--glass-regular)',
-              color: 'var(--sys-label)',
-            }}
-          >
+          <AvatarFallback className="text-[12px] font-bold bg-white/[.10] text-white">
             {m.model_name.slice(0, 2)}
           </AvatarFallback>
         </Avatar>
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'var(--sys-label)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            letterSpacing: '-0.2px',
-          }}
-        >
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] font-semibold text-white truncate tracking-[-0.2px]">
           {m.model_name}
         </p>
-        <p
-          style={{
-            fontSize: 12,
-            color: 'var(--sys-label-secondary)',
-            marginTop: 2,
-          }}
-        >
+        <p className="text-[12px] text-white/50 mt-0.5">
           {m.versions?.length > 1
             ? `${m.versions.length} версии`
             : m.versions?.[0]?.label || ''}
         </p>
       </div>
       <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: '3px 10px',
-          borderRadius: 9999,
-          fontSize: 12,
-          fontWeight: 600,
-          ...glassThin,
-          color: 'var(--sys-label-secondary)',
-          flexShrink: 0,
-        }}
+        className={cn(
+          'inline-flex items-center gap-1 px-[10px] py-[3px] rounded-full text-[12px] font-semibold text-white/50 flex-shrink-0',
+          glassThin
+        )}
       >
         💎 {cost}
       </div>
@@ -233,11 +152,12 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
   );
 };
 
-/* ─── Main component ─── */
+/* ── Main ── */
 export const Generate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const modelParam = searchParams.get('model');
+  const haptic = useHaptic();
   const queryClient = useQueryClient();
 
   const [selectedTech, setSelectedTech] = useState<string | null>(modelParam);
@@ -248,10 +168,8 @@ export const Generate = () => {
   >([]);
   const [extraParams, setExtraParams] = useState<Record<string, any>>({});
   const [showParams, setShowParams] = useState(false);
-  const [pendingDialogueId, setPendingDialogueId] = useState<string | null>(
-    null
-  );
-  const [isWaitingResult, setIsWaitingResult] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [isWaiting, setIsWaiting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: allModels, isLoading } = useAIModels();
@@ -268,15 +186,11 @@ export const Generate = () => {
     selected?.versions?.[0]?.label;
 
   const { data: params } = useModelParams(selectedTech, currentVersion);
-  const { data: lastMessage } = useGenerationStatus(
-    pendingDialogueId,
-    isWaitingResult
-  );
+  const { data: lastMessage } = useGenerationStatus(pendingId, isWaiting);
 
   useEffect(() => {
     if (modelParam) setSelectedTech(modelParam);
   }, [modelParam]);
-
   useEffect(() => {
     if (selected) {
       const def =
@@ -284,7 +198,6 @@ export const Generate = () => {
       setSelectedVersion(def?.label || null);
     }
   }, [selected?.tech_name]);
-
   useEffect(() => {
     if (!params) return;
     const defaults: Record<string, any> = {};
@@ -293,22 +206,21 @@ export const Generate = () => {
     });
     setExtraParams(defaults);
   }, [params]);
-
   useEffect(() => {
-    if (!isWaitingResult || !lastMessage) return;
+    if (!isWaiting || !lastMessage) return;
     if (lastMessage.status === 'completed') {
-      setIsWaitingResult(false);
+      haptic.success();
+      setIsWaiting(false);
       toast.success('Генерация завершена!');
-      if (pendingDialogueId) router.push(`/chats/${pendingDialogueId}`);
-      setPendingDialogueId(null);
+      if (pendingId) router.push(`/chats/${pendingId}`);
+      setPendingId(null);
     } else if (lastMessage.status === 'error') {
-      setIsWaitingResult(false);
-      toast.error(
-        'Ошибка генерации: ' + (lastMessage.error || 'Неизвестная ошибка')
-      );
-      setPendingDialogueId(null);
+      haptic.error();
+      setIsWaiting(false);
+      toast.error('Ошибка: ' + (lastMessage.error || 'Неизвестная ошибка'));
+      setPendingId(null);
     }
-  }, [lastMessage, isWaitingResult, pendingDialogueId, router]);
+  }, [lastMessage, isWaiting, pendingId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -332,6 +244,7 @@ export const Generate = () => {
       toast.error('Введите описание или прикрепите файл');
       return;
     }
+    haptic.medium();
     const oldFormatMedia = media.map((m) => ({
       type: m.type,
       format: 'url',
@@ -350,9 +263,10 @@ export const Generate = () => {
           const dialogueId = data.dialogue_id;
           if (data.status === 'processing') {
             toast('Генерация запущена, ждём результата...');
-            setPendingDialogueId(dialogueId || null);
-            setIsWaitingResult(!!dialogueId);
+            setPendingId(dialogueId || null);
+            setIsWaiting(!!dialogueId);
           } else if (dialogueId) {
+            haptic.success();
             toast.success('Готово!');
             router.push(`/chats/${dialogueId}`);
           } else {
@@ -363,110 +277,64 @@ export const Generate = () => {
     );
   };
 
-  /* ─── Waiting screen ─── */
-  if (isWaitingResult && pendingDialogueId) {
+  /* ── Waiting screen ── */
+  if (isWaiting && pendingId) {
     const status = lastMessage?.status;
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100svh',
-          gap: 28,
-          padding: '24px 20px',
-          textAlign: 'center',
-        }}
-      >
+      <div className="flex flex-col items-center justify-center min-h-[100svh] gap-7 px-5 text-center">
         <div
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 28,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            ...glassThick,
-          }}
+          className={cn(
+            'w-20 h-20 rounded-[28px] flex items-center justify-center',
+            glassThick
+          )}
         >
           {!status || status === 'processing' ? (
-            <Loader2
-              size={32}
-              style={{
-                animation: 'apple-spin 0.7s linear infinite',
-                color: 'var(--sys-label-secondary)',
-              }}
-            />
+            <Loader2 size={32} className="animate-spin text-white/50" />
           ) : status === 'completed' ? (
-            <CheckCircle size={32} style={{ color: '#34C759' }} />
+            <CheckCircle size={32} className="text-[#34C759]" />
           ) : (
-            <AlertCircle size={32} style={{ color: '#FF3B30' }} />
+            <AlertCircle size={32} className="text-[#FF3B30]" />
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px' }}>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[20px] font-bold tracking-[-0.4px]">
             {!status || status === 'processing'
               ? 'Генерация...'
               : status === 'completed'
                 ? 'Готово!'
                 : 'Ошибка'}
           </p>
-          <p
-            style={{
-              fontSize: 14,
-              color: 'var(--sys-label-secondary)',
-              maxWidth: 280,
-              lineHeight: 1.5,
-            }}
-          >
+          <p className="text-[14px] text-white/50 max-w-[280px] leading-[1.5]">
             {!status || status === 'processing'
               ? 'Нейросеть обрабатывает запрос. Это может занять от нескольких секунд до минуты.'
               : 'Переход к результату...'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="flex gap-1.5">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: 99,
-                background: 'var(--sys-label-tertiary)',
-                animation: 'pulse-dot 1.4s ease-in-out infinite',
-                animationDelay: `${i * 0.2}s`,
-              }}
+              style={{ animationDelay: `${i * 0.2}s` }}
+              className="w-1.5 h-1.5 rounded-full bg-white/30 animate-[pulse-dot_1.4s_ease-in-out_infinite]"
             />
           ))}
         </div>
         <button
           onClick={() => {
-            setIsWaitingResult(false);
-            setPendingDialogueId(null);
-            router.push(`/chats/${pendingDialogueId}`);
+            setIsWaiting(false);
+            setPendingId(null);
+            router.push(`/chats/${pendingId}`);
           }}
-          style={{
-            fontSize: 13,
-            color: 'var(--sys-label-secondary)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            textUnderlineOffset: 3,
-          }}
+          className="text-[13px] text-white/50 bg-none border-none cursor-pointer underline underline-offset-4"
         >
           Перейти в чат
         </button>
-        <style>{`
-          @keyframes apple-spin { to { transform: rotate(360deg); } }
-          @keyframes pulse-dot { 0%,80%,100% { transform:scale(0.6);opacity:0.4; } 40% { transform:scale(1);opacity:1; } }
-        `}</style>
+        <style>{`@keyframes pulse-dot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}`}</style>
       </div>
     );
   }
 
-  /* ─── Detail view (model selected) ─── */
+  /* ── Detail view ── */
   if (selected) {
     const cost =
       selected.versions?.find((v) => v.label === currentVersion)?.cost ??
@@ -480,109 +348,59 @@ export const Generate = () => {
     );
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100svh',
-          paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))',
-          overflowX: 'hidden',
-        }}
-      >
+      <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
         {/* Header */}
         <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 40,
-            backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-            WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-            background: 'var(--glass-ultra-thin)',
-            borderBottom: 'var(--glass-border-thin)',
-            boxShadow: 'var(--glass-specular)',
-          }}
+          className={cn(
+            'sticky top-0 z-40',
+            'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
+            'border-b border-white/[.10]',
+            'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+          )}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 16px',
-            }}
-          >
+          <div className="flex items-center justify-between px-4 py-3">
             <button
               onClick={() => {
+                haptic.light();
                 setSelectedTech(null);
                 setPrompt('');
                 setMedia([]);
                 setExtraParams({});
                 setShowParams(false);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 15,
-                fontWeight: 500,
-                color: 'var(--tint-blue)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                borderRadius: 8,
-                transition: spring,
-              }}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = 'scale(0.92)')
-              }
-              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = 'scale(1)')
-              }
+              className={cn(
+                'flex items-center gap-1 text-[15px] font-medium text-[#0A84FF] bg-none border-none cursor-pointer px-2 py-1 rounded-lg',
+                spring,
+                'active:scale-[0.92]'
+              )}
             >
               <ChevronLeft size={18} /> Назад
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="flex items-center gap-2">
               <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  ...glassThin,
-                }}
+                className={cn(
+                  'w-[26px] h-[26px] rounded-lg overflow-hidden',
+                  glassThin
+                )}
               >
-                <Avatar style={{ width: '100%', height: '100%' }}>
+                <Avatar className="size-full">
                   <AvatarImage src={selected.avatar} />
-                  <AvatarFallback style={{ fontSize: 9, fontWeight: 700 }}>
+                  <AvatarFallback className="text-[9px] font-bold">
                     {selected.model_name.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <span
-                style={{
-                  fontSize: 15,
-                  fontWeight: 600,
-                  letterSpacing: '-0.2px',
-                }}
-              >
+              <span className="text-[15px] font-semibold tracking-[-0.2px]">
                 {selected.model_name}
               </span>
             </div>
 
             <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px',
-                borderRadius: 9999,
-                fontSize: 12,
-                fontWeight: 600,
-                ...glassThin,
-                color: 'var(--sys-label-secondary)',
-              }}
+              className={cn(
+                'inline-flex items-center gap-1 px-[10px] py-1 rounded-full text-[12px] font-semibold text-white/50',
+                glassThin
+              )}
             >
               💎 {cost}
             </div>
@@ -590,30 +408,20 @@ export const Generate = () => {
         </header>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div
-            style={{
-              maxWidth: 760,
-              marginInline: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-              padding: '20px 20px',
-            }}
-          >
-            {/* Version selector */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[760px] mx-auto flex flex-col gap-5 px-5 py-5">
+            {/* Versions */}
             {selected.versions && selected.versions.length > 1 && (
               <div>
                 <SectionLabel>Версия</SectionLabel>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className="flex flex-wrap gap-2">
                   {selected.versions.map((v) => (
                     <PillBtn
                       key={v.label}
                       active={currentVersion === v.label}
                       onClick={() => setSelectedVersion(v.label)}
                     >
-                      {v.label}{' '}
-                      <span style={{ opacity: 0.6 }}>· {v.cost}💎</span>
+                      {v.label} <span className="opacity-60">· {v.cost}💎</span>
                     </PillBtn>
                   ))}
                 </div>
@@ -628,31 +436,14 @@ export const Generate = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Опишите, что хотите создать..."
                 rows={4}
-                style={{
-                  width: '100%',
-                  resize: 'none',
-                  outline: 'none',
-                  padding: '14px 16px',
-                  fontSize: 15,
-                  lineHeight: 1.55,
-                  borderRadius: 'var(--radius-lg)',
-                  ...glassRegular,
-                  color: 'var(--sys-label)',
-                  fontFamily: 'var(--font-sf)',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.border =
-                    '1px solid rgba(0,122,255,0.4)';
-                  e.currentTarget.style.boxShadow =
-                    'var(--glass-specular), 0 0 0 3px rgba(0,122,255,0.12)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.border = 'var(--glass-border-regular)';
-                  e.currentTarget.style.boxShadow =
-                    'var(--glass-specular), var(--glass-shadow-md)';
-                }}
+                className={cn(
+                  'w-full resize-none outline-none px-4 py-[14px] rounded-2xl',
+                  glassRegular,
+                  'text-[15px] leading-[1.55] text-white placeholder:text-white/30',
+                  'box-border font-[var(--font-sf)]',
+                  spring,
+                  'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_3px_rgba(0,122,255,0.12)]'
+                )}
               />
             </div>
 
@@ -660,7 +451,7 @@ export const Generate = () => {
             {aspectParam && (
               <div>
                 <SectionLabel>Соотношение сторон</SectionLabel>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className="flex flex-wrap gap-2">
                   {aspectParam.values?.map((val: string) => (
                     <PillBtn
                       key={val}
@@ -685,63 +476,33 @@ export const Generate = () => {
                 0 && (
                 <div>
                   <button
-                    onClick={() => setShowParams(!showParams)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 13,
-                      color: 'var(--sys-label-secondary)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '6px 0',
-                      transition: spring,
+                    onClick={() => {
+                      haptic.selection();
+                      setShowParams(!showParams);
                     }}
+                    className="flex items-center gap-1.5 text-[13px] text-white/50 bg-none border-none cursor-pointer py-1.5"
                   >
                     <Settings2 size={14} />
                     Дополнительные параметры
                     <ChevronDown
                       size={14}
-                      style={{
-                        transform: showParams
-                          ? 'rotate(180deg)'
-                          : 'rotate(0deg)',
-                        transition: spring,
-                      }}
+                      className={cn(
+                        'transition-transform duration-[280ms]',
+                        showParams && 'rotate-180'
+                      )}
                     />
                   </button>
                   {showParams && (
-                    <div
-                      style={{
-                        marginTop: 14,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 14,
-                      }}
-                    >
+                    <div className="mt-[14px] flex flex-col gap-[14px]">
                       {params
                         .filter((p: any) => p.name !== 'aspect_ratio')
                         .map((p: any) => (
                           <div key={p.name}>
-                            <label
-                              style={{
-                                fontSize: 12,
-                                color: 'var(--sys-label-secondary)',
-                                display: 'block',
-                                marginBottom: 6,
-                              }}
-                            >
+                            <label className="block text-[12px] text-white/50 mb-1.5">
                               {p.label || p.name}
                             </label>
                             {p.type === 'select' && p.values ? (
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  flexWrap: 'wrap',
-                                  gap: 6,
-                                }}
-                              >
+                              <div className="flex flex-wrap gap-1.5">
                                 {p.values.map((val: string) => (
                                   <PillBtn
                                     key={val}
@@ -774,17 +535,10 @@ export const Generate = () => {
                                         : e.target.value,
                                   }))
                                 }
-                                style={{
-                                  width: '100%',
-                                  boxSizing: 'border-box',
-                                  padding: '10px 14px',
-                                  borderRadius: 'var(--radius-md)',
-                                  fontSize: 14,
-                                  outline: 'none',
-                                  ...glassThin,
-                                  color: 'var(--sys-label)',
-                                  fontFamily: 'var(--font-sf)',
-                                }}
+                                className={cn(
+                                  'w-full box-border px-[14px] py-[10px] rounded-xl text-[14px] outline-none text-white',
+                                  glassThin
+                                )}
                               />
                             )}
                           </div>
@@ -794,42 +548,22 @@ export const Generate = () => {
                 </div>
               )}
 
-            {/* Media upload */}
+            {/* Media */}
             {canAttach && (
               <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: 10,
-                  }}
-                >
+                <div className="flex items-center justify-between mb-2.5">
                   <SectionLabel>Медиафайл</SectionLabel>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={upload.isPending}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: 'var(--tint-blue)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: spring,
-                      opacity: upload.isPending ? 0.5 : 1,
-                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 text-[13px] font-semibold text-[#0A84FF] bg-none border-none cursor-pointer',
+                      spring,
+                      upload.isPending && 'opacity-50'
+                    )}
                   >
                     {upload.isPending ? (
-                      <Loader2
-                        size={13}
-                        style={{
-                          animation: 'apple-spin 0.65s linear infinite',
-                        }}
-                      />
+                      <Loader2 size={13} className="animate-spin" />
                     ) : (
                       <ImagePlus size={13} />
                     )}
@@ -841,48 +575,26 @@ export const Generate = () => {
                   ref={fileInputRef}
                   accept="image/*,.heic,video/*,audio/*"
                   onChange={handleFileUpload}
-                  style={{ display: 'none' }}
+                  className="hidden"
                 />
                 {media.length > 0 && (
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <div className="flex gap-2.5 flex-wrap">
                     {media.map((m, i) => (
                       <div
                         key={i}
-                        style={{
-                          position: 'relative',
-                          width: 80,
-                          height: 80,
-                          borderRadius: 'var(--radius-lg)',
-                          overflow: 'hidden',
-                          border: 'var(--glass-border-thin)',
-                          boxShadow: 'var(--glass-specular)',
-                        }}
+                        className="relative w-20 h-20 rounded-2xl overflow-hidden border border-white/[.14]"
                       >
                         {m.type === 'image' ? (
                           <img
                             src={m.file ? URL.createObjectURL(m.file) : m.url}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                            }}
+                            className="w-full h-full object-cover"
                             alt=""
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = m.url;
                             }}
                           />
                         ) : (
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: 28,
-                              background: 'var(--glass-thin)',
-                            }}
-                          >
+                          <div className="w-full h-full flex items-center justify-center text-[28px] bg-white/[.07]">
                             {m.type === 'video' ? '🎬' : '🎵'}
                           </div>
                         )}
@@ -892,23 +604,7 @@ export const Generate = () => {
                               prev.filter((_, idx) => idx !== i)
                             )
                           }
-                          style={{
-                            position: 'absolute',
-                            top: 5,
-                            right: 5,
-                            width: 20,
-                            height: 20,
-                            background: 'rgba(0,0,0,0.55)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#fff',
-                          }}
+                          className="absolute top-[5px] right-[5px] w-5 h-5 bg-black/55 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
                         >
                           <X size={11} />
                         </button>
@@ -927,47 +623,21 @@ export const Generate = () => {
                 generate.isPending ||
                 upload.isPending
               }
-              style={{
-                width: '100%',
-                padding: '16px 24px',
-                borderRadius: 'var(--radius-pill)',
-                fontSize: 17,
-                fontWeight: 700,
-                background: 'rgba(0,122,255,0.85)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid rgba(0,122,255,0.3)',
-                boxShadow:
-                  'inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 24px rgba(0,122,255,0.4)',
-                color: '#fff',
-                cursor: 'pointer',
-                transition: spring,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                opacity:
-                  (!prompt.trim() && media.length === 0) ||
+              className={cn(
+                'w-full py-4 px-6 rounded-full text-[17px] font-bold text-white',
+                'flex items-center justify-center gap-2',
+                glassBlue,
+                spring,
+                'active:scale-[0.97]',
+                ((!prompt.trim() && media.length === 0) ||
                   generate.isPending ||
-                  upload.isPending
-                    ? 0.45
-                    : 1,
-              }}
-              onMouseDown={(e) =>
-                !e.currentTarget.disabled &&
-                (e.currentTarget.style.transform = 'scale(0.97)')
-              }
-              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = 'scale(1)')
-              }
+                  upload.isPending) &&
+                  'opacity-45'
+              )}
             >
               {generate.isPending || upload.isPending ? (
                 <>
-                  <Loader2
-                    size={18}
-                    style={{ animation: 'apple-spin 0.65s linear infinite' }}
-                  />
+                  <Loader2 size={18} className="animate-spin" />
                   {upload.isPending ? 'Загрузка...' : 'Генерация...'}
                 </>
               ) : (
@@ -979,13 +649,11 @@ export const Generate = () => {
             </button>
           </div>
         </div>
-
-        <style>{`@keyframes apple-spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  /* ─── Model picker ─── */
+  /* ── Model picker ── */
   const catOrder = ['image', 'video', 'audio'] as const;
   const catLabel: Record<string, string> = {
     image: '🖼️ Изображения',
@@ -994,90 +662,47 @@ export const Generate = () => {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100svh',
-        paddingBottom: 'calc(80px + max(16px, env(safe-area-inset-bottom)))',
-        overflowX: 'hidden',
-      }}
-    >
-      {/* Header */}
+    <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
       <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-          WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-          background: 'var(--glass-ultra-thin)',
-          borderBottom: 'var(--glass-border-thin)',
-          boxShadow: 'var(--glass-specular)',
-          padding: '14px 20px',
-        }}
+        className={cn(
+          'sticky top-0 z-40 px-5 py-[14px]',
+          'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
+          'border-b border-white/[.10]',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+        )}
       >
-        <div style={{ maxWidth: 760, marginInline: 'auto' }}>
-          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>
-            Создать
-          </p>
-          <p
-            style={{
-              fontSize: 13,
-              color: 'var(--sys-label-secondary)',
-              marginTop: 1,
-            }}
-          >
-            Выберите нейросеть
-          </p>
+        <div className="max-w-[760px] mx-auto">
+          <p className="text-[22px] font-bold tracking-[-0.5px]">Создать</p>
+          <p className="text-[13px] text-white/50 mt-0.5">Выберите нейросеть</p>
         </div>
       </header>
 
-      <div style={{ flex: 1 }}>
-        <div style={{ maxWidth: 760, marginInline: 'auto' }}>
+      <div className="flex-1">
+        <div className="max-w-[760px] mx-auto">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: '13px 20px',
-                    borderBottom: '1px solid var(--sys-separator)',
-                  }}
+                  className="flex items-center gap-[14px] px-5 py-[13px] border-b border-white/[.06]"
                 >
                   <div
-                    style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 14,
-                      background: 'var(--glass-thin)',
-                      animation: 'pulse-opacity 1.6s ease-in-out infinite',
-                      flexShrink: 0,
-                    }}
+                    className={cn(
+                      'w-[46px] h-[46px] rounded-[14px] flex-shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
+                      glassThin
+                    )}
                   />
-                  <div style={{ flex: 1 }}>
+                  <div className="flex-1">
                     <div
-                      style={{
-                        width: '40%',
-                        height: 13,
-                        borderRadius: 6,
-                        background: 'var(--glass-thin)',
-                        marginBottom: 6,
-                        animation:
-                          'pulse-opacity 1.6s 0.1s ease-in-out infinite',
-                      }}
+                      className={cn(
+                        'w-[40%] h-[13px] rounded-md mb-1.5 animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]',
+                        glassThin
+                      )}
                     />
                     <div
-                      style={{
-                        width: '25%',
-                        height: 10,
-                        borderRadius: 6,
-                        background: 'var(--glass-thin)',
-                        animation:
-                          'pulse-opacity 1.6s 0.2s ease-in-out infinite',
-                      }}
+                      className={cn(
+                        'w-[25%] h-[10px] rounded-md animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]',
+                        glassThin
+                      )}
                     />
                   </div>
                 </div>
@@ -1089,25 +714,8 @@ export const Generate = () => {
                 if (!catModels.length) return null;
                 return (
                   <div key={cat}>
-                    {/* Category header */}
-                    <div
-                      style={{
-                        padding: '10px 20px',
-                        background: 'var(--glass-ultra-thin)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        borderBottom: '1px solid var(--sys-separator)',
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: '0.6px',
-                          textTransform: 'uppercase',
-                          color: 'var(--sys-label-secondary)',
-                        }}
-                      >
+                    <div className="px-5 py-[10px] bg-white/[.04] backdrop-blur-xl border-b border-white/[.06]">
+                      <p className="text-[11px] font-bold tracking-[0.6px] uppercase text-white/50">
                         {catLabel[cat]}
                       </p>
                     </div>
@@ -1124,10 +732,7 @@ export const Generate = () => {
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse-opacity { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-        @keyframes apple-spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
     </div>
   );
 };

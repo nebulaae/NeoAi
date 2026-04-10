@@ -20,6 +20,8 @@ import {
   Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
 
 /* ── Types ── */
 interface MediaItem {
@@ -49,8 +51,8 @@ interface Message {
 
 function extractDisplayMedia(
   inputs: Message['inputs']
-): Array<{ url: string; type: string }> {
-  const r: Array<{ url: string; type: string }> = [];
+): { url: string; type: string }[] {
+  const r: { url: string; type: string }[] = [];
   if (!inputs) return r;
   (inputs.image || []).forEach((url) => r.push({ url, type: 'image' }));
   (inputs.video || []).forEach((url) => r.push({ url, type: 'video' }));
@@ -65,49 +67,29 @@ function extractResultMedia(result: Message['result']) {
   return result?.media ? normalizeResultMedia(result.media) : [];
 }
 
-/* ── Glass styles ── */
-const glass = (
-  level: 'ultra-thin' | 'thin' | 'regular' | 'thick' | 'chrome' = 'regular'
-) =>
-  ({
-    'ultra-thin': {
-      background: 'var(--glass-ultra-thin)',
-      backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-      WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-      border: 'var(--glass-border-thin)',
-      boxShadow: 'var(--glass-specular)',
-    },
-    thin: {
-      background: 'var(--glass-thin)',
-      backdropFilter: 'var(--blur-thin) var(--vibrancy)',
-      WebkitBackdropFilter: 'var(--blur-thin) var(--vibrancy)',
-      border: 'var(--glass-border-thin)',
-      boxShadow: 'var(--glass-specular), var(--glass-shadow-sm)',
-    },
-    regular: {
-      background: 'var(--glass-regular)',
-      backdropFilter: 'var(--blur-regular) var(--vibrancy)',
-      WebkitBackdropFilter: 'var(--blur-regular) var(--vibrancy)',
-      border: 'var(--glass-border-regular)',
-      boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-    },
-    thick: {
-      background: 'var(--glass-thick)',
-      backdropFilter: 'var(--blur-thick) var(--vibrancy)',
-      WebkitBackdropFilter: 'var(--blur-thick) var(--vibrancy)',
-      border: 'var(--glass-border-thick)',
-      boxShadow: 'var(--glass-specular), var(--glass-shadow-lg)',
-    },
-    chrome: {
-      background: 'var(--glass-chrome)',
-      backdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-      WebkitBackdropFilter: 'var(--blur-chrome) var(--vibrancy)',
-      border: 'var(--glass-border-thick)',
-      boxShadow: 'var(--glass-specular), var(--glass-shadow-md)',
-    },
-  })[level] as React.CSSProperties;
-
-const springTransition = 'all 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+/* ── Shared classes ── */
+const glassRegular = cn(
+  'bg-white/[.10] dark:bg-black/[.55] backdrop-blur-2xl backdrop-saturate-180',
+  'border border-white/[.18]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_16px_rgba(0,0,0,0.22)]'
+);
+const glassThin = cn(
+  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
+  'border border-white/[.14]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+);
+const glassUltraThin = cn(
+  'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
+  'border border-white/[.10]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+);
+const glassBlueBtn = cn(
+  'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
+  'border border-[rgba(0,122,255,0.30)]',
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_16px_rgba(0,122,255,0.35)]'
+);
+const spring =
+  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
 export default function ChatPage({
   params,
@@ -116,6 +98,7 @@ export default function ChatPage({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const haptic = useHaptic();
   const [text, setText] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<
     { url: string; type: string; file: File }[]
@@ -136,7 +119,6 @@ export default function ChatPage({
 
   const msgs = (messages as Message[]) || [];
   const isProcessing = msgs.some((m) => m.status === 'processing');
-
   const firstMsg = msgs[0];
   const currentModel = allModels?.find((m) => m.tech_name === firstMsg?.model);
   const currentVersion = currentModel?.versions?.find(
@@ -210,14 +192,17 @@ export default function ChatPage({
 
   const handleSend = () => {
     if (isProcessing) {
+      haptic.warning();
       toast('Дождитесь окончания генерации');
       return;
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
     if (!firstMsg?.model) {
+      haptic.error();
       toast.error('Не удалось определить модель диалога');
       return;
     }
+    haptic.light();
     const oldFormatMedia = uploadedFiles.map((f) => ({
       type: f.type,
       format: 'url',
@@ -253,7 +238,6 @@ export default function ChatPage({
   };
 
   const chatTitle = firstMsg?.version || firstMsg?.model || 'Диалог';
-
   const acceptTypes = (() => {
     if (!currentModel) return 'image/*,.heic,video/*,audio/*';
     const a: string[] = [];
@@ -265,82 +249,41 @@ export default function ChatPage({
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100svh',
-        background: 'var(--page-bg)',
-      }}
+      className="flex flex-col h-svh"
+      style={{ background: 'var(--page-bg)' }}
     >
       {/* ── Header ── */}
       <header
-        style={{
-          flexShrink: 0,
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '12px 16px',
-          ...glass('ultra-thin'),
-          borderRadius: 0,
-          boxShadow: 'var(--glass-specular), 0 1px 0 var(--sys-separator)',
-        }}
+        className={cn(
+          'shrink-0 sticky top-0 z-10',
+          'flex items-center gap-3 px-4 py-3',
+          glassUltraThin,
+          'rounded-none border-x-0 border-t-0 border-b border-white/10'
+        )}
       >
         <button
-          onClick={() => router.back()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 34,
-            height: 34,
-            borderRadius: '9999px',
-            ...glass('thin'),
-            cursor: 'pointer',
-            transition: springTransition,
+          onClick={() => {
+            haptic.light();
+            router.back();
           }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.88)')}
-          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          className={cn(
+            'flex items-center justify-center w-8.5 h-8.5 rounded-full shrink-0',
+            glassThin,
+            spring,
+            'active:scale-[0.88]'
+          )}
         >
-          <ChevronLeft size={18} style={{ color: 'var(--tint-blue)' }} />
+          <ChevronLeft size={18} className="text-[#0A84FF]" />
         </button>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              letterSpacing: '-0.2px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-semibold tracking-[-0.2px] truncate">
             {chatTitle}
           </p>
           {isProcessing && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                marginTop: 1,
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '9999px',
-                  background: '#FF9500',
-                  display: 'inline-block',
-                  animation: 'pulse-opacity 1s infinite',
-                }}
-              />
-              <span style={{ fontSize: 11, color: '#FF9500', fontWeight: 500 }}>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] inline-block animate-[pulse-opacity_1s_infinite]" />
+              <span className="text-[11px] text-[#FF9500] font-medium">
                 Генерация...
               </span>
             </div>
@@ -349,49 +292,18 @@ export default function ChatPage({
       </header>
 
       {/* ── Messages ── */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-        }}
-      >
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
         {isLoading ? (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              paddingTop: 32,
-            }}
-          >
-            <div className="spinner" />
+          <div className="flex justify-center pt-8">
+            <Loader2 size={24} className="animate-spin text-white/40" />
           </div>
         ) : msgs.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              gap: 12,
-              textAlign: 'center',
-              padding: '64px 0',
-            }}
-          >
+          <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center py-16">
             <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                ...glass('regular'),
-              }}
+              className={cn(
+                'w-13 h-13 rounded-2xl flex items-center justify-center',
+                glassRegular
+              )}
             >
               <svg
                 width="22"
@@ -404,14 +316,7 @@ export default function ChatPage({
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <p
-              style={{
-                fontSize: 14,
-                color: 'var(--sys-label-secondary)',
-                maxWidth: 240,
-                lineHeight: 1.5,
-              }}
-            >
+            <p className="text-[14px] text-white/50 max-w-60 leading-relaxed">
               Начните диалог — напишите что-нибудь
             </p>
           </div>
@@ -420,78 +325,46 @@ export default function ChatPage({
             const userMedia = extractDisplayMedia(msg.inputs);
             const resultMedia = extractResultMedia(msg.result);
             return (
-              <div
-                key={msg.id || idx}
-                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
-              >
+              <div key={msg.id || idx} className="flex flex-col gap-2.5">
                 {/* User bubble */}
                 {(msg.inputs?.text || userMedia.length > 0) && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div className="flex justify-end">
                     <div
-                      style={{
-                        background: 'rgba(0, 122, 255, 0.85)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(0,122,255,0.3)',
-                        boxShadow:
-                          'inset 0 1px 0 rgba(255,255,255,0.25), 0 4px 16px rgba(0,122,255,0.25)',
-                        color: '#fff',
-                        borderRadius: '20px 20px 4px 20px',
-                        padding: '10px 14px',
-                        maxWidth: '78%',
-                        fontSize: 15,
-                        lineHeight: 1.45,
-                      }}
+                      className={cn(
+                        'max-w-[78%] px-3.5 py-2.5',
+                        'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
+                        'border border-[rgba(0,122,255,0.30)]',
+                        'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_16px_rgba(0,122,255,0.25)]',
+                        'text-white rounded-[20px_20px_4px_20px]',
+                        'text-[15px] leading-[1.45]'
+                      )}
                     >
                       {msg.inputs?.text && (
-                        <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+                        <p className="whitespace-pre-wrap m-0">
                           {msg.inputs.text}
                         </p>
                       )}
                       {userMedia.length > 0 && (
-                        <div
-                          style={{
-                            marginTop: 8,
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 6,
-                          }}
-                        >
+                        <div className="mt-2 flex flex-wrap gap-1.5">
                           {userMedia.map((m, i) => (
                             <button
                               key={i}
                               onClick={() => setViewerSrc(m)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'pointer',
-                              }}
+                              className="bg-none border-none p-0 cursor-pointer"
                             >
                               {m.type === 'image' ? (
                                 <img
                                   src={m.url}
                                   alt=""
-                                  style={{
-                                    maxHeight: 140,
-                                    borderRadius: 10,
-                                    objectFit: 'cover',
-                                  }}
+                                  className="max-h-35 rounded-[10px] object-cover"
                                 />
                               ) : m.type === 'video' ? (
                                 <video
                                   src={m.url}
-                                  style={{ maxHeight: 140, borderRadius: 10 }}
+                                  className="max-h-35 rounded-[10px]"
                                 />
                               ) : (
-                                <div
-                                  style={{
-                                    padding: '6px 10px',
-                                    background: 'rgba(255,255,255,0.15)',
-                                    borderRadius: 8,
-                                    fontSize: 12,
-                                  }}
-                                >
+                                <div className="px-2.5 py-1.5 bg-white/15 rounded-lg text-xs">
                                   🎵 Аудио
                                 </div>
                               )}
@@ -504,111 +377,68 @@ export default function ChatPage({
                 )}
 
                 {/* AI bubble */}
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <div style={{ maxWidth: '82%' }}>
+                <div className="flex justify-start">
+                  <div className="max-w-[82%]">
                     {msg.status === 'processing' ? (
                       <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          padding: '10px 14px',
-                          borderRadius: '20px 20px 20px 4px',
-                          ...glass('regular'),
-                        }}
+                        className={cn(
+                          'flex items-center gap-2 px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
+                          glassRegular
+                        )}
                       >
                         {[0, 1, 2].map((i) => (
                           <div
                             key={i}
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '9999px',
-                              background: 'var(--sys-label-secondary)',
-                              animation: 'pulse-dot 1.2s infinite ease-in-out',
-                              animationDelay: `${i * 0.15}s`,
-                            }}
+                            style={{ animationDelay: `${i * 0.15}s` }}
+                            className="w-1.5 h-1.5 rounded-full bg-white/50 animate-[pulse-dot_1.2s_infinite_ease-in-out]"
                           />
                         ))}
                       </div>
                     ) : msg.status === 'error' ? (
                       <div
-                        style={{
-                          padding: '10px 14px',
-                          borderRadius: '20px 20px 20px 4px',
-                          background: 'rgba(255,59,48,0.12)',
-                          border: '1px solid rgba(255,59,48,0.25)',
-                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
-                          backdropFilter: 'blur(20px)',
-                          WebkitBackdropFilter: 'blur(20px)',
-                          fontSize: 15,
-                          color: '#FF3B30',
-                        }}
+                        className={cn(
+                          'px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
+                          'bg-[rgba(255,59,48,0.12)] border border-[rgba(255,59,48,0.25)]',
+                          'backdrop-blur-xl text-[#FF3B30] text-[15px]'
+                        )}
                       >
                         {msg.error || 'Ошибка генерации'}
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                        }}
-                      >
+                      <div className="flex flex-col gap-2">
                         {msg.result?.text && (
                           <div
-                            style={{
-                              padding: '10px 14px',
-                              borderRadius: '20px 20px 20px 4px',
-                              ...glass('regular'),
-                              fontSize: 15,
-                              lineHeight: 1.5,
-                              whiteSpace: 'pre-wrap',
-                            }}
+                            className={cn(
+                              'px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
+                              glassRegular,
+                              'text-[15px] leading-normal whitespace-pre-wrap'
+                            )}
                           >
                             {msg.result.text}
                           </div>
                         )}
                         {resultMedia.length > 0 && (
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              gap: 8,
-                            }}
-                          >
+                          <div className="flex flex-wrap gap-2">
                             {resultMedia.map((m, i) => (
-                              <div key={i} style={{ position: 'relative' }}>
+                              <div key={i} className="relative group">
                                 {m.type === 'image' ? (
                                   <img
                                     src={m.url}
                                     alt="Generated"
-                                    style={{
-                                      maxWidth: 260,
-                                      maxHeight: 260,
-                                      borderRadius: 'var(--radius-lg)',
-                                      objectFit: 'cover',
-                                      cursor: 'pointer',
-                                      border: 'var(--glass-border-regular)',
-                                      boxShadow: 'var(--glass-shadow-md)',
-                                    }}
                                     onClick={() => setViewerSrc(m)}
+                                    className="max-w-65 max-h-65 rounded-2xl object-cover cursor-pointer border border-white/18 shadow-[0_4px_16px_rgba(0,0,0,0.22)]"
                                   />
                                 ) : m.type === 'video' ? (
                                   <video
                                     src={m.url}
                                     controls
-                                    style={{
-                                      maxWidth: 260,
-                                      maxHeight: 260,
-                                      borderRadius: 'var(--radius-lg)',
-                                    }}
+                                    className="max-w-65 max-h-65 rounded-2xl"
                                   />
                                 ) : (
                                   <audio
                                     src={m.url}
                                     controls
-                                    style={{ borderRadius: 'var(--radius-sm)' }}
+                                    className="rounded-lg"
                                   />
                                 )}
                                 <a
@@ -617,30 +447,12 @@ export default function ChatPage({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    background: 'rgba(0,0,0,0.45)',
-                                    backdropFilter: 'blur(10px)',
-                                    WebkitBackdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    borderRadius: '9999px',
-                                    padding: 6,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    textDecoration: 'none',
-                                    color: '#fff',
-                                    opacity: 0,
-                                    transition: 'opacity 0.2s',
-                                  }}
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.opacity = '1')
-                                  }
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.opacity = '0')
-                                  }
+                                  className={cn(
+                                    'absolute top-2 right-2 p-1.5 rounded-full',
+                                    'bg-black/45 backdrop-blur-xl border border-white/15',
+                                    'text-white flex items-center justify-center',
+                                    'opacity-0 group-hover:opacity-100 transition-opacity'
+                                  )}
                                 >
                                   <Download size={14} />
                                 </a>
@@ -650,14 +462,11 @@ export default function ChatPage({
                         )}
                         {!msg.result?.text && resultMedia.length === 0 && (
                           <div
-                            style={{
-                              padding: '10px 14px',
-                              borderRadius: '20px 20px 20px 4px',
-                              ...glass('thin'),
-                              fontSize: 14,
-                              color: 'var(--sys-label-secondary)',
-                              fontStyle: 'italic',
-                            }}
+                            className={cn(
+                              'px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
+                              glassThin,
+                              'text-[14px] text-white/50 italic'
+                            )}
                           >
                             Ответ получен
                           </div>
@@ -677,59 +486,28 @@ export default function ChatPage({
       {viewerSrc && (
         <div
           onClick={() => setViewerSrc(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 50,
-            background: 'rgba(0,0,0,0.88)',
-            backdropFilter: 'blur(40px)',
-            WebkitBackdropFilter: 'blur(40px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
+          className="fixed inset-0 z-50 bg-black/88 backdrop-blur-2xl flex items-center justify-center p-4"
         >
           {viewerSrc.type === 'image' ? (
             <img
               src={viewerSrc.url}
               alt=""
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                borderRadius: 'var(--radius-xl)',
-                boxShadow: 'var(--glass-shadow-xl)',
-              }}
+              className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl"
             />
           ) : viewerSrc.type === 'video' ? (
             <video
               src={viewerSrc.url}
               controls
               autoPlay
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                borderRadius: 'var(--radius-xl)',
-              }}
+              className="max-w-full max-h-full rounded-3xl"
             />
           ) : null}
           <button
             onClick={() => setViewerSrc(null)}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '9999px',
-              padding: 8,
-              cursor: 'pointer',
-              color: '#fff',
-              display: 'flex',
-            }}
+            className={cn(
+              'absolute top-5 right-5 p-2 rounded-full',
+              'bg-white/15 backdrop-blur-xl border border-white/20 text-white flex'
+            )}
           >
             <X size={18} />
           </button>
@@ -739,20 +517,10 @@ export default function ChatPage({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              bottom: 28,
-              right: 20,
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '9999px',
-              padding: 10,
-              display: 'flex',
-              color: '#fff',
-              textDecoration: 'none',
-            }}
+            className={cn(
+              'absolute bottom-7 right-5 p-2.5 rounded-full',
+              'bg-white/15 backdrop-blur-xl border border-white/20 text-white flex'
+            )}
           >
             <Download size={18} />
           </a>
@@ -761,86 +529,39 @@ export default function ChatPage({
 
       {/* ── Input Bar ── */}
       <div
-        style={{
-          flexShrink: 0,
-          ...glass('ultra-thin'),
-          borderRadius: 0,
-          borderTop: 'var(--glass-border-thin)',
-          borderLeft: 'none',
-          borderRight: 'none',
-          borderBottom: 'none',
-          padding: '10px 14px',
-          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
-        }}
+        className={cn(
+          'shrink-0',
+          glassUltraThin,
+          'rounded-none border-x-0 border-b-0 border-t border-white/10',
+          'px-3.5 pt-2.5',
+          'pb-[max(10px,env(safe-area-inset-bottom))]'
+        )}
       >
         {/* File previews */}
         {uploadedFiles.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              marginBottom: 8,
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="flex gap-2 mb-2 flex-wrap">
             {uploadedFiles.map((f, i) => (
               <div
                 key={i}
-                style={{
-                  position: 'relative',
-                  width: 60,
-                  height: 60,
-                  borderRadius: 'var(--radius-md)',
-                  overflow: 'hidden',
-                  border: 'var(--glass-border-regular)',
-                  boxShadow: 'var(--glass-shadow-sm)',
-                }}
+                className={cn(
+                  'relative w-15 h-15 rounded-xl overflow-hidden',
+                  'border border-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+                )}
               >
                 {f.type === 'image' ? (
                   <img
                     src={f.url}
                     alt=""
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      background: 'var(--glass-regular)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 22,
-                    }}
-                  >
+                  <div className="w-full h-full bg-white/[.07] flex items-center justify-center text-[22px]">
                     {f.type === 'video' ? '🎬' : '🎵'}
                   </div>
                 )}
                 <button
                   onClick={() => removeFile(i)}
-                  style={{
-                    position: 'absolute',
-                    top: 3,
-                    right: 3,
-                    background: 'rgba(0,0,0,0.55)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    border: 'none',
-                    borderRadius: '9999px',
-                    width: 18,
-                    height: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: '#fff',
-                    padding: 0,
-                  }}
+                  className="absolute top-0.75 right-0.75 w-4.5 h-4.5 bg-black/55 backdrop-blur-lg rounded-full flex items-center justify-center text-white"
                 >
                   <X size={10} />
                 </button>
@@ -849,47 +570,25 @@ export default function ChatPage({
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-          {/* Attach button */}
+        <div className="flex items-end gap-2">
+          {/* Attach */}
           {canAttachMedia && (
             <>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={upload.isPending}
-                style={{
-                  flexShrink: 0,
-                  width: 38,
-                  height: 38,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '9999px',
-                  ...glass('regular'),
-                  cursor: 'pointer',
-                  transition: springTransition,
-                  opacity: upload.isPending ? 0.5 : 1,
-                  ...{
-                    background: 'var(--glass-regular)',
-                    backdropFilter: 'var(--blur-regular)',
-                    WebkitBackdropFilter: 'var(--blur-regular)',
-                    border: 'var(--glass-border-regular)',
-                    boxShadow: 'var(--glass-specular), var(--glass-shadow-sm)',
-                  },
-                }}
+                className={cn(
+                  'shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full',
+                  glassRegular,
+                  spring,
+                  'active:scale-[0.88]',
+                  upload.isPending && 'opacity-50'
+                )}
               >
                 {upload.isPending ? (
-                  <Loader2
-                    size={16}
-                    style={{
-                      animation: 'spin 0.65s linear infinite',
-                      color: 'var(--sys-label-secondary)',
-                    }}
-                  />
+                  <Loader2 size={16} className="animate-spin text-white/50" />
                 ) : (
-                  <ImagePlus
-                    size={16}
-                    style={{ color: 'var(--sys-label-secondary)' }}
-                  />
+                  <ImagePlus size={16} className="text-white/50" />
                 )}
               </button>
               <input
@@ -897,7 +596,7 @@ export default function ChatPage({
                 ref={fileInputRef}
                 accept={acceptTypes}
                 onChange={handleFileUpload}
-                style={{ display: 'none' }}
+                className="hidden"
               />
             </>
           )}
@@ -910,39 +609,18 @@ export default function ChatPage({
             onKeyDown={handleKeyDown}
             placeholder="Напишите сообщение..."
             rows={1}
-            style={{
-              flex: 1,
-              resize: 'none',
-              outline: 'none',
-              padding: '10px 14px',
-              fontSize: 15,
-              lineHeight: 1.45,
-              borderRadius: 'var(--radius-lg)',
-              background: 'var(--glass-thin)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: 'var(--glass-border-thin)',
-              boxShadow: 'var(--glass-specular)',
-              color: 'var(--sys-label)',
-              maxHeight: 120,
-              overflowY: 'auto',
-              transition: 'all 0.22s cubic-bezier(0.32,0.72,0,1)',
-              fontFamily: 'var(--font-sf)',
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.background = 'var(--glass-regular)';
-              e.currentTarget.style.border = '1px solid rgba(0,122,255,0.4)';
-              e.currentTarget.style.boxShadow =
-                'var(--glass-specular), 0 0 0 3px rgba(0,122,255,0.12)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.background = 'var(--glass-thin)';
-              e.currentTarget.style.border = 'var(--glass-border-thin)';
-              e.currentTarget.style.boxShadow = 'var(--glass-specular)';
-            }}
+            className={cn(
+              'flex-1 resize-none outline-none',
+              'px-3.5 py-2.5 rounded-2xl',
+              glassThin,
+              'text-[15px] leading-[1.45] text-white max-h-30 overflow-y-auto',
+              'placeholder:text-white/30',
+              spring,
+              'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_0_3px_rgba(0,122,255,0.12)]'
+            )}
           />
 
-          {/* Send button */}
+          {/* Send */}
           <button
             onClick={handleSend}
             disabled={
@@ -950,42 +628,19 @@ export default function ChatPage({
               generate.isPending ||
               (!text.trim() && uploadedFiles.length === 0)
             }
-            style={{
-              flexShrink: 0,
-              width: 38,
-              height: 38,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '9999px',
-              background: 'rgba(0,122,255,0.85)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid rgba(0,122,255,0.3)',
-              boxShadow:
-                'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 16px rgba(0,122,255,0.35)',
-              cursor: 'pointer',
-              transition: springTransition,
-              opacity:
-                isProcessing ||
+            className={cn(
+              'shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full text-white',
+              glassBlueBtn,
+              spring,
+              'active:scale-[0.88]',
+              (isProcessing ||
                 generate.isPending ||
-                (!text.trim() && uploadedFiles.length === 0)
-                  ? 0.4
-                  : 1,
-              color: '#fff',
-            }}
-            onMouseDown={(e) =>
-              !e.currentTarget.disabled &&
-              (e.currentTarget.style.transform = 'scale(0.88)')
-            }
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                (!text.trim() && uploadedFiles.length === 0)) &&
+                'opacity-40'
+            )}
           >
             {generate.isPending ? (
-              <Loader2
-                size={16}
-                style={{ animation: 'apple-spin 0.65s linear infinite' }}
-              />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
               <Send size={16} />
             )}
@@ -993,22 +648,10 @@ export default function ChatPage({
         </div>
       </div>
 
-      {/* ── Keyframes ── */}
       <style>{`
-        @keyframes apple-spin { to { transform: rotate(360deg); } }
-        @keyframes pulse-dot {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-          40% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        @keyframes pulse-opacity {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        textarea::placeholder { color: var(--sys-label-tertiary); }
+        @keyframes pulse-dot { 0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1} }
+        @keyframes pulse-opacity { 0%,100%{opacity:1}50%{opacity:.4} }
+        textarea::placeholder { color: rgba(255,255,255,0.30); }
       `}</style>
     </div>
   );
