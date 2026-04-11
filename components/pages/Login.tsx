@@ -14,23 +14,31 @@ import { cn } from '@/lib/utils';
 type AppEnv = 'telegram' | 'max' | 'browser';
 type LoginView = 'main' | 'email-login' | 'email-register';
 
+// ─── MAX Bridge: корректное определение по window.WebApp (официальный SDK) ───
 function detectEnv(): AppEnv {
   if (typeof window === 'undefined') return 'browser';
   const tg = (window as any)?.Telegram?.WebApp;
   if (tg?.initData) return 'telegram';
-  const max =
-    (window as any)?.max?.WebApp ||
-    (window as any)?.MaxApp ||
-    (window as any)?.VKWebApp;
-  if (max?.initData) return 'max';
+  // MAX Bridge SDK выставляет именно window.WebApp (не window.max.WebApp)
+  const maxWA = (window as any)?.WebApp;
+  if (maxWA?.initData) return 'max';
   return 'browser';
+}
+
+// ─── Хелпер получения MAX initData ───
+function getMaxInitData(): string | null {
+  const maxWA = (window as any)?.WebApp;
+  return maxWA?.initData || null;
 }
 
 async function authViaTMA(initData: string, platform: 'telegram' | 'max') {
   const { data } = await api.post('/api/auth/tma', {
     initData,
     platform,
-    bot_id: process.env.NEXT_PUBLIC_BOT_ID,
+    bot_id:
+      platform === 'max'
+        ? process.env.NEXT_PUBLIC_MAX_BOT_ID
+        : process.env.NEXT_PUBLIC_BOT_ID,
   });
   return data as { token: string; user: any };
 }
@@ -129,7 +137,6 @@ const GlassInput = ({
 /* ── Page wrapper ── */
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <div className="relative flex flex-col items-center justify-center min-h-[100svh] overflow-x-hidden px-5 py-6">
-    {/* Background */}
     <div className="absolute inset-0 z-0 pointer-events-none">
       <Image
         src="/background.jpg"
@@ -164,30 +171,42 @@ export const Login = () => {
   useEffect(() => {
     if (!isLoading && user) router.replace('/');
   }, [user, isLoading, router]);
+
   useEffect(() => {
     setEnv(detectEnv());
   }, []);
 
+  // ─── MAX Bridge: ready() + expand() через window.WebApp ───
+  useEffect(() => {
+    if (env !== 'max') return;
+    const maxWA = (window as any)?.WebApp;
+    if (!maxWA) return;
+    try {
+      maxWA.ready?.();
+      maxWA.expand?.();
+    } catch { }
+  }, [env]);
+
+  // ─── Авто-вход через TMA (Telegram или MAX) ───
   useEffect(() => {
     if (env === 'browser' || attempted.current || isLoading || user) return;
+
     const tg = (window as any)?.Telegram?.WebApp;
-    const max =
-      (window as any)?.max?.WebApp ||
-      (window as any)?.MaxApp ||
-      (window as any)?.VKWebApp;
-    const initData = env === 'telegram' ? tg?.initData : max?.initData;
+    const initData =
+      env === 'telegram' ? tg?.initData : getMaxInitData();
+
     if (!initData) return;
     attempted.current = true;
     setAutoLogging(true);
-    try {
-      if (env === 'telegram') {
+
+    // Telegram: ready + expand
+    if (env === 'telegram') {
+      try {
         tg.ready();
         tg.expand();
-      } else {
-        max?.ready?.();
-        max?.expand?.();
-      }
-    } catch {}
+      } catch { }
+    }
+
     authViaTMA(initData, env)
       .then(({ token, user: u }) => {
         localStorage.setItem('auth_token', token);
@@ -221,6 +240,7 @@ export const Login = () => {
     }
   };
 
+  // ─── Email login: поддержка и JWT-токена, и session-based ответа ───
   const handleEmailLogin = async () => {
     if (!email.trim() || !password.trim()) {
       toast.error('Введите email и пароль');
@@ -228,37 +248,53 @@ export const Login = () => {
     }
     setEmailLoading(true);
     try {
+      // Прямой вызов /auth/login/email согласно доке (через API-прокси)
       const { data } = await api.post(
         `/api/auth/login/email?bot_id=${process.env.NEXT_PUBLIC_BOT_ID}`,
         { email: email.trim(), password }
       );
+
       if (data.token) {
+        // JWT-путь
         localStorage.setItem('auth_token', data.token);
-        const u = data.user || { id: 0, first_name: 'User' };
+        const u = data.user || { id: 0, first_name: email.split('@')[0] };
         if (u.id) localStorage.setItem('auth_user_id', String(u.id));
         login(u);
         haptic.success();
         toast.success('Вход выполнен!');
         router.replace('/');
       } else if (data.session_hash && data.session_data) {
-        const sd = data.session_data;
+        // Session-путь (email-аккаунты через /auth/session)
+        const sd =
+          typeof data.session_data === 'string'
+            ? JSON.parse(data.session_data)
+            : data.session_data;
+        const displayName = data.user?.name || data.user?.first_name || email.split('@')[0];
         saveSessionAuth(data.session_hash, sd, {
           id: sd.id,
-          first_name: email.split('@')[0],
+          first_name: displayName,
+          photo_url: data.user?.photo_url,
         });
-        login({ id: sd.id, first_name: email.split('@')[0], auth_date: 0 });
+        login({ id: sd.id, first_name: displayName, auth_date: 0 });
         haptic.success();
         toast.success('Вход выполнен!');
         router.replace('/');
-      } else throw new Error(data.error || 'Неверный ответ сервера');
+      } else {
+        throw new Error(data.error || 'Неверный ответ сервера');
+      }
     } catch (e: any) {
       haptic.error();
-      toast.error(e?.response?.data?.error || e?.message || 'Ошибка входа');
+      const msg =
+        e?.response?.status === 401
+          ? 'Неверный email или пароль'
+          : e?.response?.data?.error || e?.message || 'Ошибка входа';
+      toast.error(msg);
     } finally {
       setEmailLoading(false);
     }
   };
 
+  // ─── Email register: POST /auth/create/email ───
   const handleEmailRegister = async () => {
     if (!email.trim() || !password.trim() || !name.trim()) {
       toast.error('Заполните все поля');
@@ -271,10 +307,15 @@ export const Login = () => {
         { email: email.trim(), password, name: name.trim(), lang: 'ru' }
       );
       if (!data.success) throw new Error(data.error || 'Ошибка регистрации');
+
       haptic.success();
       toast.success('Аккаунт создан!');
+
       if (data.session_hash && data.session_data) {
-        const sd = data.session_data;
+        const sd =
+          typeof data.session_data === 'string'
+            ? JSON.parse(data.session_data)
+            : data.session_data;
         saveSessionAuth(data.session_hash, sd, {
           id: sd.id,
           first_name: name.trim(),
@@ -321,7 +362,6 @@ export const Login = () => {
 
   if (user) return null;
 
-  /* Back button */
   const BackBtn = ({ onClick }: { onClick: () => void }) => (
     <button
       onClick={() => {

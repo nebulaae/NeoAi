@@ -25,20 +25,16 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
+        {/* MAX Bridge — официальный SDK (выставляет window.WebApp) */}
         <Script
-          src="https://mini-apps.max.ru/sdk.js"
+          src="https://st.max.ru/js/max-web-app.js"
           strategy="beforeInteractive"
         />
-        {/* Viewport для iOS safe areas */}
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
       </head>
-      {/*
-        body: никакого background — он задаётся через var(--page-bg) в globals.css
-        Это позволяет glass-материалам работать корректно.
-      */}
       <body style={{ fontFamily: 'var(--font-sf)', margin: 0 }}>
         <AuthProvider>
           <TelegramProvider>

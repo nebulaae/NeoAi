@@ -5,26 +5,23 @@ import { usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
-// Аналогично TelegramProvider — только тихий авто-вход вне /login.
-// На странице /login авто-вход делает сам Login компонент.
+// MAX Bridge SDK выставляет window.WebApp (не window.max.WebApp и не window.MaxApp)
+// https://st.max.ru/js/max-web-app.js
 export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, login } = useAuth();
   const pathname = usePathname();
   const expanded = useRef(false);
 
   useEffect(() => {
-    const max =
-      (window as any)?.max?.WebApp ||
-      (window as any)?.MaxApp ||
-      (window as any)?.VKWebApp;
-
-    if (!max?.initData) return;
+    // Правильное обращение к MAX Bridge SDK
+    const maxWA = (window as any)?.WebApp;
+    if (!maxWA?.initData) return;
 
     if (!expanded.current) {
       try {
-        max.ready?.();
-        max.expand?.();
-      } catch {}
+        maxWA.ready?.();
+        maxWA.expand?.();
+      } catch { }
       expanded.current = true;
     }
 
@@ -36,15 +33,17 @@ export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
 
     api
       .post('/api/auth/tma', {
-        initData: max.initData,
+        initData: maxWA.initData,
         platform: 'max',
-        bot_id: process.env.NEXT_PUBLIC_BOT_ID,
+        bot_id: process.env.NEXT_PUBLIC_MAX_BOT_ID,
       })
       .then(({ data }) => {
         localStorage.setItem('auth_token', data.token);
+        if (data.user?.id)
+          localStorage.setItem('auth_user_id', String(data.user.id));
         login(data.user);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [pathname, user]);
 
   return <>{children}</>;
