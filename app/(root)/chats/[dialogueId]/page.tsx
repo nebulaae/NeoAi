@@ -61,7 +61,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -76,7 +76,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch {}
+  } catch { }
 }
 
 /* ── ГЛАВНАЯ ФУНКЦИЯ: получить модель диалога ──
@@ -190,9 +190,7 @@ export default function ChatPage({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: messages, isLoading: isHistoryLoading } = useChatHistory(
-    params.dialogueId
-  );
+  const { data: messages = [], isLoading: isHistoryLoading } = useChatHistory(params.dialogueId);
   const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
@@ -209,6 +207,14 @@ export default function ChatPage({
   const isProcessing = msgs.some(
     (m) => m.status === 'processing' || m.status === 'pending'
   );
+
+  useEffect(() => {
+    if (params.dialogueId) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.chatHistory(params.dialogueId),
+      });
+    }
+  }, [params.dialogueId, queryClient]);
 
   const currentModel = allModels?.find((m) => m.tech_name === activeModel);
   const currentVersion = currentModel?.versions?.find(
