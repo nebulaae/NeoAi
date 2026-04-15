@@ -26,9 +26,27 @@ export const useChatHistory = (dialogueId: string | null) => {
         params: { dialogue_id: dialogueId },
       });
 
-      return data.messages || data.data || (Array.isArray(data) ? data : []);
+      // ── РОБАСТНОЕ ИЗВЛЕЧЕНИЕ МАССИВА СООБЩЕНИЙ ──
+      // Бэкенд может вернуть:
+      // 1. { success: true, messages: [...] }
+      // 2. { success: true, data: { messages: [...] } }
+      // 3. { success: true, data: [...] }
+      // 4. просто массив
+      let messages = data?.messages;
+
+      if (!messages && data?.data) {
+        messages = data.data.messages || data.data;
+      }
+
+      if (!Array.isArray(messages) && Array.isArray(data)) {
+        messages = data;
+      }
+
+      return Array.isArray(messages) ? messages : [];
     },
     enabled: !!dialogueId,
+    staleTime: 0,                    // всегда свежие данные при монтировании
+    refetchOnMount: true,            // гарантируем запрос при заходе на диалог
     // ФИКС: polling при pending И processing статусах
     refetchInterval: (query) => {
       const msgs: any[] = query.state.data || [];

@@ -81,31 +81,38 @@ function writeStoredModel(
 
 /* ── ГЛАВНАЯ ФУНКЦИЯ: получить модель диалога ──
  * Приоритет источников:
- * 1. Первое сообщение из истории (самый надёжный источник — прямо с сервера)
- * 2. sessionStorage (кэш, если история ещё не загрузилась)
- * Никаких useState, никаких useEffect, никаких race conditions.
+ * 1. История (самый надёжный — прямо с сервера)
+ * 2. sessionStorage (кэш)
+ * Дополнительная защита: если в истории есть сообщения, но find по model не сработал — берём первое сообщение (на случай расхождений в структуре бэкенда)
  */
 function getDialogueModel(
   dialogueId: string,
   messages: Message[]
 ): { model: string | null; version: string | null; roleId: number | null } {
-  // Источник 1: история — берём первое сообщение у которого есть model
-  const fromHistory = messages.find((m) => m.model);
-  if (fromHistory) {
-    // Попутно обновляем кэш
-    writeStoredModel(
-      dialogueId,
-      fromHistory.model,
-      fromHistory.version || '',
-      fromHistory.role_id ?? null
-    );
+  // Источник 1: история
+  let fromHistory = messages.find((m) => m.model);
+
+  // Защита: если модель не найдена по ключу, но сообщения есть — берём первое (на случай, если бэкенд иногда не отдаёт поле model)
+  if (!fromHistory && messages.length > 0) {
+    fromHistory = messages[0];
+  }
+
+  if (fromHistory && (fromHistory.model || fromHistory.version)) {
+    const model = fromHistory.model || fromHistory.version || '';
+    const version = fromHistory.version || '';
+    const roleId = fromHistory.role_id ?? null;
+
+    // Обновляем кэш
+    writeStoredModel(dialogueId, model, version, roleId);
+
     return {
-      model: fromHistory.model,
-      version: fromHistory.version || null,
-      roleId: fromHistory.role_id ?? null,
+      model: model || null,
+      version: version || null,
+      roleId,
     };
   }
-  // Источник 2: sessionStorage (пока история грузится)
+
+  // Источник 2: sessionStorage
   const cached = readStoredModel(dialogueId);
   if (cached) {
     return {
@@ -114,6 +121,7 @@ function getDialogueModel(
       roleId: cached.role_id,
     };
   }
+
   return { model: null, version: null, roleId: null };
 }
 
@@ -192,7 +200,6 @@ export default function ChatPage({
   const msgs = (messages as Message[]) || [];
 
   // ── РАДИКАЛЬНО ПРОСТАЯ ЛОГИКА МОДЕЛИ ──
-  // Вызывается при каждом рендере, никаких side effects
   const {
     model: activeModel,
     version: activeVersion,
@@ -218,7 +225,7 @@ export default function ChatPage({
     if (modelName && activeVersion) return `${modelName} · ${activeVersion}`;
     if (modelName) return modelName;
     if (activeVersion) return activeVersion;
-    // Fallback прямо из первого сообщения если allModels ещё не загружены
+    // Fallback прямо из первого сообщения
     if (msgs.length > 0) return msgs[0].version || msgs[0].model || 'Диалог';
     return 'Диалог';
   })();
@@ -245,7 +252,7 @@ export default function ChatPage({
     if (prevProcessingRef.current && !isProcessing && msgs.length > 0)
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
     prevProcessingRef.current = isProcessing;
-  }, [isProcessing]);
+  }, [isProcessing, queryClient]);
 
   /* ── Загрузка файла ── */
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,7 +297,6 @@ export default function ChatPage({
 
   /* ── Отправка ── */
   const handleSend = () => {
-    // Блокируем пока история грузится
     if (isHistoryLoading) return;
 
     if (isProcessing) {
@@ -300,7 +306,6 @@ export default function ChatPage({
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
 
-    // Получаем модель прямо здесь — не из state, а вычисляем заново
     const {
       model: techName,
       version,
@@ -309,7 +314,6 @@ export default function ChatPage({
 
     if (!techName) {
       haptic.error();
-      // Подробное сообщение об ошибке для отладки
       console.error('[ChatPage] No model found:', {
         dialogueId: params.dialogueId,
         msgsCount: msgs.length,
@@ -371,7 +375,6 @@ export default function ChatPage({
     return a.join(',') || 'image/*,.heic,video/*,audio/*';
   })();
 
-  // Кнопка Send заблокирована если:
   const isSendDisabled =
     isHistoryLoading ||
     isProcessing ||
