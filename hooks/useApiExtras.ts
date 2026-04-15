@@ -26,11 +26,7 @@ export const useChatHistory = (dialogueId: string | null) => {
         params: { dialogue_id: dialogueId },
       });
 
-      return (
-        data.messages ||
-        data.data ||
-        (Array.isArray(data) ? data : [])
-      );
+      return data.messages || data.data || (Array.isArray(data) ? data : []);
     },
     enabled: !!dialogueId,
     // ФИКС: polling при pending И processing статусах

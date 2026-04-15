@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChatHistory, useUpload } from '@/hooks/useApiExtras';
 import {
@@ -22,7 +22,6 @@ import {
 import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
-import api from '@/lib/api';
 
 /* ── Types ── */
 interface MediaItem {
@@ -50,7 +49,7 @@ interface Message {
   created_at?: string;
 }
 
-/* ── Хелперы для кэша модели в sessionStorage ── */
+/* ── sessionStorage helpers (используется только как КЭША для списка чатов) ── */
 const STORAGE_KEY = (id: string) => `dialogue_model_${id}`;
 
 function readStoredModel(id: string) {
@@ -62,7 +61,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch { }
+  } catch {}
   return null;
 }
 
@@ -77,10 +76,48 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch { }
+  } catch {}
 }
 
-/* ── Извлечение медиа из сообщений ── */
+/* ── ГЛАВНАЯ ФУНКЦИЯ: получить модель диалога ──
+ * Приоритет источников:
+ * 1. Первое сообщение из истории (самый надёжный источник — прямо с сервера)
+ * 2. sessionStorage (кэш, если история ещё не загрузилась)
+ * Никаких useState, никаких useEffect, никаких race conditions.
+ */
+function getDialogueModel(
+  dialogueId: string,
+  messages: Message[]
+): { model: string | null; version: string | null; roleId: number | null } {
+  // Источник 1: история — берём первое сообщение у которого есть model
+  const fromHistory = messages.find((m) => m.model);
+  if (fromHistory) {
+    // Попутно обновляем кэш
+    writeStoredModel(
+      dialogueId,
+      fromHistory.model,
+      fromHistory.version || '',
+      fromHistory.role_id ?? null
+    );
+    return {
+      model: fromHistory.model,
+      version: fromHistory.version || null,
+      roleId: fromHistory.role_id ?? null,
+    };
+  }
+  // Источник 2: sessionStorage (пока история грузится)
+  const cached = readStoredModel(dialogueId);
+  if (cached) {
+    return {
+      model: cached.model,
+      version: cached.version,
+      roleId: cached.role_id,
+    };
+  }
+  return { model: null, version: null, roleId: null };
+}
+
+/* ── Извлечение медиа ── */
 function extractDisplayMedia(
   inputs: Message['inputs']
 ): { url: string; type: string }[] {
@@ -95,32 +132,9 @@ function extractDisplayMedia(
   });
   return r;
 }
+
 function extractResultMedia(result: Message['result']) {
   return result?.media ? normalizeResultMedia(result.media) : [];
-}
-
-/* ── Хук: получить модель диалога из истории напрямую ── */
-/**
- * КЛЮЧЕВОЙ ФИК: не зависим от useChats().
- * Берём модель из sessionStorage (если есть) или из первого сообщения истории.
- */
-function useDialogueModel(dialogueId: string, messages: Message[]) {
-  const stored = readStoredModel(dialogueId);
-
-  return useMemo(() => {
-    // sessionStorage имеет приоритет (установлен при клике из списка)
-    if (stored) {
-      return { model: stored.model, version: stored.version, roleId: stored.role_id };
-    }
-    // Fallback: берём из первого сообщения истории
-    const first = messages.find((m) => m.model);
-    if (first) {
-      writeStoredModel(dialogueId, first.model, first.version || '', first.role_id ?? null);
-      return { model: first.model, version: first.version || '', roleId: first.role_id ?? null };
-    }
-    return { model: null, version: null, roleId: null };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stored?.model, stored?.version, messages.length, dialogueId]);
 }
 
 /* ── Shared classes ── */
@@ -168,20 +182,22 @@ export default function ChatPage({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: messages, isLoading } = useChatHistory(params.dialogueId);
+  const { data: messages, isLoading: isHistoryLoading } = useChatHistory(
+    params.dialogueId
+  );
   const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
-  const isHistoryLoading = isLoading;
 
   const msgs = (messages as Message[]) || [];
 
-  // ── ФИКС: модель берётся из истории, не из useChats ──
+  // ── РАДИКАЛЬНО ПРОСТАЯ ЛОГИКА МОДЕЛИ ──
+  // Вызывается при каждом рендере, никаких side effects
   const {
     model: activeModel,
     version: activeVersion,
     roleId: activeRoleId,
-  } = useDialogueModel(params.dialogueId, msgs);
+  } = getDialogueModel(params.dialogueId, msgs);
 
   const isProcessing = msgs.some(
     (m) => m.status === 'processing' || m.status === 'pending'
@@ -202,6 +218,8 @@ export default function ChatPage({
     if (modelName && activeVersion) return `${modelName} · ${activeVersion}`;
     if (modelName) return modelName;
     if (activeVersion) return activeVersion;
+    // Fallback прямо из первого сообщения если allModels ещё не загружены
+    if (msgs.length > 0) return msgs[0].version || msgs[0].model || 'Диалог';
     return 'Диалог';
   })();
 
@@ -272,7 +290,9 @@ export default function ChatPage({
 
   /* ── Отправка ── */
   const handleSend = () => {
+    // Блокируем пока история грузится
     if (isHistoryLoading) return;
+
     if (isProcessing) {
       haptic.warning();
       toast('Дождитесь окончания генерации');
@@ -280,10 +300,23 @@ export default function ChatPage({
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
 
-    // ФИКС: модель теперь надёжно берётся из истории/sessionStorage
-    if (!activeModel) {
+    // Получаем модель прямо здесь — не из state, а вычисляем заново
+    const {
+      model: techName,
+      version,
+      roleId,
+    } = getDialogueModel(params.dialogueId, msgs);
+
+    if (!techName) {
       haptic.error();
-      toast.error('Не удалось определить модель диалога');
+      // Подробное сообщение об ошибке для отладки
+      console.error('[ChatPage] No model found:', {
+        dialogueId: params.dialogueId,
+        msgsCount: msgs.length,
+        firstMsg: msgs[0],
+        sessionStorage: readStoredModel(params.dialogueId),
+      });
+      toast.error('Загрузка диалога... Попробуйте ещё раз');
       return;
     }
 
@@ -296,33 +329,16 @@ export default function ChatPage({
     const safeText = text.trim() || 'Опиши изображение';
     const inputs = convertMediaToInputs(safeText, oldFormatMedia);
 
-    // Оптимистично добавляем сообщение пользователя
-    const optimisticUserMsg: Message = {
-      id: Date.now(),
-      model: activeModel,
-      version: activeVersion || '',
-      role_id: activeRoleId,
-      inputs: { text: safeText },
-      status: 'completed',
-    };
-    const optimisticBotMsg: Message = {
-      id: Date.now() + 1,
-      model: activeModel,
-      version: activeVersion || '',
-      status: 'processing',
-    };
-
-    // Сразу очищаем инпут
     const sentText = text;
     setText('');
     setUploadedFiles([]);
 
     generate.mutate(
       {
-        tech_name: activeModel,
-        version: activeVersion || undefined,
+        tech_name: techName,
+        version: version || undefined,
         dialogue_id: params.dialogueId,
-        role_id: activeRoleId,
+        role_id: roleId,
         inputs,
       },
       {
@@ -333,7 +349,6 @@ export default function ChatPage({
           });
         },
         onError: () => {
-          // Возвращаем текст при ошибке
           setText(sentText);
         },
       }
@@ -355,6 +370,13 @@ export default function ChatPage({
     if (currentModel.input?.includes('audio')) a.push('audio/*');
     return a.join(',') || 'image/*,.heic,video/*,audio/*';
   })();
+
+  // Кнопка Send заблокирована если:
+  const isSendDisabled =
+    isHistoryLoading ||
+    isProcessing ||
+    generate.isPending ||
+    (!text.trim() && uploadedFiles.length === 0);
 
   return (
     <div
@@ -388,7 +410,10 @@ export default function ChatPage({
           <p className="text-[15px] font-semibold tracking-[-0.2px] truncate">
             {chatTitle}
           </p>
-          {isProcessing && (
+          {isHistoryLoading && (
+            <span className="text-[11px] text-white/40">Загрузка...</span>
+          )}
+          {!isHistoryLoading && isProcessing && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] inline-block animate-[pulse-opacity_1s_infinite]" />
               <span className="text-[11px] text-[#FF9500] font-medium">
@@ -401,7 +426,7 @@ export default function ChatPage({
 
       {/* ── Messages ── */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-        {isLoading ? (
+        {isHistoryLoading ? (
           <div className="flex justify-center pt-8">
             <Loader2 size={24} className="animate-spin text-white/40" />
           </div>
@@ -710,7 +735,9 @@ export default function ChatPage({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isHistoryLoading ? "Загрузка..." : "Напишите сообщение..."}
+            placeholder={
+              isHistoryLoading ? 'Загрузка диалога...' : 'Напишите сообщение...'
+            }
             rows={1}
             className={cn(
               'flex-1 resize-none outline-none',
@@ -724,21 +751,13 @@ export default function ChatPage({
           />
           <button
             onClick={handleSend}
-            disabled={
-              isHistoryLoading ||
-              isProcessing ||
-              generate.isPending ||
-              (!text.trim() && uploadedFiles.length === 0)
-            }
+            disabled={isSendDisabled}
             className={cn(
               'shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full text-white',
               glassBlueBtn,
               spring,
               'active:scale-[0.88]',
-              (isProcessing ||
-                generate.isPending ||
-                (!text.trim() && uploadedFiles.length === 0)) &&
-              'opacity-40'
+              isSendDisabled && 'opacity-40'
             )}
           >
             {generate.isPending ? (
