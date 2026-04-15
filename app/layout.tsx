@@ -40,33 +40,35 @@ export default function RootLayout({
           BotProvider стоит СНАРУЖИ AuthProvider — чтобы bot_id
           был доступен уже при первом рендере авторизационных провайдеров.
         */}
-        <BotProvider>
-          <AuthProvider>
-            <TelegramProvider>
-              <MaxProvider>
-                <QueryProvider>{children}</QueryProvider>
-                <Toaster
-                  position="top-center"
-                  toastOptions={{
-                    style: {
-                      background: 'var(--glass-thick)',
-                      backdropFilter: 'blur(50px) saturate(180%)',
-                      WebkitBackdropFilter: 'blur(50px) saturate(180%)',
-                      border: 'var(--glass-border-thick)',
-                      boxShadow:
-                        'inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(0,0,0,0.3)',
-                      borderRadius: '16px',
-                      color: 'var(--sys-label)',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      fontFamily: 'var(--font-sf)',
-                    },
-                  }}
-                />
-              </MaxProvider>
-            </TelegramProvider>
-          </AuthProvider>
-        </BotProvider>
+        <QueryProvider>
+          <BotProvider>
+            <AuthProvider>
+              <TelegramProvider>
+                <MaxProvider>
+                  {children}
+                  <Toaster
+                    position="top-center"
+                    toastOptions={{
+                      style: {
+                        background: 'var(--glass-thick)',
+                        backdropFilter: 'blur(50px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(50px) saturate(180%)',
+                        border: 'var(--glass-border-thick)',
+                        boxShadow:
+                          'inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(0,0,0,0.3)',
+                        borderRadius: '16px',
+                        color: 'var(--sys-label)',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        fontFamily: 'var(--font-sf)',
+                      },
+                    }}
+                  />
+                </MaxProvider>
+              </TelegramProvider>
+            </AuthProvider>
+          </BotProvider>
+        </QueryProvider>
       </body>
     </html>
   );

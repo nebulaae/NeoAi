@@ -208,14 +208,6 @@ export default function ChatPage({
     (m) => m.status === 'processing' || m.status === 'pending'
   );
 
-  useEffect(() => {
-    if (params.dialogueId) {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.chatHistory(params.dialogueId),
-      });
-    }
-  }, [params.dialogueId, queryClient]);
-
   const currentModel = allModels?.find((m) => m.tech_name === activeModel);
   const currentVersion = currentModel?.versions?.find(
     (v) => v.label === activeVersion

@@ -17,21 +17,17 @@ export const useUpload = () => {
   });
 };
 
-// GET /api/history — бекенд роут /history, не /chats/history
 export const useChatHistory = (dialogueId: string | null) => {
   return useQuery({
-    queryKey: queryKeys.chatHistory(dialogueId!),
+    queryKey: queryKeys.chatHistory(dialogueId ?? 'none'),
+
     queryFn: async () => {
+      if (!dialogueId) return [];
+
       const { data } = await api.get('/api/history', {
         params: { dialogue_id: dialogueId },
       });
 
-      // ── РОБАСТНОЕ ИЗВЛЕЧЕНИЕ МАССИВА СООБЩЕНИЙ ──
-      // Бэкенд может вернуть:
-      // 1. { success: true, messages: [...] }
-      // 2. { success: true, data: { messages: [...] } }
-      // 3. { success: true, data: [...] }
-      // 4. просто массив
       let messages = data?.messages;
 
       if (!messages && data?.data) {
@@ -44,10 +40,13 @@ export const useChatHistory = (dialogueId: string | null) => {
 
       return Array.isArray(messages) ? messages : [];
     },
+
     enabled: !!dialogueId,
-    staleTime: 0,                    // всегда свежие данные при монтировании
-    refetchOnMount: true,            // гарантируем запрос при заходе на диалог
-    // ФИКС: polling при pending И processing статусах
+
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true,
+
     refetchInterval: (query) => {
       const msgs: any[] = query.state.data || [];
       const needsPolling = msgs.some(
@@ -55,7 +54,6 @@ export const useChatHistory = (dialogueId: string | null) => {
       );
       return needsPolling ? 2000 : false;
     },
-    select: (msgs: any[]) => msgs,
   });
 };
 
@@ -66,6 +64,8 @@ export const useGenerationStatus = (
   return useQuery({
     queryKey: ['gen-status', dialogueId],
     queryFn: async () => {
+      if (!dialogueId) return [];
+
       const { data } = await api.get('/api/history', {
         params: { dialogue_id: dialogueId },
       });
