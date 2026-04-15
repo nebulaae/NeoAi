@@ -49,9 +49,20 @@ interface Message {
   created_at?: string;
 }
 
-// Ключ для хранения модели диалога в sessionStorage
-const dialogueModelKey = (id: string) => `dialogue_model_${id}`;
-const dialogueTitleKey = (id: string) => `dialogue_title_${id}`;
+const STORAGE_KEY = (id: string) => `dialogue_model_${id}`;
+
+function readStoredModel(id: string) {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY(id));
+    if (raw)
+      return JSON.parse(raw) as {
+        model: string;
+        version: string;
+        role_id: number | null;
+      };
+  } catch {}
+  return null;
+}
 
 function extractDisplayMedia(
   inputs: Message['inputs']
@@ -111,36 +122,25 @@ export default function ChatPage({
     url: string;
     type: string;
   } | null>(null);
-  const [cachedModel, setCachedModel] = useState<string | null>(() => {
-    try {
-      const raw = sessionStorage.getItem(`dialogue_model_${params.dialogueId}`);
-      if (raw) return JSON.parse(raw)?.model ?? null;
-    } catch { }
-    return null;
-  });
-
-  const [cachedVersion, setCachedVersion] = useState<string | null>(() => {
-    try {
-      const raw = sessionStorage.getItem(`dialogue_model_${params.dialogueId}`);
-      if (raw) return JSON.parse(raw)?.version ?? null;
-    } catch { }
-    return null;
-  });
-
-  const [cachedRoleId, setCachedRoleId] = useState<number | null | undefined>(() => {
-    try {
-      const raw = sessionStorage.getItem(`dialogue_model_${params.dialogueId}`);
-      if (raw) return JSON.parse(raw)?.role_id ?? null;
-    } catch { }
-    return undefined;
-  });
-
   const [chatTitle, setChatTitle] = useState<string>('Диалог');
+
+  // ── Читаем модель из sessionStorage СИНХРОННО при инициализации ──
+  const stored = readStoredModel(params.dialogueId);
+  const [cachedModel, setCachedModel] = useState<string | null>(
+    stored?.model ?? null
+  );
+  const [cachedVersion, setCachedVersion] = useState<string | null>(
+    stored?.version ?? null
+  );
+  const [cachedRoleId, setCachedRoleId] = useState<number | null | undefined>(
+    stored ? (stored.role_id ?? null) : undefined
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ФИКС: useChatHistory из useApiExtras использует /api/history — правильный путь
   const { data: messages, isLoading } = useChatHistory(params.dialogueId);
   const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
@@ -149,29 +149,27 @@ export default function ChatPage({
   const msgs = (messages as Message[]) || [];
   const isProcessing = msgs.some((m) => m.status === 'processing');
 
-  // Извлекаем модель из первого сообщения и кешируем в state + sessionStorage
+  // Когда сообщения загрузились — кешируем модель из первого сообщения
   useEffect(() => {
     if (msgs.length === 0) return;
     const first = msgs[0];
-
     if (first.model && !cachedModel) {
       setCachedModel(first.model);
       setCachedVersion(first.version || null);
       setCachedRoleId(first.role_id ?? null);
       try {
         sessionStorage.setItem(
-          dialogueModelKey(params.dialogueId),
+          STORAGE_KEY(params.dialogueId),
           JSON.stringify({
             model: first.model,
             version: first.version,
             role_id: first.role_id ?? null,
           })
         );
-      } catch { }
+      } catch {}
     }
-  }, [msgs, cachedModel, params.dialogueId]);
+  }, [msgs.length]);
 
-  // Определяем данные текущей модели
   const activeModel = cachedModel || msgs[0]?.model;
   const activeVersion = cachedVersion || msgs[0]?.version;
   const activeRoleId =
@@ -186,27 +184,22 @@ export default function ChatPage({
     currentModel?.input?.some((t) => ['image', 'video', 'audio'].includes(t)) ??
     true;
 
-  // Заголовок — название модели (не tech_name)
   useEffect(() => {
-    if (msgs.length > 0 && activeModel) {
+    if (activeModel) {
       const modelName = currentModel?.model_name;
-      const versionLabel = activeVersion;
-      if (modelName && versionLabel) {
-        setChatTitle(`${modelName} · ${versionLabel}`);
-      } else if (modelName) {
-        setChatTitle(modelName);
-      } else if (versionLabel) {
-        setChatTitle(versionLabel);
-      }
+      if (modelName && activeVersion)
+        setChatTitle(`${modelName} · ${activeVersion}`);
+      else if (modelName) setChatTitle(modelName);
+      else if (activeVersion) setChatTitle(activeVersion);
     }
-  }, [msgs.length, currentModel, activeVersion]);
+  }, [activeModel, currentModel, activeVersion]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [messages]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -220,7 +213,7 @@ export default function ChatPage({
     if (prevProcessingRef.current && !isProcessing && msgs.length > 0)
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
     prevProcessingRef.current = isProcessing;
-  }, [isProcessing, msgs.length, queryClient]);
+  }, [isProcessing]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -270,7 +263,6 @@ export default function ChatPage({
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
 
-    // Используем кешированную модель, даже если история ещё пустая
     if (!activeModel) {
       haptic.error();
       toast.error('Не удалось определить модель диалога');
@@ -324,7 +316,7 @@ export default function ChatPage({
 
   return (
     <div
-      className="flex flex-col h-svh w-full max-w-7xl mx-auto"
+      className="flex flex-col h-svh"
       style={{ background: 'var(--page-bg)' }}
     >
       {/* ── Header ── */}
@@ -350,7 +342,6 @@ export default function ChatPage({
         >
           <ChevronLeft size={18} className="text-[#0A84FF]" />
         </button>
-
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-semibold tracking-[-0.2px] truncate">
             {chatTitle}
@@ -401,7 +392,6 @@ export default function ChatPage({
             const resultMedia = extractResultMedia(msg.result);
             return (
               <div key={msg.id || idx} className="flex flex-col gap-2.5">
-                {/* User bubble */}
                 {(msg.inputs?.text || userMedia.length > 0) && (
                   <div className="flex justify-end">
                     <div
@@ -450,8 +440,6 @@ export default function ChatPage({
                     </div>
                   </div>
                 )}
-
-                {/* AI bubble */}
                 <div className="flex justify-start">
                   <div className="max-w-[82%]">
                     {msg.status === 'processing' ? (
@@ -643,7 +631,6 @@ export default function ChatPage({
             ))}
           </div>
         )}
-
         <div className="flex items-end gap-2">
           {canAttachMedia && (
             <>
@@ -673,7 +660,6 @@ export default function ChatPage({
               />
             </>
           )}
-
           <textarea
             ref={textareaRef}
             value={text}
@@ -691,7 +677,6 @@ export default function ChatPage({
               'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_0_3px_rgba(0,122,255,0.12)]'
             )}
           />
-
           <button
             onClick={handleSend}
             disabled={
@@ -707,7 +692,7 @@ export default function ChatPage({
               (isProcessing ||
                 generate.isPending ||
                 (!text.trim() && uploadedFiles.length === 0)) &&
-              'opacity-40'
+                'opacity-40'
             )}
           >
             {generate.isPending ? (
