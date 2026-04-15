@@ -25,7 +25,12 @@ export const useChatHistory = (dialogueId: string | null) => {
       const { data } = await api.get('/api/history', {
         params: { dialogue_id: dialogueId },
       });
-      return (data.messages || []) as any[];
+
+      return (
+        data.messages ||
+        data.data ||
+        (Array.isArray(data) ? data : [])
+      );
     },
     enabled: !!dialogueId,
     refetchInterval: (query) => {

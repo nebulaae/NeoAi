@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
+import { useChats } from '@/hooks/useChats';
 
 /* ── Types ── */
 interface MediaItem {
@@ -60,7 +61,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -143,11 +144,17 @@ export default function ChatPage({
   // ФИКС: useChatHistory из useApiExtras использует /api/history — правильный путь
   const { data: messages, isLoading } = useChatHistory(params.dialogueId);
   const { data: allModels } = useAIModels();
+  const { data: chatsPages } = useChats();
   const generate = useGenerateAI();
   const upload = useUpload();
 
   const msgs = (messages as Message[]) || [];
   const isProcessing = msgs.some((m) => m.status === 'processing');
+
+  const flatChats = chatsPages?.pages?.flat() || [];
+  const currentChat = flatChats.find(
+    (c) => c.dialogue_id === params.dialogueId
+  );
 
   // Когда сообщения загрузились — кешируем модель из первого сообщения
   useEffect(() => {
@@ -166,12 +173,19 @@ export default function ChatPage({
             role_id: first.role_id ?? null,
           })
         );
-      } catch {}
+      } catch { }
     }
   }, [msgs.length]);
 
-  const activeModel = cachedModel || msgs[0]?.model;
-  const activeVersion = cachedVersion || msgs[0]?.version;
+  const activeModel =
+    cachedModel ||
+    msgs[0]?.model ||
+    currentChat?.model;
+
+  const activeVersion =
+    cachedVersion ||
+    msgs[0]?.version ||
+    currentChat?.version;
   const activeRoleId =
     cachedRoleId !== undefined ? cachedRoleId : (msgs[0]?.role_id ?? null);
 
@@ -692,7 +706,7 @@ export default function ChatPage({
               (isProcessing ||
                 generate.isPending ||
                 (!text.trim() && uploadedFiles.length === 0)) &&
-                'opacity-40'
+              'opacity-40'
             )}
           >
             {generate.isPending ? (
