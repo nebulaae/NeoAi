@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChatHistory, useUpload } from '@/hooks/useApiExtras';
 import {
@@ -62,7 +62,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -77,7 +77,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch {}
+  } catch { }
 }
 
 /* ── Извлечение медиа из сообщений ── */
@@ -107,30 +107,20 @@ function extractResultMedia(result: Message['result']) {
 function useDialogueModel(dialogueId: string, messages: Message[]) {
   const stored = readStoredModel(dialogueId);
 
-  const [model, setModel] = useState<string | null>(stored?.model ?? null);
-  const [version, setVersion] = useState<string | null>(
-    stored?.version ?? null
-  );
-  const [roleId, setRoleId] = useState<number | null>(stored?.role_id ?? null);
-
-  useEffect(() => {
-    if (model) return; // уже есть
-    if (messages.length === 0) return;
-    const first = messages[0];
-    if (first.model) {
-      setModel(first.model);
-      setVersion(first.version || null);
-      setRoleId(first.role_id ?? null);
-      writeStoredModel(
-        dialogueId,
-        first.model,
-        first.version || '',
-        first.role_id ?? null
-      );
+  return useMemo(() => {
+    // sessionStorage имеет приоритет (установлен при клике из списка)
+    if (stored) {
+      return { model: stored.model, version: stored.version, roleId: stored.role_id };
     }
-  }, [messages.length, model, dialogueId]);
-
-  return { model, version, roleId };
+    // Fallback: берём из первого сообщения истории
+    const first = messages.find((m) => m.model);
+    if (first) {
+      writeStoredModel(dialogueId, first.model, first.version || '', first.role_id ?? null);
+      return { model: first.model, version: first.version || '', roleId: first.role_id ?? null };
+    }
+    return { model: null, version: null, roleId: null };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stored?.model, stored?.version, messages.length, dialogueId]);
 }
 
 /* ── Shared classes ── */
@@ -182,6 +172,7 @@ export default function ChatPage({
   const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
+  const isHistoryLoading = isLoading;
 
   const msgs = (messages as Message[]) || [];
 
@@ -281,6 +272,7 @@ export default function ChatPage({
 
   /* ── Отправка ── */
   const handleSend = () => {
+    if (isHistoryLoading) return;
     if (isProcessing) {
       haptic.warning();
       toast('Дождитесь окончания генерации');
@@ -335,9 +327,9 @@ export default function ChatPage({
       },
       {
         onSuccess: () => {
-          // Перезапрашиваем историю
           queryClient.invalidateQueries({
             queryKey: queryKeys.chatHistory(params.dialogueId),
+            refetchType: 'all',
           });
         },
         onError: () => {
@@ -718,7 +710,7 @@ export default function ChatPage({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Напишите сообщение..."
+            placeholder={isHistoryLoading ? "Загрузка..." : "Напишите сообщение..."}
             rows={1}
             className={cn(
               'flex-1 resize-none outline-none',
@@ -733,6 +725,7 @@ export default function ChatPage({
           <button
             onClick={handleSend}
             disabled={
+              isHistoryLoading ||
               isProcessing ||
               generate.isPending ||
               (!text.trim() && uploadedFiles.length === 0)
@@ -745,7 +738,7 @@ export default function ChatPage({
               (isProcessing ||
                 generate.isPending ||
                 (!text.trim() && uploadedFiles.length === 0)) &&
-                'opacity-40'
+              'opacity-40'
             )}
           >
             {generate.isPending ? (
