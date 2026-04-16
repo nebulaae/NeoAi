@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 
-/* ── Types ── */
+// ── Types ──
 interface MediaItem {
   type?: string;
   url?: string;
@@ -49,9 +49,7 @@ interface Message {
   created_at?: string;
 }
 
-/* ── sessionStorage helpers (используется только как КЭША для списка чатов) ── */
 const STORAGE_KEY = (id: string) => `dialogue_model_${id}`;
-
 function readStoredModel(id: string) {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY(id));
@@ -64,7 +62,6 @@ function readStoredModel(id: string) {
   } catch {}
   return null;
 }
-
 function writeStoredModel(
   id: string,
   model: string,
@@ -78,58 +75,26 @@ function writeStoredModel(
     );
   } catch {}
 }
-
-/* ── ГЛАВНАЯ ФУНКЦИЯ: получить модель диалога ──
- * Приоритет источников:
- * 1. История (самый надёжный — прямо с сервера)
- * 2. sessionStorage (кэш)
- * Дополнительная защита: если в истории есть сообщения, но find по model не сработал — берём первое сообщение (на случай расхождений в структуре бэкенда)
- */
-function getDialogueModel(
-  dialogueId: string | null,
-  messages: Message[]
-): { model: string | null; version: string | null; roleId: number | null } {
-  if (!dialogueId) {
-    return { model: null, version: null, roleId: null };
-  }
-
-  // Источник 1: история
+function getDialogueModel(dialogueId: string | null, messages: Message[]) {
+  if (!dialogueId) return { model: null, version: null, roleId: null };
   let fromHistory = messages.find((m) => m.model);
-
-  // Защита: если модель не найдена по ключу, но сообщения есть — берём первое (на случай, если бэкенд иногда не отдаёт поле model)
-  if (!fromHistory && messages.length > 0) {
-    fromHistory = messages[0];
-  }
-
+  if (!fromHistory && messages.length > 0) fromHistory = messages[0];
   if (fromHistory && (fromHistory.model || fromHistory.version)) {
     const model = fromHistory.model || fromHistory.version || '';
     const version = fromHistory.version || '';
     const roleId = fromHistory.role_id ?? null;
-
-    // Обновляем кэш
     writeStoredModel(dialogueId, model, version, roleId);
-
-    return {
-      model: model || null,
-      version: version || null,
-      roleId,
-    };
+    return { model: model || null, version: version || null, roleId };
   }
-
-  // Источник 2: sessionStorage
   const cached = readStoredModel(dialogueId);
-  if (cached) {
+  if (cached)
     return {
       model: cached.model,
       version: cached.version,
       roleId: cached.role_id,
     };
-  }
-
   return { model: null, version: null, roleId: null };
 }
-
-/* ── Извлечение медиа ── */
 function extractDisplayMedia(
   inputs: Message['inputs']
 ): { url: string; type: string }[] {
@@ -139,52 +104,33 @@ function extractDisplayMedia(
   (inputs.video || []).forEach((url) => r.push({ url, type: 'video' }));
   (inputs.audio || []).forEach((url) => r.push({ url, type: 'audio' }));
   (inputs.media || []).forEach((m) => {
-    // Обработка вложенной структуры: input может быть объектом {type, format, input}
-    let url = '';
-    let type = 'image';
-    
+    let url = '',
+      type = 'image';
     if (typeof m.input === 'object' && m.input !== null) {
-      // m.input = {type: "image", format: "url", input: "https://..."}
       url = m.input.input || '';
       type = m.input.type || 'image';
     } else {
-      // m.input = "https://..." (старый формат)
       url = m.url || m.input || '';
       type = m.type || 'image';
     }
-    
     if (url) r.push({ url, type });
   });
   return r;
 }
-
 function extractResultMedia(result: Message['result']) {
   return result?.media ? normalizeResultMedia(result.media) : [];
 }
 
-/* ── Shared classes ── */
-const glassRegular = cn(
-  'bg-white/[.10] dark:bg-black/[.55] backdrop-blur-2xl backdrop-saturate-180',
-  'border border-white/[.18]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_16px_rgba(0,0,0,0.22)]'
-);
-const glassThin = cn(
-  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
-  'border border-white/[.14]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-);
-const glassUltraThin = cn(
-  'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
-  'border border-white/[.10]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
-);
-const glassBlueBtn = cn(
-  'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
-  'border border-[rgba(0,122,255,0.30)]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_16px_rgba(0,122,255,0.35)]'
-);
+// ── Design tokens ──
+const g = {
+  ultraThin:
+    'bg-zinc-950/30 backdrop-blur-2xl border border-white/[.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
+  thin: 'bg-zinc-900/40 backdrop-blur-xl border border-white/[.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+  regular:
+    'bg-zinc-900/50 backdrop-blur-2xl border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
+};
 const spring =
-  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
+  'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -200,12 +146,10 @@ export default function ChatPage() {
     url: string;
     type: string;
   } | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  console.log('DEBUG DIALOG ID', dialogueId);
   if (!dialogueId) return [];
 
   const { data: messages = [], isLoading: isHistoryLoading } =
@@ -213,20 +157,16 @@ export default function ChatPage() {
   const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
-
   const msgs = (messages as Message[]) || [];
 
-  // ── РАДИКАЛЬНО ПРОСТАЯ ЛОГИКА МОДЕЛИ ──
   const {
     model: activeModel,
     version: activeVersion,
     roleId: activeRoleId,
   } = getDialogueModel(dialogueId, msgs);
-
   const isProcessing = msgs.some(
     (m) => m.status === 'processing' || m.status === 'pending'
   );
-
   const currentModel = allModels?.find((m) => m.tech_name === activeModel);
   const currentVersion = currentModel?.versions?.find(
     (v) => v.label === activeVersion
@@ -236,26 +176,21 @@ export default function ChatPage() {
     currentModel?.input?.some((t) => ['image', 'video', 'audio'].includes(t)) ??
     true;
 
-  /* ── Заголовок чата ── */
   const chatTitle = (() => {
     const modelName = currentModel?.model_name;
     if (modelName && activeVersion) return `${modelName} · ${activeVersion}`;
     if (modelName) return modelName;
     if (activeVersion) return activeVersion;
-    // Fallback прямо из первого сообщения
     if (msgs.length > 0) return msgs[0].version || msgs[0].model || 'Диалог';
     return 'Диалог';
   })();
 
-  /* ── Scroll ── */
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  /* ── Авторесайз textarea ── */
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -263,7 +198,6 @@ export default function ChatPage() {
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
   }, [text]);
 
-  /* ── Инвалидация баланса после завершения генерации ── */
   const prevProcessingRef = useRef(false);
   useEffect(() => {
     if (prevProcessingRef.current && !isProcessing && msgs.length > 0)
@@ -271,7 +205,6 @@ export default function ChatPage() {
     prevProcessingRef.current = isProcessing;
   }, [isProcessing, queryClient]);
 
-  /* ── Загрузка файла ── */
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
@@ -312,35 +245,24 @@ export default function ChatPage() {
   const removeFile = (i: number) =>
     setUploadedFiles((prev) => prev.filter((_, idx) => idx !== i));
 
-  /* ── Отправка ── */
   const handleSend = () => {
     if (isHistoryLoading) return;
-
     if (isProcessing) {
       haptic.warning();
       toast('Дождитесь окончания генерации');
       return;
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
-
     const {
       model: techName,
       version,
       roleId,
     } = getDialogueModel(dialogueId, msgs);
-
     if (!techName) {
       haptic.error();
-      console.error('[ChatPage] No model found:', {
-        dialogueId: params.dialogueId,
-        msgsCount: msgs.length,
-        firstMsg: msgs[0],
-        sessionStorage: readStoredModel(dialogueId),
-      });
-      toast.error('Загрузка диалога... Попробуйте ещё раз');
+      toast.error('Загрузка диалога… Попробуйте ещё раз');
       return;
     }
-
     haptic.light();
     const oldFormatMedia = uploadedFiles.map((f) => ({
       type: f.type,
@@ -349,11 +271,9 @@ export default function ChatPage() {
     }));
     const safeText = text.trim() || 'Опиши изображение';
     const inputs = convertMediaToInputs(safeText, oldFormatMedia);
-
     const sentText = text;
     setText('');
     setUploadedFiles([]);
-
     generate.mutate(
       {
         tech_name: techName,
@@ -403,13 +323,12 @@ export default function ChatPage() {
       className="flex flex-col h-svh"
       style={{ background: 'var(--page-bg)' }}
     >
-      {/* ── Header ── */}
+      {/* Header */}
       <header
         className={cn(
-          'shrink-0 sticky top-0 z-10',
-          'flex items-center gap-3 px-4 py-3',
-          glassUltraThin,
-          'rounded-none border-x-0 border-t-0 border-b border-white/10'
+          'shrink-0 sticky top-0 z-10 flex items-center gap-3 px-4 py-3',
+          g.ultraThin,
+          'rounded-none border-x-0 border-t-0 border-b border-white/[.08]'
         )}
       >
         <button
@@ -418,49 +337,49 @@ export default function ChatPage() {
             router.back();
           }}
           className={cn(
-            'flex items-center justify-center w-8.5 h-8.5 rounded-full shrink-0',
-            glassThin,
+            'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0',
+            g.thin,
             spring,
             'active:scale-[0.88]'
           )}
         >
-          <ChevronLeft size={18} className="text-[#0A84FF]" />
+          <ChevronLeft size={16} className="text-white/50" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold tracking-[-0.2px] truncate">
+          <p className="text-[14px] font-semibold tracking-[-0.2px] truncate text-white/85">
             {chatTitle}
           </p>
           {isHistoryLoading && (
-            <span className="text-[11px] text-white/40">Загрузка...</span>
+            <span className="text-[10px] text-white/30">Загрузка…</span>
           )}
           {!isHistoryLoading && isProcessing && (
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500] inline-block animate-[pulse-opacity_1s_infinite]" />
-              <span className="text-[11px] text-[#FF9500] font-medium">
-                Генерация...
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400/80 inline-block animate-[pulse-opacity_1s_infinite]" />
+              <span className="text-[10px] text-amber-400/70 font-medium">
+                Генерация…
               </span>
             </div>
           )}
         </div>
       </header>
 
-      {/* ── Messages ── */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
         {isHistoryLoading ? (
           <div className="flex justify-center pt-8">
-            <Loader2 size={24} className="animate-spin text-white/40" />
+            <Loader2 size={22} className="animate-spin text-white/25" />
           </div>
         ) : msgs.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center py-16">
             <div
               className={cn(
-                'w-13 h-13 rounded-2xl flex items-center justify-center',
-                glassRegular
+                'w-12 h-12 rounded-2xl flex items-center justify-center',
+                g.regular
               )}
             >
               <svg
-                width="22"
-                height="22"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -469,7 +388,7 @@ export default function ChatPage() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <p className="text-[14px] text-white/50 max-w-60 leading-relaxed">
+            <p className="text-[13px] text-white/35 max-w-52 leading-relaxed">
               Начните диалог — напишите что-нибудь
             </p>
           </div>
@@ -479,17 +398,14 @@ export default function ChatPage() {
             const resultMedia = extractResultMedia(msg.result);
             return (
               <div key={msg.id || idx} className="flex flex-col gap-2.5">
-                {/* Сообщение пользователя */}
                 {(msg.inputs?.text || userMedia.length > 0) && (
                   <div className="flex justify-end">
                     <div
                       className={cn(
                         'max-w-[78%] px-3.5 py-2.5',
-                        'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
-                        'border border-[rgba(0,122,255,0.30)]',
-                        'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_16px_rgba(0,122,255,0.25)]',
-                        'text-white rounded-[20px_20px_4px_20px]',
-                        'text-[15px] leading-[1.45]'
+                        'bg-white/[.10] border border-white/[.15] backdrop-blur-xl',
+                        'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]',
+                        'text-white/90 rounded-[18px_18px_4px_18px] text-[14px] leading-[1.45]'
                       )}
                     >
                       {msg.inputs?.text && (
@@ -503,22 +419,22 @@ export default function ChatPage() {
                             <button
                               key={i}
                               onClick={() => setViewerSrc(m)}
-                              className="bg-none border-none p-0 cursor-pointer"
+                              className="bg-transparent border-none p-0 cursor-pointer"
                             >
                               {m.type === 'image' ? (
                                 <img
                                   src={m.url}
                                   alt=""
-                                  className="max-h-35 rounded-[10px] object-cover"
+                                  className="max-h-32 rounded-[9px] object-cover"
                                 />
                               ) : m.type === 'video' ? (
                                 <video
                                   src={m.url}
-                                  className="max-h-35 rounded-[10px]"
+                                  className="max-h-32 rounded-[9px]"
                                 />
                               ) : (
-                                <div className="px-2.5 py-1.5 bg-white/15 rounded-lg text-xs">
-                                  🎵 Аудио
+                                <div className="px-2.5 py-1.5 bg-white/10 rounded-lg text-xs">
+                                  ♫ Аудио
                                 </div>
                               )}
                             </button>
@@ -528,31 +444,28 @@ export default function ChatPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Ответ модели */}
                 <div className="flex justify-start">
                   <div className="max-w-[82%]">
                     {msg.status === 'processing' || msg.status === 'pending' ? (
                       <div
                         className={cn(
-                          'flex items-center gap-2 px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
-                          glassRegular
+                          'flex items-center gap-2 px-3.5 py-2.5 rounded-[18px_18px_18px_4px]',
+                          g.regular
                         )}
                       >
                         {[0, 1, 2].map((i) => (
                           <div
                             key={i}
                             style={{ animationDelay: `${i * 0.15}s` }}
-                            className="w-1.5 h-1.5 rounded-full bg-white/50 animate-[pulse-dot_1.2s_infinite_ease-in-out]"
+                            className="w-1.5 h-1.5 rounded-full bg-white/30 animate-[pulse-dot_1.2s_infinite_ease-in-out]"
                           />
                         ))}
                       </div>
                     ) : msg.status === 'error' ? (
                       <div
                         className={cn(
-                          'px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
-                          'bg-[rgba(255,59,48,0.12)] border border-[rgba(255,59,48,0.25)]',
-                          'backdrop-blur-xl text-[#FF3B30] text-[15px]'
+                          'px-3.5 py-2.5 rounded-[18px_18px_18px_4px]',
+                          'bg-red-500/[.08] border border-red-500/[.15] backdrop-blur-xl text-red-400/80 text-[14px]'
                         )}
                       >
                         {msg.error || 'Ошибка генерации'}
@@ -562,9 +475,9 @@ export default function ChatPage() {
                         {msg.result?.text && (
                           <div
                             className={cn(
-                              'px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
-                              glassRegular,
-                              'text-[15px] leading-normal whitespace-pre-wrap'
+                              'px-3.5 py-2.5 rounded-[18px_18px_18px_4px]',
+                              g.regular,
+                              'text-[14px] leading-normal whitespace-pre-wrap text-white/80'
                             )}
                           >
                             {msg.result.text}
@@ -579,13 +492,13 @@ export default function ChatPage() {
                                     src={m.url}
                                     alt="Generated"
                                     onClick={() => setViewerSrc(m)}
-                                    className="max-w-65 max-h-65 rounded-2xl object-cover cursor-pointer border border-white/18 shadow-[0_4px_16px_rgba(0,0,0,0.22)]"
+                                    className="max-w-60 max-h-60 rounded-2xl object-cover cursor-pointer border border-white/[.10] shadow-[0_4px_16px_rgba(0,0,0,0.25)]"
                                   />
                                 ) : m.type === 'video' ? (
                                   <video
                                     src={m.url}
                                     controls
-                                    className="max-w-65 max-h-65 rounded-2xl"
+                                    className="max-w-60 max-h-60 rounded-2xl"
                                   />
                                 ) : (
                                   <audio
@@ -602,12 +515,12 @@ export default function ChatPage() {
                                   onClick={(e) => e.stopPropagation()}
                                   className={cn(
                                     'absolute top-2 right-2 p-1.5 rounded-full',
-                                    'bg-black/45 backdrop-blur-xl border border-white/15',
+                                    'bg-black/40 backdrop-blur-xl border border-white/[.12]',
                                     'text-white flex items-center justify-center',
                                     'opacity-0 group-hover:opacity-100 transition-opacity'
                                   )}
                                 >
-                                  <Download size={14} />
+                                  <Download size={13} />
                                 </a>
                               </div>
                             ))}
@@ -616,9 +529,9 @@ export default function ChatPage() {
                         {!msg.result?.text && resultMedia.length === 0 && (
                           <div
                             className={cn(
-                              'px-3.5 py-2.5 rounded-[20px_20px_20px_4px]',
-                              glassThin,
-                              'text-[14px] text-white/50 italic'
+                              'px-3.5 py-2.5 rounded-[18px_18px_18px_4px]',
+                              g.thin,
+                              'text-[13px] text-white/30 italic'
                             )}
                           >
                             Ответ получен
@@ -635,11 +548,11 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── Media Viewer ── */}
+      {/* Media Viewer */}
       {viewerSrc && (
         <div
           onClick={() => setViewerSrc(null)}
-          className="fixed inset-0 z-50 bg-black/88 backdrop-blur-2xl flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-2xl flex items-center justify-center p-4"
         >
           {viewerSrc.type === 'image' ? (
             <img
@@ -659,10 +572,10 @@ export default function ChatPage() {
             onClick={() => setViewerSrc(null)}
             className={cn(
               'absolute top-5 right-5 p-2 rounded-full',
-              'bg-white/15 backdrop-blur-xl border border-white/20 text-white flex'
+              'bg-white/10 backdrop-blur-xl border border-white/[.12] text-white flex'
             )}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
           <a
             href={viewerSrc.url}
@@ -672,20 +585,20 @@ export default function ChatPage() {
             onClick={(e) => e.stopPropagation()}
             className={cn(
               'absolute bottom-7 right-5 p-2.5 rounded-full',
-              'bg-white/15 backdrop-blur-xl border border-white/20 text-white flex'
+              'bg-white/10 backdrop-blur-xl border border-white/[.12] text-white flex'
             )}
           >
-            <Download size={18} />
+            <Download size={16} />
           </a>
         </div>
       )}
 
-      {/* ── Input Bar ── */}
+      {/* Input Bar */}
       <div
         className={cn(
           'shrink-0',
-          glassUltraThin,
-          'rounded-none border-x-0 border-b-0 border-t border-white/10',
+          g.ultraThin,
+          'rounded-none border-x-0 border-b-0 border-t border-white/[.08]',
           'px-3.5 pt-2.5',
           'pb-[max(10px,env(safe-area-inset-bottom))]'
         )}
@@ -696,8 +609,8 @@ export default function ChatPage() {
               <div
                 key={i}
                 className={cn(
-                  'relative w-15 h-15 rounded-xl overflow-hidden',
-                  'border border-white/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+                  'relative w-14 h-14 rounded-xl overflow-hidden',
+                  g.thin
                 )}
               >
                 {f.type === 'image' ? (
@@ -707,15 +620,15 @@ export default function ChatPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-white/[.07] flex items-center justify-center text-[22px]">
-                    {f.type === 'video' ? '🎬' : '🎵'}
+                  <div className="w-full h-full bg-white/[.05] flex items-center justify-center text-[18px]">
+                    {f.type === 'video' ? '▶' : '♫'}
                   </div>
                 )}
                 <button
                   onClick={() => removeFile(i)}
-                  className="absolute top-0.75 right-0.75 w-4.5 h-4.5 bg-black/55 backdrop-blur-lg rounded-full flex items-center justify-center text-white"
+                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/50 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
                 >
-                  <X size={10} />
+                  <X size={9} />
                 </button>
               </div>
             ))}
@@ -728,17 +641,17 @@ export default function ChatPage() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={upload.isPending}
                 className={cn(
-                  'shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full',
-                  glassRegular,
+                  'shrink-0 w-9 h-9 flex items-center justify-center rounded-full',
+                  g.regular,
                   spring,
                   'active:scale-[0.88]',
-                  upload.isPending && 'opacity-50'
+                  upload.isPending && 'opacity-40'
                 )}
               >
                 {upload.isPending ? (
-                  <Loader2 size={16} className="animate-spin text-white/50" />
+                  <Loader2 size={15} className="animate-spin text-white/35" />
                 ) : (
-                  <ImagePlus size={16} className="text-white/50" />
+                  <ImagePlus size={15} className="text-white/40" />
                 )}
               </button>
               <input
@@ -755,44 +668,41 @@ export default function ChatPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={
-              isHistoryLoading ? 'Загрузка диалога...' : 'Напишите сообщение...'
-            }
+            placeholder={isHistoryLoading ? 'Загрузка…' : 'Сообщение…'}
             rows={1}
             className={cn(
-              'flex-1 resize-none outline-none',
-              'px-3.5 py-2.5 rounded-2xl',
-              glassThin,
-              'text-[15px] leading-[1.45] text-white max-h-30 overflow-y-auto',
-              'placeholder:text-white/30',
+              'flex-1 resize-none outline-none px-3.5 py-2.5 rounded-2xl',
+              g.thin,
+              'text-[14px] leading-[1.45] text-white/85 max-h-28 overflow-y-auto',
+              'placeholder:text-white/25',
               spring,
-              'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_0_3px_rgba(0,122,255,0.12)]'
+              'focus:border-white/[.18]'
             )}
           />
           <button
             onClick={handleSend}
             disabled={isSendDisabled}
             className={cn(
-              'shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full text-white',
-              glassBlueBtn,
+              'shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-white/80',
+              'bg-white/[.10] border border-white/[.16] backdrop-blur-xl',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]',
               spring,
               'active:scale-[0.88]',
-              isSendDisabled && 'opacity-40'
+              isSendDisabled && 'opacity-30'
             )}
           >
             {generate.isPending ? (
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={15} className="animate-spin" />
             ) : (
-              <Send size={16} />
+              <Send size={15} />
             )}
           </button>
         </div>
       </div>
 
       <style>{`
-        @keyframes pulse-dot { 0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1} }
-        @keyframes pulse-opacity { 0%,100%{opacity:1}50%{opacity:.4} }
-        textarea::placeholder { color: rgba(255,255,255,0.30); }
+        @keyframes pulse-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:.8}}
+        @keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.35}}
       `}</style>
     </div>
   );

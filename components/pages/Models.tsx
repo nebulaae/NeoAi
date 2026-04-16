@@ -30,50 +30,45 @@ const CAT_ICON: Record<string, string> = {
   audio: '♫',
 };
 
-/* ── Shared class strings ── */
-const glassThin = cn(
-  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
-  'border border-white/[.14]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-);
-const glassThick = cn(
-  'bg-white/[.13] dark:bg-black/[.65] backdrop-blur-3xl backdrop-saturate-200',
-  'border border-white/[.22]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.28)]'
-);
+const g = {
+  ultraThin:
+    'bg-zinc-950/30 backdrop-blur-2xl border border-white/[.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
+  thin: 'bg-zinc-900/40 backdrop-blur-xl border border-white/[.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+  thick:
+    'bg-zinc-900/60 backdrop-blur-3xl border border-white/[.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_32px_rgba(0,0,0,0.32)]',
+};
 const spring =
-  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
+  'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
-/* ── Skeleton row ── */
 const SkeletonRow = () => (
-  <div className="flex items-center gap-3.5 px-5 py-3.25 border-b border-white/6">
+  <div className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[.05]">
     <div
       className={cn(
-        'w-11.5 h-11.5 rounded-[14px] shrink-0',
-        glassThin,
+        'w-11 h-11 rounded-[13px] flex-shrink-0',
+        g.thin,
         'animate-[pulse-opacity_1.6s_ease-in-out_infinite]'
       )}
     />
     <div className="flex-1 flex flex-col gap-1.5">
       <div
         className={cn(
-          'w-[42%] h-3.25 rounded-md',
-          glassThin,
+          'w-[40%] h-3 rounded-md',
+          g.thin,
           'animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]'
         )}
       />
       <div
         className={cn(
-          'w-[25%] h-2.5 rounded-md',
-          glassThin,
+          'w-[22%] h-2.5 rounded-md',
+          g.thin,
           'animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]'
         )}
       />
     </div>
     <div
       className={cn(
-        'w-11 h-5.5 rounded-full',
-        glassThin,
+        'w-10 h-5 rounded-full',
+        g.thin,
         'animate-[pulse-opacity_1.6s_ease-in-out_0.15s_infinite]'
       )}
     />
@@ -112,37 +107,34 @@ export const Models = () => {
   };
 
   return (
-    <div
-      className={cn(
-        'flex flex-col min-h-svh',
-        'pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden'
-      )}
-    >
-      {/* ── Header ── */}
+    <div className="flex flex-col min-h-svh pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
+      {/* Header */}
       <header
         className={cn(
-          'sticky top-0 z-40 px-5 py-3.5',
-          'bg-white/4 dark:bg-black/35 backdrop-blur-2xl backdrop-saturate-150',
-          'border-b border-white/10',
-          'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+          'sticky top-0 z-40 px-5 py-4',
+          g.ultraThin,
+          'border-x-0 border-t-0 rounded-none'
         )}
       >
-        <div className="max-w-190 mx-auto">
-          <span className="text-[22px] font-bold tracking-[-0.5px]">
+        <div className="max-w-2xl mx-auto">
+          <span className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
             Модели
           </span>
         </div>
       </header>
 
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <div
         className={cn(
-          'sticky top-12.75 z-39',
-          'bg-white/4 dark:bg-black/30 backdrop-blur-[30px] backdrop-saturate-160',
-          'border-b border-white/8'
+          'sticky top-[57px] z-39',
+          g.ultraThin,
+          'border-x-0 border-t-0 rounded-none border-b border-white/[.07]'
         )}
       >
-        <div className="max-w-190 mx-auto flex gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide">
+        <div
+          className="max-w-2xl mx-auto flex gap-1.5 px-4 py-2.5 overflow-x-auto"
+          style={{ scrollbarWidth: 'none' }}
+        >
           {TABS.map((t) => {
             const active = tab === t.key;
             return (
@@ -153,13 +145,12 @@ export const Models = () => {
                   setTab(t.key);
                 }}
                 className={cn(
-                  'shrink-0 px-4 py-1.5 rounded-full',
-                  'text-[13px] font-semibold tracking-[-0.1px] cursor-pointer whitespace-nowrap',
+                  'shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap',
                   spring,
                   'active:scale-[0.93]',
                   active
-                    ? cn(glassThick, 'text-white')
-                    : cn(glassThin, 'text-white/50')
+                    ? cn(g.thick, 'text-white/90')
+                    : cn(g.thin, 'text-white/40')
                 )}
               >
                 {t.label}
@@ -169,9 +160,9 @@ export const Models = () => {
         </div>
       </div>
 
-      {/* ── List ── */}
+      {/* List */}
       <div className="flex-1">
-        <div className="max-w-190 mx-auto">
+        <div className="max-w-2xl mx-auto">
           {isLoading ? (
             Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
           ) : filtered.length === 0 ? (
@@ -188,38 +179,38 @@ export const Models = () => {
               const catIcon = CAT_ICON[catKey] || '✦';
               const avatarUrl =
                 m.avatar ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=1c1c1c&color=ffffff&size=128`;
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=ffffff&size=128`;
               const isLast = idx === filtered.length - 1;
-
               return (
                 <button
                   key={m.tech_name}
                   onClick={() => handleModelClick(m.tech_name, m.mainCategory)}
                   className={cn(
-                    'flex items-center gap-3.5 px-5 py-3.25 w-full text-left',
-                    'bg-transparent border-none cursor-pointer',
-                    !isLast && 'border-b border-white/6',
+                    'flex items-center gap-3.5 px-5 py-3.5 w-full text-left bg-transparent border-none cursor-pointer',
+                    !isLast && 'border-b border-white/[.05]',
                     spring,
-                    'hover:bg-white/4 active:bg-white/[.07] active:scale-[0.985]'
+                    'hover:bg-white/[.03] active:bg-white/[.05] active:scale-[0.985]'
                   )}
                 >
-                  {/* Avatar */}
-                  <div className="w-11.5 h-11.5 rounded-[14px] overflow-hidden shrink-0 border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+                  <div
+                    className={cn(
+                      'w-11 h-11 rounded-[13px] overflow-hidden flex-shrink-0',
+                      g.thin
+                    )}
+                  >
                     <Avatar className="size-full">
                       <AvatarImage src={avatarUrl} />
-                      <AvatarFallback className="text-[12px] font-bold bg-white/10 text-white">
+                      <AvatarFallback className="text-[11px] font-semibold bg-transparent text-white/50">
                         {m.model_name.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-semibold text-white truncate tracking-[-0.2px]">
+                    <p className="text-[14px] font-semibold text-white/85 truncate tracking-[-0.2px]">
                       {m.model_name}
                     </p>
-                    <p className="text-[12px] text-white/50 mt-0.5 flex items-center gap-1.5">
-                      <span>{catIcon}</span>
+                    <p className="text-[11px] text-white/35 mt-0.5 flex items-center gap-1.5">
+                      <span className="text-[10px]">{catIcon}</span>
                       <span>{catLabel}</span>
                       {m.versions && m.versions.length > 1 && (
                         <>
@@ -229,28 +220,16 @@ export const Models = () => {
                       )}
                     </p>
                   </div>
-
-                  {/* Cost + chevron */}
-                  <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <div
                       className={cn(
-                        'inline-flex items-center gap-1 px-2.5 py-0.75 rounded-full text-[12px] font-semibold text-white/50',
-                        glassThin
+                        'inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/35',
+                        g.thin
                       )}
                     >
-                      💎 {cost}
+                      ◈ {cost}
                     </div>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      className="text-white/30"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
+                    <span className="text-white/20 text-[13px]">›</span>
                   </div>
                 </button>
               );
@@ -258,8 +237,7 @@ export const Models = () => {
           )}
         </div>
       </div>
-
-      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
     </div>
   );
 };

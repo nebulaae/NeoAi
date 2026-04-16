@@ -24,13 +24,11 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 
-/* ── Polling ── */
 function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ['gen-status', dialogueId],
     queryFn: async () => {
       const { data } = await api.get('/api/history', {
-        // ← ФИКС ПУТИ
         params: { dialogue_id: dialogueId },
       });
       const msgs = data.messages || data || [];
@@ -40,38 +38,25 @@ function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
     refetchInterval: 2000,
   });
 }
-/* ── Shared classes ── */
-const glassThin = cn(
-  'bg-white/[.07] dark:bg-black/[.45] backdrop-blur-xl backdrop-saturate-150',
-  'border border-white/[.14]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-);
-const glassRegular = cn(
-  'bg-white/[.10] dark:bg-black/[.55] backdrop-blur-2xl backdrop-saturate-180',
-  'border border-white/[.18]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_16px_rgba(0,0,0,0.22)]'
-);
-const glassThick = cn(
-  'bg-white/[.13] dark:bg-black/[.65] backdrop-blur-3xl backdrop-saturate-200',
-  'border border-white/[.22]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.28)]'
-);
-const glassBlue = cn(
-  'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
-  'border border-[rgba(0,122,255,0.30)]',
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_6px_24px_rgba(0,122,255,0.38)]'
-);
-const spring =
-  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
-/* ── Section label ── */
+const g = {
+  ultraThin:
+    'bg-zinc-950/30 backdrop-blur-2xl border border-white/[.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
+  thin: 'bg-zinc-900/40 backdrop-blur-xl border border-white/[.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+  regular:
+    'bg-zinc-900/50 backdrop-blur-2xl border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
+  thick:
+    'bg-zinc-900/60 backdrop-blur-3xl border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_32px_rgba(0,0,0,0.32)]',
+};
+const spring =
+  'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
+
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[11px] font-bold tracking-[0.6px] uppercase text-white/50 mb-2.5">
+  <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 mb-2.5">
     {children}
   </p>
 );
 
-/* ── Pill button ── */
 const PillBtn = ({
   active,
   onClick,
@@ -89,10 +74,12 @@ const PillBtn = ({
         onClick();
       }}
       className={cn(
-        'px-[14px] py-1.5 rounded-full text-[13px] font-semibold cursor-pointer flex-shrink-0',
+        'px-3.5 py-1.5 rounded-full text-[12px] font-medium cursor-pointer flex-shrink-0',
         spring,
         'active:scale-[0.92]',
-        active ? glassBlue + ' text-white' : glassThin + ' text-white/50'
+        active
+          ? 'bg-white/[.14] border border-white/[.20] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+          : cn(g.thin, 'text-white/40')
       )}
     >
       {children}
@@ -100,15 +87,13 @@ const PillBtn = ({
   );
 };
 
-/* ── Model row ── */
 const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
   const haptic = useHaptic();
   const cost =
     m.versions?.find((v: any) => v.default)?.cost ?? m.versions?.[0]?.cost ?? 1;
   const avatarUrl =
     m.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=1c1c1c&color=fff&size=128`;
-
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=fff&size=128`;
   return (
     <button
       onClick={() => {
@@ -116,25 +101,29 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
         onClick();
       }}
       className={cn(
-        'flex items-center gap-[14px] px-5 py-[13px] w-full text-left',
-        'bg-transparent border-none border-b border-white/[.06] cursor-pointer',
+        'flex items-center gap-3.5 px-5 py-3.5 w-full text-left bg-transparent border-none border-b border-white/[.05] cursor-pointer',
         spring,
-        'hover:bg-white/[.04] active:bg-white/[.07] active:scale-[0.985]'
+        'hover:bg-white/[.03] active:bg-white/[.05] active:scale-[0.985]'
       )}
     >
-      <div className="w-[46px] h-[46px] rounded-[14px] overflow-hidden flex-shrink-0 border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+      <div
+        className={cn(
+          'w-11 h-11 rounded-[13px] overflow-hidden flex-shrink-0',
+          g.thin
+        )}
+      >
         <Avatar className="size-full">
           <AvatarImage src={avatarUrl} />
-          <AvatarFallback className="text-[12px] font-bold bg-white/[.10] text-white">
+          <AvatarFallback className="text-[11px] font-semibold bg-transparent text-white/50">
             {m.model_name.slice(0, 2)}
           </AvatarFallback>
         </Avatar>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-white truncate tracking-[-0.2px]">
+        <p className="text-[14px] font-semibold text-white/85 truncate tracking-[-0.2px]">
           {m.model_name}
         </p>
-        <p className="text-[12px] text-white/50 mt-0.5">
+        <p className="text-[11px] text-white/35 mt-0.5">
           {m.versions?.length > 1
             ? `${m.versions.length} версии`
             : m.versions?.[0]?.label || ''}
@@ -142,17 +131,16 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
       </div>
       <div
         className={cn(
-          'inline-flex items-center gap-1 px-[10px] py-[3px] rounded-full text-[12px] font-semibold text-white/50 flex-shrink-0',
-          glassThin
+          'inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/35 flex-shrink-0',
+          g.thin
         )}
       >
-        💎 {cost}
+        ◈ {cost}
       </div>
     </button>
   );
 };
 
-/* ── Main ── */
 export const Generate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -170,12 +158,11 @@ export const Generate = () => {
   const [showParams, setShowParams] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: allModels, isLoading } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
-
   const models = (allModels || []).filter(
     (m) => !m.categories?.includes('text')
   );
@@ -184,7 +171,6 @@ export const Generate = () => {
     selectedVersion ||
     selected?.versions?.find((v) => v.default)?.label ||
     selected?.versions?.[0]?.label;
-
   const { data: params } = useModelParams(selectedTech, currentVersion);
   const { data: lastMessage } = useGenerationStatus(pendingId, isWaiting);
 
@@ -210,12 +196,11 @@ export const Generate = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-    const file = files[0];
     try {
-      const uploaded = await upload.mutateAsync(file);
+      const uploaded = await upload.mutateAsync(files[0]);
       setMedia((prev) => [
         ...prev,
-        { type: uploaded.type, url: uploaded.url, file },
+        { type: uploaded.type, url: uploaded.url, file: files[0] },
       ]);
     } catch {
       toast.error('Ошибка загрузки файла');
@@ -246,8 +231,6 @@ export const Generate = () => {
       {
         onSuccess: (data) => {
           const dialogueId = data.dialogue_id;
-
-          // ── КЕШИРУЕМ МОДЕЛЬ чтобы страница чата сразу её знала ──
           if (dialogueId) {
             try {
               sessionStorage.setItem(
@@ -260,15 +243,13 @@ export const Generate = () => {
               );
             } catch {}
           }
-
           if (data.status === 'processing') {
-            toast('Генерация запущена, ждём результата...');
+            toast('Генерация запущена…');
             setPendingId(dialogueId || null);
             setIsWaiting(!!dialogueId);
           } else if (dialogueId) {
             haptic.success();
             toast.success('Готово!');
-            // ── СРАЗУ В ЧАТ ──
             router.push(`/chats/${dialogueId}`);
           } else {
             toast.success('Генерация завершена');
@@ -278,16 +259,13 @@ export const Generate = () => {
     );
   };
 
-  // ── Отслеживаем завершение генерации ──
   useEffect(() => {
     if (!isWaiting || !lastMessage) return;
     if (lastMessage.status === 'completed') {
       haptic.success();
       setIsWaiting(false);
-      toast.success('Генерация завершена!');
-      if (pendingId) {
-        router.push(`/chats/${pendingId}`);
-      }
+      toast.success('Готово!');
+      if (pendingId) router.push(`/chats/${pendingId}`);
       setPendingId(null);
     } else if (lastMessage.status === 'error') {
       haptic.error();
@@ -295,41 +273,41 @@ export const Generate = () => {
       toast.error('Ошибка: ' + (lastMessage.error || 'Неизвестная ошибка'));
       setPendingId(null);
     }
-  }, [lastMessage, isWaiting, pendingId, haptic, router]);
+  }, [lastMessage, isWaiting, pendingId]);
 
-  /* ── Waiting screen ── */
+  /* Waiting screen */
   if (isWaiting && pendingId) {
     const status = lastMessage?.status;
     return (
-      <div className="flex flex-col items-center justify-center min-h-[100svh] gap-7 px-5 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[100svh] gap-6 px-5 text-center">
         <div
           className={cn(
-            'w-20 h-20 rounded-[28px] flex items-center justify-center',
-            glassThick
+            'w-18 h-18 rounded-[24px] flex items-center justify-center',
+            g.thick
           )}
         >
           {status === 'completed' ? (
-            <CheckCircle size={32} className="text-[#34C759]" />
+            <CheckCircle size={28} className="text-emerald-400/80" />
           ) : status === 'error' ? (
-            <AlertCircle size={32} className="text-[#FF3B30]" />
+            <AlertCircle size={28} className="text-red-400/80" />
           ) : (
-            <Loader2 size={32} className="animate-spin text-white/50" />
+            <Loader2 size={28} className="animate-spin text-white/40" />
           )}
         </div>
         <div className="flex flex-col gap-1.5">
-          <p className="text-[20px] font-bold tracking-[-0.4px]">
+          <p className="text-[18px] font-bold tracking-[-0.3px] text-white/90">
             {status === 'completed'
               ? 'Готово!'
               : status === 'error'
                 ? 'Ошибка'
-                : 'Генерация...'}
+                : 'Генерация…'}
           </p>
-          <p className="text-[14px] text-white/50 max-w-[280px] leading-[1.5]">
+          <p className="text-[13px] text-white/40 max-w-[260px] leading-[1.5]">
             {status === 'completed'
-              ? 'Переход к результату...'
+              ? 'Переход к результату…'
               : status === 'error'
-                ? lastMessage?.error || 'Произошла ошибка при генерации'
-                : 'Нейросеть обрабатывает запрос. Это может занять от нескольких секунд до минуты.'}
+                ? lastMessage?.error || 'Произошла ошибка'
+                : 'Нейросеть обрабатывает запрос. Это займёт несколько секунд.'}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -337,7 +315,7 @@ export const Generate = () => {
             <div
               key={i}
               style={{ animationDelay: `${i * 0.2}s` }}
-              className="w-1.5 h-1.5 rounded-full bg-white/30 animate-[pulse-dot_1.4s_ease-in-out_infinite]"
+              className="w-1.5 h-1.5 rounded-full bg-white/20 animate-[pulse-dot_1.4s_ease-in-out_infinite]"
             />
           ))}
         </div>
@@ -347,16 +325,16 @@ export const Generate = () => {
             setPendingId(null);
             router.push(`/chats/${pendingId}`);
           }}
-          className="text-[13px] text-white/50 bg-none border-none cursor-pointer underline underline-offset-4"
+          className="text-[12px] text-white/30 bg-transparent border-none cursor-pointer"
         >
           Перейти в чат
         </button>
-        <style>{`@keyframes pulse-dot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}`}</style>
+        <style>{`@keyframes pulse-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:.8}}`}</style>
       </div>
     );
   }
 
-  /* ── Detail view ── */
+  /* Detail view */
   if (selected) {
     const cost =
       selected.versions?.find((v) => v.label === currentVersion)?.cost ??
@@ -368,19 +346,16 @@ export const Generate = () => {
     const aspectParam = (params || []).find(
       (p: any) => p.name === 'aspect_ratio'
     );
-
     return (
       <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
-        {/* Header */}
         <header
           className={cn(
             'sticky top-0 z-40',
-            'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
-            'border-b border-white/[.10]',
-            'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+            g.ultraThin,
+            'border-x-0 border-t-0 rounded-none'
           )}
         >
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-3.5">
             <button
               onClick={() => {
                 haptic.light();
@@ -391,48 +366,39 @@ export const Generate = () => {
                 setShowParams(false);
               }}
               className={cn(
-                'flex items-center gap-1 text-[15px] font-medium text-[#0A84FF] bg-none border-none cursor-pointer px-2 py-1 rounded-lg',
+                'flex items-center gap-1 text-[14px] font-medium text-white/50 bg-transparent border-none cursor-pointer px-2 py-1 rounded-lg',
                 spring,
                 'active:scale-[0.92]'
               )}
             >
-              <ChevronLeft size={18} /> Назад
+              <ChevronLeft size={16} /> Назад
             </button>
-
             <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  'w-[26px] h-[26px] rounded-lg overflow-hidden',
-                  glassThin
-                )}
-              >
+              <div className={cn('w-6 h-6 rounded-lg overflow-hidden', g.thin)}>
                 <Avatar className="size-full">
                   <AvatarImage src={selected.avatar} />
-                  <AvatarFallback className="text-[9px] font-bold">
+                  <AvatarFallback className="text-[8px] bg-transparent">
                     {selected.model_name.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <span className="text-[15px] font-semibold tracking-[-0.2px]">
+              <span className="text-[14px] font-semibold tracking-[-0.2px] text-white/85">
                 {selected.model_name}
               </span>
             </div>
-
             <div
               className={cn(
-                'inline-flex items-center gap-1 px-[10px] py-1 rounded-full text-[12px] font-semibold text-white/50',
-                glassThin
+                'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/35',
+                g.thin
               )}
             >
-              💎 {cost}
+              ◈ {cost}
             </div>
           </div>
         </header>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[760px] mx-auto flex flex-col gap-5 px-5 py-5">
-            {/* Versions */}
+          <div className="max-w-[700px] mx-auto flex flex-col gap-5 px-5 py-5">
             {selected.versions && selected.versions.length > 1 && (
               <div>
                 <SectionLabel>Версия</SectionLabel>
@@ -443,33 +409,31 @@ export const Generate = () => {
                       active={currentVersion === v.label}
                       onClick={() => setSelectedVersion(v.label)}
                     >
-                      {v.label} <span className="opacity-60">· {v.cost}💎</span>
+                      {v.label}{' '}
+                      <span className="opacity-50 ml-1">· {v.cost}◈</span>
                     </PillBtn>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Prompt */}
             <div>
               <SectionLabel>Описание</SectionLabel>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Опишите, что хотите создать..."
+                placeholder="Опишите, что хотите создать…"
                 rows={4}
                 className={cn(
-                  'w-full resize-none outline-none px-4 py-[14px] rounded-2xl',
-                  glassRegular,
-                  'text-[15px] leading-[1.55] text-white placeholder:text-white/30',
-                  'box-border font-[var(--font-sf)]',
+                  'w-full resize-none outline-none px-4 py-3.5 rounded-2xl',
+                  g.regular,
+                  'text-[14px] leading-[1.55] text-white/85 placeholder:text-white/25 box-border',
                   spring,
-                  'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_3px_rgba(0,122,255,0.12)]'
+                  'focus:border-white/[.18]'
                 )}
               />
             </div>
 
-            {/* Aspect ratio */}
             {aspectParam && (
               <div>
                 <SectionLabel>Соотношение сторон</SectionLabel>
@@ -492,7 +456,6 @@ export const Generate = () => {
               </div>
             )}
 
-            {/* Advanced params */}
             {params &&
               params.filter((p: any) => p.name !== 'aspect_ratio').length >
                 0 && (
@@ -502,25 +465,24 @@ export const Generate = () => {
                       haptic.selection();
                       setShowParams(!showParams);
                     }}
-                    className="flex items-center gap-1.5 text-[13px] text-white/50 bg-none border-none cursor-pointer py-1.5"
+                    className="flex items-center gap-1.5 text-[12px] text-white/35 bg-transparent border-none cursor-pointer py-1.5"
                   >
-                    <Settings2 size={14} />
-                    Дополнительные параметры
+                    <Settings2 size={13} /> Дополнительные параметры
                     <ChevronDown
-                      size={14}
+                      size={13}
                       className={cn(
-                        'transition-transform duration-[280ms]',
+                        'transition-transform duration-[260ms]',
                         showParams && 'rotate-180'
                       )}
                     />
                   </button>
                   {showParams && (
-                    <div className="mt-[14px] flex flex-col gap-[14px]">
+                    <div className="mt-3.5 flex flex-col gap-3.5">
                       {params
                         .filter((p: any) => p.name !== 'aspect_ratio')
                         .map((p: any) => (
                           <div key={p.name}>
-                            <label className="block text-[12px] text-white/50 mb-1.5">
+                            <label className="block text-[11px] text-white/35 mb-1.5">
                               {p.label || p.name}
                             </label>
                             {p.type === 'select' && p.values ? (
@@ -558,8 +520,8 @@ export const Generate = () => {
                                   }))
                                 }
                                 className={cn(
-                                  'w-full box-border px-[14px] py-[10px] rounded-xl text-[14px] outline-none text-white',
-                                  glassThin
+                                  'w-full box-border px-3.5 py-[10px] rounded-xl text-[13px] outline-none text-white/80',
+                                  g.thin
                                 )}
                               />
                             )}
@@ -570,7 +532,6 @@ export const Generate = () => {
                 </div>
               )}
 
-            {/* Media */}
             {canAttach && (
               <div>
                 <div className="flex items-center justify-between mb-2.5">
@@ -579,16 +540,16 @@ export const Generate = () => {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={upload.isPending}
                     className={cn(
-                      'flex items-center gap-1.5 text-[13px] font-semibold text-[#0A84FF] bg-none border-none cursor-pointer',
+                      'flex items-center gap-1.5 text-[12px] font-medium text-white/45 bg-transparent border-none cursor-pointer',
                       spring,
                       upload.isPending && 'opacity-50'
                     )}
                   >
                     {upload.isPending ? (
-                      <Loader2 size={13} className="animate-spin" />
+                      <Loader2 size={12} className="animate-spin" />
                     ) : (
-                      <ImagePlus size={13} />
-                    )}
+                      <ImagePlus size={12} />
+                    )}{' '}
                     Прикрепить
                   </button>
                 </div>
@@ -604,7 +565,10 @@ export const Generate = () => {
                     {media.map((m, i) => (
                       <div
                         key={i}
-                        className="relative w-20 h-20 rounded-2xl overflow-hidden border border-white/[.14]"
+                        className={cn(
+                          'relative w-18 h-18 rounded-2xl overflow-hidden',
+                          g.thin
+                        )}
                       >
                         {m.type === 'image' ? (
                           <img
@@ -616,8 +580,8 @@ export const Generate = () => {
                             }}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[28px] bg-white/[.07]">
-                            {m.type === 'video' ? '🎬' : '🎵'}
+                          <div className="w-full h-full flex items-center justify-center text-[24px] bg-white/[.05]">
+                            {m.type === 'video' ? '▶' : '♫'}
                           </div>
                         )}
                         <button
@@ -626,9 +590,9 @@ export const Generate = () => {
                               prev.filter((_, idx) => idx !== i)
                             )
                           }
-                          className="absolute top-[5px] right-[5px] w-5 h-5 bg-black/55 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
                         >
-                          <X size={11} />
+                          <X size={10} />
                         </button>
                       </div>
                     ))}
@@ -637,7 +601,6 @@ export const Generate = () => {
               </div>
             )}
 
-            {/* Generate button */}
             <button
               onClick={handleGenerate}
               disabled={
@@ -646,25 +609,26 @@ export const Generate = () => {
                 upload.isPending
               }
               className={cn(
-                'w-full py-4 px-6 rounded-full text-[17px] font-bold text-white',
+                'w-full py-4 px-6 rounded-full text-[16px] font-semibold text-white/90',
                 'flex items-center justify-center gap-2',
-                glassBlue,
+                'bg-white/[.10] border border-white/[.18] backdrop-blur-xl',
+                'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_6px_24px_rgba(0,0,0,0.25)]',
                 spring,
                 'active:scale-[0.97]',
                 ((!prompt.trim() && media.length === 0) ||
                   generate.isPending ||
                   upload.isPending) &&
-                  'opacity-45'
+                  'opacity-40'
               )}
             >
               {generate.isPending || upload.isPending ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
-                  {upload.isPending ? 'Загрузка...' : 'Генерация...'}
+                  <Loader2 size={17} className="animate-spin" />
+                  {upload.isPending ? 'Загрузка…' : 'Генерация…'}
                 </>
               ) : (
                 <>
-                  <Sparkles size={18} />
+                  <Sparkles size={17} />
                   Создать
                 </>
               )}
@@ -675,55 +639,60 @@ export const Generate = () => {
     );
   }
 
-  /* ── Model picker ── */
+  /* Model picker */
   const catOrder = ['image', 'video', 'audio'] as const;
   const catLabel: Record<string, string> = {
-    image: '🖼️ Изображения',
-    video: '🎬 Видео',
-    audio: '🎵 Аудио',
+    image: 'Изображения',
+    video: 'Видео',
+    audio: 'Аудио',
+  };
+  const catIcon: Record<string, string> = {
+    image: '◈',
+    video: '▶',
+    audio: '♫',
   };
 
   return (
     <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
       <header
         className={cn(
-          'sticky top-0 z-40 px-5 py-[14px]',
-          'bg-white/[.04] dark:bg-black/[.35] backdrop-blur-2xl backdrop-saturate-150',
-          'border-b border-white/[.10]',
-          'shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+          'sticky top-0 z-40 px-5 py-4',
+          g.ultraThin,
+          'border-x-0 border-t-0 rounded-none'
         )}
       >
-        <div className="max-w-[760px] mx-auto">
-          <p className="text-[22px] font-bold tracking-[-0.5px]">Создать</p>
-          <p className="text-[13px] text-white/50 mt-0.5">Выберите нейросеть</p>
+        <div className="max-w-[700px] mx-auto">
+          <p className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
+            Создать
+          </p>
+          <p className="text-[12px] text-white/35 mt-0.5">Выберите нейросеть</p>
         </div>
       </header>
-
       <div className="flex-1">
-        <div className="max-w-[760px] mx-auto">
+        <div className="max-w-[700px] mx-auto">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-[14px] px-5 py-[13px] border-b border-white/[.06]"
+                  className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[.05]"
                 >
                   <div
                     className={cn(
-                      'w-[46px] h-[46px] rounded-[14px] flex-shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
-                      glassThin
+                      'w-11 h-11 rounded-[13px] flex-shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
+                      g.thin
                     )}
                   />
                   <div className="flex-1">
                     <div
                       className={cn(
-                        'w-[40%] h-[13px] rounded-md mb-1.5 animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]',
-                        glassThin
+                        'w-[40%] h-3 rounded-md mb-1.5 animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]',
+                        g.thin
                       )}
                     />
                     <div
                       className={cn(
-                        'w-[25%] h-[10px] rounded-md animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]',
-                        glassThin
+                        'w-[22%] h-2.5 rounded-md animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]',
+                        g.thin
                       )}
                     />
                   </div>
@@ -736,8 +705,15 @@ export const Generate = () => {
                 if (!catModels.length) return null;
                 return (
                   <div key={cat}>
-                    <div className="px-5 py-[10px] bg-white/[.04] backdrop-blur-xl border-b border-white/[.06]">
-                      <p className="text-[11px] font-bold tracking-[0.6px] uppercase text-white/50">
+                    <div
+                      className={cn(
+                        'px-5 py-2.5 border-b border-white/[.05]',
+                        g.ultraThin,
+                        'rounded-none border-x-0'
+                      )}
+                    >
+                      <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 flex items-center gap-1.5">
+                        <span>{catIcon[cat]}</span>
                         {catLabel[cat]}
                       </p>
                     </div>
@@ -753,8 +729,7 @@ export const Generate = () => {
               })}
         </div>
       </div>
-
-      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
     </div>
   );
 };

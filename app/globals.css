@@ -153,18 +153,18 @@
   --sys-fill-secondary: rgba(0, 0, 0, 0.08);
 
   /* Apple System Tints */
-  --tint-blue: #007aff;
-  --tint-purple: #af52de;
-  --tint-pink: #ff2d55;
-  --tint-red: #ff3b30;
-  --tint-orange: #ff9500;
-  --tint-yellow: #ffcc00;
-  --tint-green: #34c759;
-  --tint-teal: #5ac8fa;
-  --tint-indigo: #5856d6;
+  --tint-blue: #000000;
+  --tint-purple: #1c1c1e;
+  --tint-pink: #2c2c2e;
+  --tint-red: #3a3a3c;
+  --tint-orange: #48484a;
+  --tint-yellow: #636366;
+  --tint-green: #8e8e93;
+  --tint-teal: #aeaeb2;
+  --tint-indigo: #c7c7cc;
 
   /* Page Background */
-  --page-bg: #f2f2f7;
+  --page-bg: #e4e4e7;
 }
 
 .dark {
@@ -483,14 +483,14 @@ body {
 
 /* Create / Primary tab */
 .tab-bar__item--primary .tab-bar__icon {
-  background: rgba(0, 122, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: var(--blur-regular);
   -webkit-backdrop-filter: var(--blur-regular);
-  border: 1px solid rgba(0, 122, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 4px 16px rgba(0, 122, 255, 0.4);
-  color: #fff;
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  color: var(--sys-label);
 }
 
 /* ============================================================
@@ -607,28 +607,28 @@ body {
   opacity: 0.88;
 }
 
-/* Primary button (blue tint) */
+/* Primary button (neutral tint) */
 .glass-btn--primary {
-  background: rgba(0, 122, 255, 0.75);
-  border-color: rgba(0, 122, 255, 0.35);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--sys-label);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 8px 24px rgba(0, 122, 255, 0.35);
+    0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .glass-btn--primary:hover {
-  background: rgba(0, 122, 255, 0.88);
+  background: rgba(255, 255, 255, 0.22);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 12px 32px rgba(0, 122, 255, 0.45);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 12px 32px rgba(0, 0, 0, 0.25);
 }
 
 .glass-btn--primary:active {
-  background: rgba(0, 122, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 4px 12px rgba(0, 122, 255, 0.3);
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Destructive */
@@ -696,11 +696,11 @@ body {
 
 .glass-input:focus {
   background: var(--glass-regular);
-  border-color: rgba(0, 122, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.45);
   box-shadow:
     var(--glass-specular),
     inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 0 0 3px rgba(0, 122, 255, 0.15);
+    0 0 0 3px rgba(255, 255, 255, 0.15);
 }
 
 .glass-textarea {
@@ -764,9 +764,9 @@ body {
 }
 
 .glass-badge--blue {
-  background: rgba(0, 122, 255, 0.15);
-  border-color: rgba(0, 122, 255, 0.25);
-  color: var(--tint-blue);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--sys-label);
 }
 
 /* ============================================================

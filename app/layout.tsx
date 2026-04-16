@@ -10,7 +10,7 @@ import { BotProvider } from './providers/BotProvider'; // 👈 новый
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Sibneuro',
+  title: 'NeoAI',
   description: 'AI Platform',
 };
 
