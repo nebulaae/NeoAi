@@ -1,11 +1,10 @@
 'use client';
 
+import React, { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
 import { useChats } from '@/hooks/useChats';
 import { useAIModels } from '@/hooks/useModels';
 import { useRoles } from '@/hooks/useRoles';
-import { convertMediaToInputs, useGenerateAI } from '@/hooks/useGenerations';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChatsLoader } from '@/components/states/Loading';
 import { ChatsEmpty } from '@/components/states/Empty';
@@ -53,13 +52,12 @@ export const Chats = () => {
   } = useChats();
   const { data: models } = useAIModels();
   const { data: roles } = useRoles();
-  const generate = useGenerateAI();
   const chats = data?.pages.flatMap((p) => p) ?? [];
   const startedRef = useRef(false);
 
   useEffect(() => {
     if (!modelParam && !roleParam) return;
-    if (startedRef.current || generate.isPending) return;
+    if (startedRef.current) return;
     const modelsReady = !!models;
     const rolesReady = roleParam ? !!roles : true;
     if (!modelsReady || !rolesReady) return;
@@ -101,31 +99,16 @@ export const Chats = () => {
     }
 
     startedRef.current = true;
-    const inputs = convertMediaToInputs('Привет', []);
-    generate.mutate(
-      { tech_name: techName, version, inputs, role_id: role ? role.id : null },
-      {
-        onSuccess: (d) => {
-          if (d.dialogue_id) {
-            cacheDialogueModel(
-              d.dialogue_id,
-              techName!,
-              version || '',
-              role?.id ?? null
-            );
-            router.replace(`/chats/${d.dialogue_id}`);
-          } else {
-            toast.error('Не удалось получить ID диалога');
-            startedRef.current = false;
-            router.replace('/chats');
-          }
-        },
-        onError: () => {
-          startedRef.current = false;
-          router.replace('/chats');
-        },
-      }
-    );
+
+    // FIX 2: Открываем пустой чат без отправки начального сообщения "Привет".
+    // Переходим на страницу /chats/new с параметрами модели.
+    // Chat page для /chats/new сам создаст диалог при первом сообщении юзера.
+    const params = new URLSearchParams({
+      model: techName,
+      ...(version ? { version } : {}),
+      ...(role ? { role: String(role.id) } : {}),
+    });
+    router.replace(`/chats/new?${params.toString()}`);
   }, [modelParam, roleParam, models, roles]);
 
   if (isError)
@@ -139,11 +122,11 @@ export const Chats = () => {
       </div>
     );
 
-  if (generate.isPending && (modelParam || roleParam))
+  if ((modelParam || roleParam) && !startedRef.current && (models || roles))
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="size-8 animate-spin text-white/40" />
-        <p className="text-[14px] text-white/50">Создаём диалог...</p>
+        <p className="text-[14px] text-white/50">Открываем чат...</p>
       </div>
     );
 
@@ -187,8 +170,6 @@ export const Chats = () => {
         ) : (
           <>
             {chats.map((chat) => {
-              // ФИКС: используем version как основной заголовок (так и было),
-              // но добавляем fallback на title и model
               const displayName =
                 chat.version || chat.title || chat.model || 'Диалог';
 

@@ -4,14 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useAIModels } from '@/hooks/useModels';
 import { useRoles } from '@/hooks/useRoles';
 import { useUser } from '@/hooks/useUser';
-import { useUI } from '@/hooks/useApiExtras';
+import { useUI, usePaymentLink } from '@/hooks/useApiExtras';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { ErrorComponent } from '@/components/states/Error';
-import { usePaymentLink } from '@/hooks/useApiExtras';
 import { localize } from '@/lib/utils';
 
-/* ── Skeleton placeholder ── */
+/* ── Skeleton shimmer ── */
 const GlassSkeleton = ({
   w,
   h,
@@ -70,12 +68,46 @@ export const Home = () => {
       : router.push(`/generate?model=${techName}`);
 
   const handleRoleClick = (id: number) => router.push(`/chats?role=${id}`);
-  const handleTrendClick = (item: any) =>
-    item.model
-      ? router.push(`/generate?model=${item.model}`)
-      : item.role_id
-        ? router.push(`/chats?role=${item.role_id}`)
-        : undefined;
+
+  // FIX 1: Trends теперь корректно роутят по tech_name из данных API
+  // Данные тренда имеют поля: tech_name, version, title, image, description
+  // tech_name типа "nexus/nano-banana" -> /generate, "openrouter/gpt" -> /chats
+  const handleTrendClick = (item: any) => {
+    if (item.tech_name) {
+      // Определяем категорию по tech_name или по наличию model в API
+      // Если не знаем — ищем в моделях
+      const model = models?.find((m) => m.tech_name === item.tech_name);
+      if (model) {
+        if (model.mainCategory === 'text') {
+          router.push(`/chats?model=${item.tech_name}`);
+        } else {
+          router.push(`/generate?model=${item.tech_name}`);
+        }
+      } else {
+        // Эвристика: если tech_name содержит 'gpt', 'claude', 'gemini' — это text
+        const textKeywords = [
+          'gpt',
+          'claude',
+          'gemini',
+          'llama',
+          'mistral',
+          'chat',
+        ];
+        const isText = textKeywords.some((kw) =>
+          item.tech_name.toLowerCase().includes(kw)
+        );
+        if (isText) {
+          router.push(`/chats?model=${item.tech_name}`);
+        } else {
+          router.push(`/generate?model=${item.tech_name}`);
+        }
+      }
+    } else if (item.model) {
+      router.push(`/generate?model=${item.model}`);
+    } else if (item.role_id) {
+      router.push(`/chats?role=${item.role_id}`);
+    }
+  };
 
   if (isError)
     return (
@@ -115,7 +147,7 @@ export const Home = () => {
         <span
           style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}
         >
-          All AI
+          Sibneuro
         </span>
 
         {/* Token balance pill */}
@@ -140,7 +172,6 @@ export const Home = () => {
             color: 'var(--sys-label)',
           }}
         >
-          {/* Diamond icon */}
           <svg
             width="10"
             height="10"
@@ -238,7 +269,6 @@ export const Home = () => {
                     (e.currentTarget.style.transform = 'scale(1)')
                   }
                 >
-                  {/* Avatar with glass ring */}
                   <div
                     style={{
                       width: 52,
@@ -457,7 +487,6 @@ export const Home = () => {
             : ((trends as any[]) || []).length === 0
               ? (
                   [
-                    /* static fallback */
                     {
                       icon: '🎨',
                       title: 'Создай свой 2D-аватар',
@@ -633,6 +662,13 @@ export const Home = () => {
                 ))}
         </div>
       </section>
+
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
     </div>
   );
 };

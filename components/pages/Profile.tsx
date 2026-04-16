@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
 import { useRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,6 +61,7 @@ const STATUS: Record<string, { icon: string; color: string; label: string }> = {
 };
 
 export const Profile = () => {
+  const router = useRouter();
   const haptic = useHaptic();
   const { user: tgUser, logout } = useAuth();
   const { bot } = useBot();
@@ -255,10 +257,16 @@ export const Profile = () => {
         </button>
 
         {/* Referrals */}
-        <div
+        <button
+          onClick={() => {
+            haptic.light();
+            router.push('/profile/referral');
+          }}
           className={cn(
             'flex flex-col gap-1.5 p-[18px] rounded-[20px]',
-            glassRegular
+            glassRegular,
+            spring,
+            'active:scale-[0.95] text-left transition-transform'
           )}
         >
           <div className="flex justify-between items-center">
@@ -277,7 +285,7 @@ export const Profile = () => {
           <span className="text-[11px] text-white/50">
             {refStats?.earned ?? refStats?.total_tokens ?? 0} 💎 заработано
           </span>
-        </div>
+        </button>
       </div>
 
       {/* ── Referral Link ── */}

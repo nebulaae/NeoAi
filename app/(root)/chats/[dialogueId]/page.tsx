@@ -61,7 +61,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch { }
+  } catch {}
   return null;
 }
 
@@ -76,7 +76,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch { }
+  } catch {}
 }
 
 /* ── ГЛАВНАЯ ФУНКЦИЯ: получить модель диалога ──
@@ -192,10 +192,11 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  console.log("DEBUG DIALOG ID", dialogueId);
+  console.log('DEBUG DIALOG ID', dialogueId);
   if (!dialogueId) return [];
 
-  const { data: messages = [], isLoading: isHistoryLoading } = useChatHistory(dialogueId);
+  const { data: messages = [], isLoading: isHistoryLoading } =
+    useChatHistory(dialogueId);
   const { data: allModels } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();

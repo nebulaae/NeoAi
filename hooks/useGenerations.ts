@@ -6,9 +6,7 @@ import { queryKeys } from '@/lib/queryKeys';
 
 export interface GenerateInputs {
   text?: string | null;
-  image?: string[];
-  video?: string[];
-  audio?: string[];
+  media?: Array<{ type: string; format: string; input: string }>;
 }
 
 export interface GenerateAIParams {
@@ -36,15 +34,19 @@ export function normalizeResultMedia(
 
 export function convertMediaToInputs(
   text: string | null,
-  media: { type: string; input: string }[]
+  media: { type: string; input: string; format?: string }[]
 ) {
   const inputs: any = {};
 
   if (text) inputs.text = text;
 
-  for (const m of media) {
-    if (!inputs[m.type]) inputs[m.type] = [];
-    inputs[m.type].push(m.input);
+  // Если есть медиа, отправляем её в формате media: [{type, format, input}]
+  if (media.length > 0) {
+    inputs.media = media.map(m => ({
+      type: m.type,
+      format: m.format || 'url',
+      input: m.input,
+    }));
   }
 
   return inputs;
