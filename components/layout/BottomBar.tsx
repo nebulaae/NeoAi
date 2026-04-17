@@ -115,7 +115,7 @@ export const BottomBar = () => {
                   'transition-all duration-280 ease-[cubic-bezier(0.32,0.72,0,1)]',
                   isCreate
                     ? cn(
-                        'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
+                        'bg-zinc-950 backdrop-blur-xl',
                         'border border-[rgba(0,122,255,0.30)]',
                         'shadow-[inset_0_1px_0_rgba(255,255,255,0.40),0_4px_16px_rgba(0,122,255,0.42)]',
                         'text-white'
