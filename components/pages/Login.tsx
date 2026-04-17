@@ -129,12 +129,13 @@ export const Login = () => {
     try {
       maxWA.ready?.();
       maxWA.expand?.();
-    } catch {}
+    } catch { }
   }, [env]);
 
   useEffect(() => {
     if (env === 'browser' || attempted.current || authLoading || user) return;
     if (!bot?.bot_id) return;
+    
     const tg = (window as any)?.Telegram?.WebApp;
     const initData = env === 'telegram' ? tg?.initData : getMaxInitData();
     if (!initData) return;
@@ -144,10 +145,24 @@ export const Login = () => {
       try {
         tg.ready();
         tg.expand();
-      } catch {}
+      } catch { }
     }
     api
-      .post('/api/auth/tma', { initData, platform: env, bot_id: bot.bot_id })
+      .post(
+        '/api/auth/tma',
+        {
+          initData,
+          platform: env,
+          bot_id: bot.bot_id,
+        },
+        {
+          headers: {
+            'x-init-data': initData,
+            'x-bot-id': bot.bot_id,
+            'x-platform': env,
+          },
+        }
+      )
       .then(({ data }) => {
         localStorage.setItem('auth_token', data.token);
         if (data.user?.id)

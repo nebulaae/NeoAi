@@ -411,11 +411,11 @@ export const Profile = () => {
                     {st.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold truncate text-white/80">
-                      {req.model}
+                    <p className="text-[14px] font-semibold truncate">
+                      {req.version}
                     </p>
-                    <p className="text-[11px] text-white/30 mt-0.5">
-                      {req.version} · {timeAgo(req.created_at)}
+                    <p className="text-[12px] text-white/50 mt-0.5">
+                      {req.id} · {timeAgo(req.created_at)}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-[3px] flex-shrink-0">

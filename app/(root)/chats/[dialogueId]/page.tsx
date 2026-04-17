@@ -59,7 +59,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch {}
+  } catch { }
   return null;
 }
 function writeStoredModel(
@@ -73,7 +73,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch {}
+  } catch { }
 }
 function getDialogueModel(dialogueId: string | null, messages: Message[]) {
   if (!dialogueId) return { model: null, version: null, roleId: null };
@@ -485,45 +485,80 @@ export default function ChatPage() {
                         )}
                         {resultMedia.length > 0 && (
                           <div className="flex flex-wrap gap-2">
-                            {resultMedia.map((m, i) => (
-                              <div key={i} className="relative group">
-                                {m.type === 'image' ? (
-                                  <img
-                                    src={m.url}
-                                    alt="Generated"
-                                    onClick={() => setViewerSrc(m)}
-                                    className="max-w-60 max-h-60 rounded-2xl object-cover cursor-pointer border border-white/[.10] shadow-[0_4px_16px_rgba(0,0,0,0.25)]"
-                                  />
-                                ) : m.type === 'video' ? (
-                                  <video
-                                    src={m.url}
-                                    controls
-                                    className="max-w-60 max-h-60 rounded-2xl"
-                                  />
-                                ) : (
-                                  <audio
-                                    src={m.url}
-                                    controls
-                                    className="rounded-lg"
-                                  />
-                                )}
-                                <a
-                                  href={m.url}
-                                  download
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className={cn(
-                                    'absolute top-2 right-2 p-1.5 rounded-full',
-                                    'bg-black/40 backdrop-blur-xl border border-white/[.12]',
-                                    'text-white flex items-center justify-center',
-                                    'opacity-0 group-hover:opacity-100 transition-opacity'
+                            {resultMedia.map((m, i) => {
+                              // ── НОВОЕ: отдельный стиль для аудио с всегда видимой кнопкой скачивания ──
+                              if (m.type === 'audio') {
+                                return (
+                                  <div
+                                    key={i}
+                                    className="flex-1 min-w-0 max-w-[440px]"
+                                  >
+                                    <div
+                                      className={cn(
+                                        'flex items-center gap-3 px-4 py-3',
+                                        g.thin,
+                                        'rounded-3xl border border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.22)]'
+                                      )}
+                                    >
+                                      <audio
+                                        src={m.url}
+                                        controls
+                                        className="flex-1 min-w-0"
+                                      />
+                                      <a
+                                        href={m.url}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className={cn(
+                                          'shrink-0 w-10 h-10 flex items-center justify-center rounded-2xl',
+                                          'bg-black/45 backdrop-blur-xl border border-white/15',
+                                          'text-white hover:bg-black/70 active:scale-95 transition-all'
+                                        )}
+                                      >
+                                        <Download size={20} />
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // Оригинальный рендер для изображений и видео
+                              return (
+                                <div key={i} className="relative group">
+                                  {m.type === 'image' ? (
+                                    <img
+                                      src={m.url}
+                                      alt="Generated"
+                                      onClick={() => setViewerSrc(m)}
+                                      className="max-w-65 max-h-65 rounded-2xl object-cover cursor-pointer border border-white/18 shadow-[0_4px_16px_rgba(0,0,0,0.22)]"
+                                    />
+                                  ) : (
+                                    <video
+                                      src={m.url}
+                                      controls
+                                      className="max-w-65 max-h-65 rounded-2xl"
+                                    />
                                   )}
-                                >
-                                  <Download size={13} />
-                                </a>
-                              </div>
-                            ))}
+                                  <a
+                                    href={m.url}
+                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className={cn(
+                                      'absolute top-2 right-2 p-1.5 rounded-full',
+                                      'bg-black/45 backdrop-blur-xl border border-white/15',
+                                      'text-white flex items-center justify-center',
+                                      'opacity-0 group-hover:opacity-100 transition-opacity'
+                                    )}
+                                  >
+                                    <Download size={14} />
+                                  </a>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                         {!msg.result?.text && resultMedia.length === 0 && (
@@ -619,11 +654,23 @@ export default function ChatPage() {
                     alt=""
                     className="w-full h-full object-cover"
                   />
-                ) : (
-                  <div className="w-full h-full bg-white/[.05] flex items-center justify-center text-[18px]">
-                    {f.type === 'video' ? '▶' : '♫'}
+                ) : f.type === 'video' ? (
+                  <video
+                    src={f.url}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-full rounded-3xl"
+                  />
+                ) : f.type === 'audio' ? (
+                  <div className="w-full max-w-md bg-white/10 backdrop-blur-2xl rounded-3xl p-6 shadow-2xl">
+                    <audio
+                      src={f.url}
+                      controls
+                      autoPlay
+                      className="w-full"
+                    />
                   </div>
-                )}
+                ) : null}
                 <button
                   onClick={() => removeFile(i)}
                   className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/50 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
