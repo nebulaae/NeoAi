@@ -224,8 +224,7 @@ const g = {
     'bg-zinc-900/50 backdrop-blur-2xl border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
 };
 const spring =
-  'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
-
+  'transition-all duration-[280ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -235,6 +234,7 @@ export default function ChatPage() {
   const dialogueId = params?.dialogueId as string | undefined;
   const haptic = useHaptic();
   const [text, setText] = useState('');
+
   const [uploadedFiles, setUploadedFiles] = useState<
     { url: string; type: string; file: File }[]
   >([]);
@@ -250,6 +250,10 @@ export default function ChatPage() {
   const urlModel = searchParams.get('model');
   const urlVersion = searchParams.get('version');
   const urlRole = searchParams.get('role');
+
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(
+    urlRole ? parseInt(urlRole) : null
+  );
 
   const { data: messages = [], isLoading: isHistoryLoading } =
     useChatHistory(dialogueId === 'new' ? null : dialogueId); // ← не загружаем историю для 'new'
@@ -274,9 +278,9 @@ export default function ChatPage() {
   // Если это новый чат и модель пришла из URL — сразу кешируем
   useEffect(() => {
     if (dialogueId === 'new' && urlModel) {
-      writeStoredModel(dialogueId, urlModel, urlVersion || '', urlRole ? parseInt(urlRole) : null);
+      writeStoredModel(dialogueId, urlModel, urlVersion || '', selectedRoleId);
     }
-  }, [dialogueId, urlModel, urlVersion, urlRole]);
+  }, [dialogueId, urlModel, urlVersion, selectedRoleId]);
 
   const isProcessing = msgs.some(
     (m) => m.status === 'processing' || m.status === 'pending'
@@ -347,7 +351,7 @@ export default function ChatPage() {
     setUploadedFiles((prev) => prev.filter((_, idx) => idx !== i));
 
   /* ── Отправка ── */
-  const handleSend = (overrideRoleId?: number | null) => {
+  const handleSend = () => {
     if (isHistoryLoading) return;
     if (isProcessing) { haptic.warning(); toast('Дождитесь окончания генерации'); return; }
     if (!text.trim() && uploadedFiles.length === 0) return;
@@ -378,15 +382,12 @@ export default function ChatPage() {
     setText('');
     setUploadedFiles([]);
 
-    // effectiveRoleId: если передан через кнопку роли — берём его, иначе из параметров
-    const effectiveRoleId = overrideRoleId !== undefined ? overrideRoleId : roleId;
-
     generate.mutate(
       {
         tech_name: techName,
         version: version || undefined,
         dialogue_id: dialogueId === 'new' ? undefined : dialogueId,
-        role_id: effectiveRoleId,
+        role_id: selectedRoleId ?? roleId,
         inputs,
       },
       {
@@ -484,20 +485,15 @@ export default function ChatPage() {
                       key={role.id}
                       onClick={() => {
                         haptic.light();
-                        // Устанавливаем роль и фокусируемся на textarea
+                        setSelectedRoleId(role.id);
                         textareaRef.current?.focus();
-                        // Просто подскажем пользователю — роль запишем при отправке
-                        // Обновим URL чтобы role был в параметрах
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('role', String(role.id));
-                        router.replace(url.pathname + '?' + url.searchParams.toString());
                       }}
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 rounded-2xl w-full text-left',
                         g.thin,
                         spring,
                         'active:scale-[0.97]',
-                        String(activeRoleId) === String(role.id) && 'border-[rgba(0,122,255,0.5)] bg-[rgba(0,122,255,0.10)]'
+                        selectedRoleId === role.id && 'border-zinc-800 bg-zinc-900/50'
                       )}
                     >
                       <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/[.14] shrink-0">
@@ -516,8 +512,8 @@ export default function ChatPage() {
                           {localize(role.description)}
                         </p>
                       </div>
-                      {String(activeRoleId) === String(role.id) && (
-                        <div className="w-2 h-2 rounded-full bg-[#0A84FF] shrink-0" />
+                      {selectedRoleId === role.id && (
+                        <div className="w-2 h-2 rounded-full bg-zinc-600 shrink-0" />
                       )}
                     </button>
                   ))}
@@ -535,9 +531,9 @@ export default function ChatPage() {
                   <div className="flex justify-end">
                     <div className={cn(
                       'max-w-[78%] px-3.5 py-2.5',
-                      'bg-[rgba(0,122,255,0.85)] backdrop-blur-xl',
-                      'border border-[rgba(0,122,255,0.30)]',
-                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_16px_rgba(0,122,255,0.25)]',
+                      'bg-zinc-900/50 backdrop-blur-2xl',
+                      'border border-white/[.12]',
+                      'shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
                       'text-white rounded-[20px_20px_4px_20px]',
                       'text-[15px] leading-[1.45]'
                     )}>
@@ -714,7 +710,7 @@ export default function ChatPage() {
             style={{ fontSize: 16 }}
           />
           <button onClick={() => handleSend()} disabled={isSendDisabled}
-            className={cn('shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full text-white', g.regular, spring, 'active:scale-[0.88]', isSendDisabled && 'opacity-40')}>
+            className={cn('shrink-0 w-9.5 h-9.5 flex items-center justify-center rounded-full text-white', g.thin, spring, 'active:scale-[0.88]', isSendDisabled && 'opacity-40')}>
             {generate.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
