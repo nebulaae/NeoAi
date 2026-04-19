@@ -241,7 +241,7 @@ export const Generate = () => {
                   role_id: null,
                 })
               );
-            } catch {}
+            } catch { }
           }
           if (data.status === 'processing') {
             toast('Генерация запущена…');
@@ -422,15 +422,17 @@ export const Generate = () => {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Опишите, что хотите создать…"
+                placeholder="Опишите, что хотите создать..."
                 rows={4}
                 className={cn(
-                  'w-full resize-none outline-none px-4 py-3.5 rounded-2xl',
+                  'w-full resize-none outline-none px-4 py-[14px] rounded-2xl',
                   g.regular,
-                  'text-[14px] leading-[1.55] text-white/85 placeholder:text-white/25 box-border',
+                  'text-[15px] leading-[1.55] text-white placeholder:text-white/30',
+                  'box-border font-[var(--font-sf)]',
                   spring,
-                  'focus:border-white/[.18]'
+                  'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_3px_rgba(0,122,255,0.12)]'
                 )}
+                style={{ fontSize: 16 }}  // ← фикс zoom на iOS
               />
             </div>
 
@@ -458,7 +460,7 @@ export const Generate = () => {
 
             {params &&
               params.filter((p: any) => p.name !== 'aspect_ratio').length >
-                0 && (
+              0 && (
                 <div>
                   <button
                     onClick={() => {
@@ -618,7 +620,7 @@ export const Generate = () => {
                 ((!prompt.trim() && media.length === 0) ||
                   generate.isPending ||
                   upload.isPending) &&
-                  'opacity-40'
+                'opacity-40'
               )}
             >
               {generate.isPending || upload.isPending ? (
@@ -672,61 +674,61 @@ export const Generate = () => {
         <div className="max-w-[700px] mx-auto">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[.05]"
+              >
                 <div
-                  key={i}
-                  className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[.05]"
-                >
+                  className={cn(
+                    'w-11 h-11 rounded-[13px] flex-shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
+                    g.thin
+                  )}
+                />
+                <div className="flex-1">
                   <div
                     className={cn(
-                      'w-11 h-11 rounded-[13px] flex-shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
+                      'w-[40%] h-3 rounded-md mb-1.5 animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]',
                       g.thin
                     )}
                   />
-                  <div className="flex-1">
-                    <div
-                      className={cn(
-                        'w-[40%] h-3 rounded-md mb-1.5 animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]',
-                        g.thin
-                      )}
-                    />
-                    <div
-                      className={cn(
-                        'w-[22%] h-2.5 rounded-md animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]',
-                        g.thin
-                      )}
-                    />
-                  </div>
+                  <div
+                    className={cn(
+                      'w-[22%] h-2.5 rounded-md animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]',
+                      g.thin
+                    )}
+                  />
                 </div>
-              ))
+              </div>
+            ))
             : catOrder.map((cat) => {
-                const catModels = models.filter(
-                  (m) => m.mainCategory === cat || m.categories?.includes(cat)
-                );
-                if (!catModels.length) return null;
-                return (
-                  <div key={cat}>
-                    <div
-                      className={cn(
-                        'px-5 py-2.5 border-b border-white/[.05]',
-                        g.ultraThin,
-                        'rounded-none border-x-0'
-                      )}
-                    >
-                      <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 flex items-center gap-1.5">
-                        <span>{catIcon[cat]}</span>
-                        {catLabel[cat]}
-                      </p>
-                    </div>
-                    {catModels.map((m) => (
-                      <ModelRow
-                        key={m.tech_name}
-                        m={m}
-                        onClick={() => setSelectedTech(m.tech_name)}
-                      />
-                    ))}
+              const catModels = models.filter(
+                (m) => m.mainCategory === cat || m.categories?.includes(cat)
+              );
+              if (!catModels.length) return null;
+              return (
+                <div key={cat}>
+                  <div
+                    className={cn(
+                      'px-5 py-2.5 border-b border-white/[.05]',
+                      g.ultraThin,
+                      'rounded-none border-x-0'
+                    )}
+                  >
+                    <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 flex items-center gap-1.5">
+                      <span>{catIcon[cat]}</span>
+                      {catLabel[cat]}
+                    </p>
                   </div>
-                );
-              })}
+                  {catModels.map((m) => (
+                    <ModelRow
+                      key={m.tech_name}
+                      m={m}
+                      onClick={() => setSelectedTech(m.tech_name)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
         </div>
       </div>
       <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
