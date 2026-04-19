@@ -116,7 +116,7 @@ export const BottomBar = () => {
                   isCreate
                     ? cn(
                         'bg-zinc-800 backdrop-blur-xl',
-                        'border border-[rgba(0,122,255,0.30)]',
+                        '',
                         'text-white'
                       )
                     : active

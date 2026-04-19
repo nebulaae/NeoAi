@@ -84,17 +84,16 @@ export function AppSidebar() {
                           'active:scale-[0.96]',
                           active
                             ? cn(
-                                'bg-white/[.14] backdrop-blur-xl',
-                                'border border-white/18',
-                                'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_12px_rgba(0,0,0,0.18)]'
-                              )
+                              'bg-white/[.14] backdrop-blur-xl',
+                              'border border-white/18',
+                              'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_12px_rgba(0,0,0,0.18)]'
+                            )
                             : isCreate
                               ? cn(
-                                  'bg-[rgba(0,122,255,0.75)] backdrop-blur-xl',
-                                  'border border-[rgba(0,122,255,0.30)]',
-                                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_16px_rgba(0,122,255,0.32)]',
-                                  'text-white'
-                                )
+                                'bg-zinc-800 backdrop-blur-xl',
+                                '',
+                                'text-white'
+                              )
                               : 'hover:bg-white/[.07]'
                         )}
                       >
