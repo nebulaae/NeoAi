@@ -8,6 +8,7 @@ import { useUI, usePaymentLink } from '@/hooks/useApiExtras';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ErrorComponent } from '@/components/states/Error';
 import { localize } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 /* ─── Design tokens ─── */
 const g = {
@@ -59,6 +60,7 @@ const Shimmer = ({
 );
 
 export const Home = () => {
+  const t = useTranslations('Home');
   const router = useRouter();
   const {
     data: models,
@@ -118,8 +120,8 @@ export const Home = () => {
     return (
       <div className="flex items-center justify-center min-h-screen p-6">
         <ErrorComponent
-          title="Ошибка"
-          description="Не удалось загрузить данные."
+          title={t('error')}
+          description={t('errorLoadData')}
           onRetry={refetch}
         />
       </div>
@@ -154,13 +156,13 @@ export const Home = () => {
       <section className="px-5 pt-6 pb-2">
         <div className="flex items-center justify-between mb-4">
           <span className="text-[11px] font-semibold tracking-[0.8px] uppercase text-white/40">
-            Модели
+            {t('models')}
           </span>
           <button
             onClick={() => router.push('/models')}
             className={`text-[12px] font-medium text-white/50 px-2.5 py-1 rounded-lg ${g.ultraThin} ${spring} active:scale-[0.94]`}
           >
-            Все →
+            {t('all')} →
           </button>
         </div>
         <div className="grid grid-cols-4 gap-y-5 gap-x-2">
@@ -207,13 +209,13 @@ export const Home = () => {
       <section className="pb-2">
         <div className="flex items-center justify-between px-5 mb-4">
           <span className="text-[11px] font-semibold tracking-[0.8px] uppercase text-white/40">
-            Ассистенты
+            {t('aiAssistants')}
           </span>
           <button
             onClick={() => router.push('/chats')}
             className={`text-[12px] font-medium text-white/50 px-2.5 py-1 rounded-lg ${g.ultraThin} ${spring} active:scale-[0.94]`}
           >
-            Все →
+            {t('all')} →
           </button>
         </div>
         <div
@@ -224,7 +226,7 @@ export const Home = () => {
             ? Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex-shrink-0 flex flex-col items-center gap-2"
+                  className="shrink-0 flex flex-col items-center gap-2"
                 >
                   <Shimmer w="56px" h="56px" rounded="14px" />
                   <Shimmer w="48px" h="9px" />
@@ -234,7 +236,7 @@ export const Home = () => {
                 <button
                   key={role.id}
                   onClick={() => handleRoleClick(role.id)}
-                  className={`flex-shrink-0 flex flex-col items-center gap-2 bg-transparent border-none cursor-pointer ${spring} active:scale-[0.88]`}
+                  className={`shrink-0 flex flex-col items-center gap-2 bg-transparent border-none cursor-pointer ${spring} active:scale-[0.88]`}
                 >
                   <div
                     className={`w-14 h-14 rounded-[16px] overflow-hidden ${g.thin}`}
@@ -259,7 +261,7 @@ export const Home = () => {
       {/* ── Trending ── */}
       <section className="px-5 pb-4">
         <span className="block text-[11px] font-semibold tracking-[0.8px] uppercase text-white/40 mb-4">
-          В тренде
+          {t('trending')}
         </span>
         <div className="flex flex-col gap-2">
           {trendsLoading
@@ -271,20 +273,20 @@ export const Home = () => {
                   [
                     {
                       icon: '✦',
-                      title: 'Создай свой аватар',
+                      title: t('trend1'),
                       href: '/generate',
                     },
-                    { icon: '◈', title: 'Возможности GPT-4o', href: '/chats' },
-                    { icon: '▶', title: 'Генерация видео', href: '/generate' },
-                    { icon: '♫', title: 'Создание музыки', href: '/generate' },
+                    { icon: '◈', title: t('trend2'), href: '/chats' },
+                    { icon: '▶', title: t('trend3'), href: '/generate' },
+                    { icon: '♫', title: t('trend4'), href: '/generate' },
                   ] as any[]
                 ).map((item) => (
                   <button
                     key={item.title}
                     onClick={() => router.push(item.href)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/[.08]`}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
                   >
-                    <span className="text-white/40 text-[15px] w-6 text-center flex-shrink-0">
+                    <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
                       {item.icon}
                     </span>
                     <span className="text-[14px] font-medium text-white/80 flex-1">
@@ -297,16 +299,16 @@ export const Home = () => {
                   <button
                     key={i}
                     onClick={() => handleTrendClick(item)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/[.08]`}
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
                   >
                     {item.image ? (
                       <img
                         src={item.image}
                         alt=""
-                        className="w-8 h-8 rounded-[10px] object-cover flex-shrink-0"
+                        className="w-8 h-8 rounded-[10px] object-cover shrink-0"
                       />
                     ) : (
-                      <span className="text-white/40 text-[15px] w-6 text-center flex-shrink-0">
+                      <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
                         ✦
                       </span>
                     )}

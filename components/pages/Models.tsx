@@ -8,27 +8,7 @@ import { ModelsEmpty } from '@/components/states/Empty';
 import { ErrorComponent } from '@/components/states/Error';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
-
-const TABS = [
-  { key: 'all', label: 'Все' },
-  { key: 'text', label: 'Текст' },
-  { key: 'image', label: 'Фото' },
-  { key: 'video', label: 'Видео' },
-  { key: 'audio', label: 'Аудио' },
-] as const;
-
-const CATEGORY_LABEL: Record<string, string> = {
-  text: 'Текст',
-  image: 'Фото',
-  video: 'Видео',
-  audio: 'Аудио',
-};
-const CAT_ICON: Record<string, string> = {
-  text: '✦',
-  image: '◈',
-  video: '▶',
-  audio: '♫',
-};
+import { useTranslations } from 'next-intl';
 
 const g = {
   ultraThin:
@@ -44,7 +24,7 @@ const SkeletonRow = () => (
   <div className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[.05]">
     <div
       className={cn(
-        'w-11 h-11 rounded-[13px] flex-shrink-0',
+        'w-11 h-11 rounded-[13px] shrink-0',
         g.thin,
         'animate-[pulse-opacity_1.6s_ease-in-out_infinite]'
       )}
@@ -76,17 +56,39 @@ const SkeletonRow = () => (
 );
 
 export const Models = () => {
+  const t = useTranslations('Models');
   const [tab, setTab] = useState<string>('all');
   const router = useRouter();
   const haptic = useHaptic();
   const { data: models, isLoading, isError, refetch } = useAIModels();
 
+  const TABS = [
+    { key: 'all', label: t('tabAll') },
+    { key: 'text', label: t('tabText') },
+    { key: 'image', label: t('tabImage') },
+    { key: 'video', label: t('tabVideo') },
+    { key: 'audio', label: t('tabAudio') },
+  ] as const;
+
+  const CATEGORY_LABEL: Record<string, string> = {
+    text: t('catText'),
+    image: t('catImage'),
+    video: t('catVideo'),
+    audio: t('catAudio'),
+  };
+  const CAT_ICON: Record<string, string> = {
+    text: '✦',
+    image: '◈',
+    video: '▶',
+    audio: '♫',
+  };
+
   if (isError)
     return (
       <div className="flex items-center justify-center min-h-svh p-6">
         <ErrorComponent
-          title="Ошибка загрузки"
-          description="Не удалось получить список моделей."
+          title={t('error')}
+          description={t('errorDescription')}
           onRetry={refetch}
         />
       </div>
@@ -118,7 +120,7 @@ export const Models = () => {
       >
         <div className="max-w-2xl mx-auto">
           <span className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
-            Модели
+            {t('title')}
           </span>
         </div>
       </header>
@@ -135,14 +137,14 @@ export const Models = () => {
           className="max-w-2xl mx-auto flex gap-1.5 px-4 py-2.5 overflow-x-auto"
           style={{ scrollbarWidth: 'none' }}
         >
-          {TABS.map((t) => {
-            const active = tab === t.key;
+          {TABS.map((tabItem) => {
+            const active = tab === tabItem.key;
             return (
               <button
-                key={t.key}
+                key={tabItem.key}
                 onClick={() => {
                   haptic.selection();
-                  setTab(t.key);
+                  setTab(tabItem.key);
                 }}
                 className={cn(
                   'shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium cursor-pointer whitespace-nowrap',
@@ -153,7 +155,7 @@ export const Models = () => {
                     : cn(g.thin, 'text-white/40')
                 )}
               >
-                {t.label}
+                {tabItem.label}
               </button>
             );
           })}
@@ -187,14 +189,14 @@ export const Models = () => {
                   onClick={() => handleModelClick(m.tech_name, m.mainCategory)}
                   className={cn(
                     'flex items-center gap-3.5 px-5 py-3.5 w-full text-left bg-transparent border-none cursor-pointer',
-                    !isLast && 'border-b border-white/[.05]',
+                    !isLast && 'border-b border-white/5',
                     spring,
-                    'hover:bg-white/[.03] active:bg-white/[.05] active:scale-[0.985]'
+                    'hover:bg-white/3 active:bg-white/5 active:scale-[0.985]'
                   )}
                 >
                   <div
                     className={cn(
-                      'w-11 h-11 rounded-[13px] overflow-hidden flex-shrink-0',
+                      'w-11 h-11 rounded-[13px] overflow-hidden shrink-0',
                       g.thin
                     )}
                   >
@@ -215,12 +217,12 @@ export const Models = () => {
                       {m.versions && m.versions.length > 1 && (
                         <>
                           <span className="opacity-40">·</span>
-                          <span>{m.versions.length} версии</span>
+                          <span>{t('versions', { count: m.versions.length })}</span>
                         </>
                       )}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <div
                       className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/35',

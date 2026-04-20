@@ -18,11 +18,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { queryKeys } from '@/lib/queryKeys';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   return useQuery({
@@ -74,7 +74,7 @@ const PillBtn = ({
         onClick();
       }}
       className={cn(
-        'px-3.5 py-1.5 rounded-full text-[12px] font-medium cursor-pointer flex-shrink-0',
+        'px-3.5 py-1.5 rounded-full text-[12px] font-medium cursor-pointer shrink-0',
         spring,
         'active:scale-[0.92]',
         active
@@ -88,6 +88,7 @@ const PillBtn = ({
 };
 
 const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
+  const t = useTranslations('Generate');
   const haptic = useHaptic();
   const cost =
     m.versions?.find((v: any) => v.default)?.cost ?? m.versions?.[0]?.cost ?? 1;
@@ -101,14 +102,14 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
         onClick();
       }}
       className={cn(
-        'flex items-center gap-3.5 px-5 py-3.5 w-full text-left bg-transparent border-none border-b border-white/[.05] cursor-pointer',
+        'flex items-center gap-3.5 px-5 py-3.5 w-full text-left bg-transparent border-none border-b border-white/5 cursor-pointer',
         spring,
-        'hover:bg-white/[.03] active:bg-white/[.05] active:scale-[0.985]'
+        'hover:bg-white/3 active:bg-white/5 active:scale-[0.985]'
       )}
     >
       <div
         className={cn(
-          'w-11 h-11 rounded-[13px] overflow-hidden flex-shrink-0',
+          'w-11 h-11 rounded-[13px] overflow-hidden shrink-0',
           g.thin
         )}
       >
@@ -125,13 +126,13 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
         </p>
         <p className="text-[11px] text-white/35 mt-0.5">
           {m.versions?.length > 1
-            ? `${m.versions.length} версии`
+            ? t('versions', { count: m.versions.length })
             : m.versions?.[0]?.label || ''}
         </p>
       </div>
       <div
         className={cn(
-          'inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/35 flex-shrink-0',
+          'inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/35 shrink-0',
           g.thin
         )}
       >
@@ -142,11 +143,11 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
 };
 
 export const Generate = () => {
+  const t = useTranslations('Generate');
   const router = useRouter();
   const searchParams = useSearchParams();
   const modelParam = searchParams.get('model');
   const haptic = useHaptic();
-  const queryClient = useQueryClient();
 
   const [selectedTech, setSelectedTech] = useState<string | null>(modelParam);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
@@ -203,7 +204,7 @@ export const Generate = () => {
         { type: uploaded.type, url: uploaded.url, file: files[0] },
       ]);
     } catch {
-      toast.error('Ошибка загрузки файла');
+      toast.error(t('uploadError'));
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -211,7 +212,7 @@ export const Generate = () => {
   const handleGenerate = () => {
     if (!selected) return;
     if (!prompt.trim() && media.length === 0) {
-      toast.error('Введите описание или прикрепите файл');
+      toast.error(t('enterDescription'));
       return;
     }
     haptic.medium();
@@ -244,15 +245,15 @@ export const Generate = () => {
             } catch { }
           }
           if (data.status === 'processing') {
-            toast('Генерация запущена…');
+            toast(t('generationStarted'));
             setPendingId(dialogueId || null);
             setIsWaiting(!!dialogueId);
           } else if (dialogueId) {
             haptic.success();
-            toast.success('Готово!');
+            toast.success(t('done'));
             router.push(`/chats/${dialogueId}`);
           } else {
-            toast.success('Генерация завершена');
+            toast.success(t('generationComplete'));
           }
         },
       }
@@ -264,13 +265,13 @@ export const Generate = () => {
     if (lastMessage.status === 'completed') {
       haptic.success();
       setIsWaiting(false);
-      toast.success('Готово!');
+      toast.success(t('done'));
       if (pendingId) router.push(`/chats/${pendingId}`);
       setPendingId(null);
     } else if (lastMessage.status === 'error') {
       haptic.error();
       setIsWaiting(false);
-      toast.error('Ошибка: ' + (lastMessage.error || 'Неизвестная ошибка'));
+      toast.error(t('errorTitle') + ': ' + (lastMessage.error || t('unknownError')));
       setPendingId(null);
     }
   }, [lastMessage, isWaiting, pendingId]);
@@ -297,17 +298,17 @@ export const Generate = () => {
         <div className="flex flex-col gap-1.5">
           <p className="text-[18px] font-bold tracking-[-0.3px] text-white/90">
             {status === 'completed'
-              ? 'Готово!'
+              ? t('doneTitle')
               : status === 'error'
-                ? 'Ошибка'
-                : 'Генерация…'}
+                ? t('errorTitle')
+                : t('waitingTitle')}
           </p>
           <p className="text-[13px] text-white/40 max-w-[260px] leading-[1.5]">
             {status === 'completed'
-              ? 'Переход к результату…'
+              ? t('doneSubtitle')
               : status === 'error'
-                ? lastMessage?.error || 'Произошла ошибка'
-                : 'Нейросеть обрабатывает запрос. Это займёт несколько секунд.'}
+                ? lastMessage?.error || t('errorTitle')
+                : t('waitingSubtitle')}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -327,7 +328,7 @@ export const Generate = () => {
           }}
           className="text-[12px] text-white/30 bg-transparent border-none cursor-pointer"
         >
-          Перейти в чат
+          {t('goToChat')}
         </button>
         <style>{`@keyframes pulse-dot{0%,80%,100%{transform:scale(.6);opacity:.3}40%{transform:scale(1);opacity:.8}}`}</style>
       </div>
@@ -371,7 +372,7 @@ export const Generate = () => {
                 'active:scale-[0.92]'
               )}
             >
-              <ChevronLeft size={16} /> Назад
+              <ChevronLeft size={16} /> {t('back')}
             </button>
             <div className="flex items-center gap-2">
               <div className={cn('w-6 h-6 rounded-lg overflow-hidden', g.thin)}>
@@ -401,7 +402,7 @@ export const Generate = () => {
           <div className="max-w-[700px] mx-auto flex flex-col gap-5 px-5 py-5">
             {selected.versions && selected.versions.length > 1 && (
               <div>
-                <SectionLabel>Версия</SectionLabel>
+                <SectionLabel>{t('version')}</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {selected.versions.map((v) => (
                     <PillBtn
@@ -418,11 +419,11 @@ export const Generate = () => {
             )}
 
             <div>
-              <SectionLabel>Описание</SectionLabel>
+              <SectionLabel>{t('prompt')}</SectionLabel>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Опишите, что хотите создать..."
+                placeholder={t('placeholder')}
                 rows={4}
                 className={cn(
                   'w-full resize-none outline-none px-4 py-[14px] rounded-2xl',
@@ -432,13 +433,13 @@ export const Generate = () => {
                   spring,
                   'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_3px_rgba(0,122,255,0.12)]'
                 )}
-                style={{ fontSize: 16 }}  // ← фикс zoom на iOS
+                style={{ fontSize: 16 }}
               />
             </div>
 
             {aspectParam && (
               <div>
-                <SectionLabel>Соотношение сторон</SectionLabel>
+                <SectionLabel>{t('aspectRatio')}</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {aspectParam.values?.map((val: string) => (
                     <PillBtn
@@ -469,7 +470,7 @@ export const Generate = () => {
                     }}
                     className="flex items-center gap-1.5 text-[12px] text-white/35 bg-transparent border-none cursor-pointer py-1.5"
                   >
-                    <Settings2 size={13} /> Дополнительные параметры
+                    <Settings2 size={13} /> {t('advancedParams')}
                     <ChevronDown
                       size={13}
                       className={cn(
@@ -537,7 +538,7 @@ export const Generate = () => {
             {canAttach && (
               <div>
                 <div className="flex items-center justify-between mb-2.5">
-                  <SectionLabel>Медиафайл</SectionLabel>
+                  <SectionLabel>{t('media')}</SectionLabel>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={upload.isPending}
@@ -552,7 +553,7 @@ export const Generate = () => {
                     ) : (
                       <ImagePlus size={12} />
                     )}{' '}
-                    Прикрепить
+                    {t('attach')}
                   </button>
                 </div>
                 <input
@@ -582,7 +583,7 @@ export const Generate = () => {
                             }}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[24px] bg-white/[.05]">
+                          <div className="w-full h-full flex items-center justify-center text-[24px] bg-white/5">
                             {m.type === 'video' ? '▶' : '♫'}
                           </div>
                         )}
@@ -613,7 +614,7 @@ export const Generate = () => {
               className={cn(
                 'w-full py-4 px-6 rounded-full text-[16px] font-semibold text-white/90',
                 'flex items-center justify-center gap-2',
-                'bg-white/[.10] border border-white/[.18] backdrop-blur-xl',
+                'bg-white/10 border border-white/18 backdrop-blur-xl',
                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_6px_24px_rgba(0,0,0,0.25)]',
                 spring,
                 'active:scale-[0.97]',
@@ -626,12 +627,12 @@ export const Generate = () => {
               {generate.isPending || upload.isPending ? (
                 <>
                   <Loader2 size={17} className="animate-spin" />
-                  {upload.isPending ? 'Загрузка…' : 'Генерация…'}
+                  {upload.isPending ? t('uploading') : t('waitingTitle')}
                 </>
               ) : (
                 <>
                   <Sparkles size={17} />
-                  Создать
+                  {t('generate')}
                 </>
               )}
             </button>
@@ -643,12 +644,12 @@ export const Generate = () => {
 
   /* Model picker */
   const catOrder = ['image', 'video', 'audio'] as const;
-  const catLabel: Record<string, string> = {
-    image: 'Изображения',
-    video: 'Видео',
-    audio: 'Аудио',
+  const CAT_LABELS: Record<string, string> = {
+    image: t('catImage'),
+    video: t('catVideo'),
+    audio: t('catAudio'),
   };
-  const catIcon: Record<string, string> = {
+  const CAT_ICONS: Record<string, string> = {
     image: '◈',
     video: '▶',
     audio: '♫',
@@ -665,9 +666,9 @@ export const Generate = () => {
       >
         <div className="max-w-[700px] mx-auto">
           <p className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
-            Создать
+            {t('title')}
           </p>
-          <p className="text-[12px] text-white/35 mt-0.5">Выберите нейросеть</p>
+          <p className="text-[12px] text-white/35 mt-0.5">{t('subtitle')}</p>
         </div>
       </header>
       <div className="flex-1">
@@ -676,11 +677,11 @@ export const Generate = () => {
             ? Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[.05]"
+                className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/5"
               >
                 <div
                   className={cn(
-                    'w-11 h-11 rounded-[13px] flex-shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
+                    'w-11 h-11 rounded-[13px] shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
                     g.thin
                   )}
                 />
@@ -709,14 +710,14 @@ export const Generate = () => {
                 <div key={cat}>
                   <div
                     className={cn(
-                      'px-5 py-2.5 border-b border-white/[.05]',
+                      'px-5 py-2.5 border-b border-white/5',
                       g.ultraThin,
                       'rounded-none border-x-0'
                     )}
                   >
                     <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 flex items-center gap-1.5">
-                      <span>{catIcon[cat]}</span>
-                      {catLabel[cat]}
+                      <span>{CAT_ICONS[cat]}</span>
+                      {CAT_LABELS[cat]}
                     </p>
                   </div>
                   {catModels.map((m) => (

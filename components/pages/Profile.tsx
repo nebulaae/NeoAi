@@ -28,6 +28,9 @@ import { useState } from 'react';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 
+import { useTranslations } from 'next-intl';
+import { LanguageSwitcher } from '@/components/layout/LocaleSwitcher';
+
 const g = {
   ultraThin:
     'bg-zinc-950/30 backdrop-blur-2xl border border-white/[.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
@@ -38,10 +41,10 @@ const g = {
 const spring =
   'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
-const STATUS: Record<string, { icon: string; color: string; label: string }> = {
-  completed: { icon: '✓', color: '#6ee7b7', label: 'Готово' },
-  error: { icon: '✕', color: '#fca5a5', label: 'Ошибка' },
-  processing: { icon: '⏳', color: '#fde68a', label: 'Обработка' },
+const STATUS: Record<string, { icon: string; color: string; key: string }> = {
+  completed: { icon: '✓', color: '#6ee7b7', key: 'statusCompleted' },
+  error: { icon: '✕', color: '#fca5a5', key: 'statusError' },
+  processing: { icon: '⏳', color: '#fde68a', key: 'statusProcessing' },
 };
 
 const GlassCard = ({
@@ -55,6 +58,7 @@ const GlassCard = ({
 );
 
 export const Profile = () => {
+  const t = useTranslations('Profile');
   const router = useRouter();
   const haptic = useHaptic();
   const { user: tgUser, logout } = useAuth();
@@ -80,7 +84,7 @@ export const Profile = () => {
   const refStats = (refData as any)?.stats;
   const name = tgUser
     ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim()
-    : 'Пользователь';
+    : t('user');
   const username = tgUser?.username || '';
   const userId = tgUser?.id;
   const referralLink =
@@ -91,7 +95,7 @@ export const Profile = () => {
   const handleTopUp = () => {
     haptic.medium();
     if (!bot?.bot_id) {
-      toast.error('Бот не определён');
+      toast.error(t('botNotDefined'));
       return;
     }
     import('@/lib/api').then(({ default: api }) => {
@@ -99,9 +103,9 @@ export const Profile = () => {
         .get('/api/payment-link', { params: { bot_id: bot.bot_id } })
         .then(({ data }) => {
           if (data.success && data.url) window.open(data.url, '_blank');
-          else toast.error('Ссылка недоступна');
+          else toast.error(t('paymentLinkUnavailable'));
         })
-        .catch(() => toast.error('Ошибка получения ссылки'));
+        .catch(() => toast.error(t('paymentLinkError')));
     });
   };
 
@@ -109,7 +113,7 @@ export const Profile = () => {
     haptic.success();
     navigator.clipboard.writeText(token).then(() => {
       setCopiedToken(token);
-      toast.success('Скопировано');
+      toast.success(t('tokenCopied'));
       setTimeout(() => setCopiedToken(null), 2000);
     });
   };
@@ -119,7 +123,7 @@ export const Profile = () => {
     haptic.success();
     navigator.clipboard.writeText(referralLink).then(() => {
       setCopiedRef(true);
-      toast.success('Ссылка скопирована');
+      toast.success(t('refLinkCopied'));
       setTimeout(() => setCopiedRef(false), 2000);
     });
   };
@@ -128,12 +132,12 @@ export const Profile = () => {
     haptic.light();
     generateToken.mutate(undefined, {
       onSuccess: (d) => {
-        toast.success('Токен создан');
+        toast.success(t('newTokenCreated'));
         handleCopyToken(d.token);
       },
       onError: () => {
         haptic.error();
-        toast.error('Не удалось создать токен');
+        toast.error(t('tokenCreateError'));
       },
     });
   };
@@ -148,31 +152,34 @@ export const Profile = () => {
           'border-x-0 border-t-0 rounded-none'
         )}
       >
-        <span className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
-          Профиль
+        <span className="text-base font-bold tracking-[-0.4px] text-white/90">
+          {t('title')}
         </span>
-        <button
-          onClick={() => {
-            haptic.heavy();
-            logout();
-          }}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
-            'bg-red-500/10 border border-red-500/20',
-            'text-red-400/80 text-[12px] font-medium',
-            spring,
-            'active:scale-[0.94]'
-          )}
-        >
-          <LogOut size={12} /> Выйти
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <button
+            onClick={() => {
+              haptic.heavy();
+              logout();
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
+              'bg-red-500/10 border border-red-500/20',
+              'text-red-400/80 text-[12px] font-medium',
+              spring,
+              'active:scale-[0.94]'
+            )}
+          >
+            <LogOut size={12} /> {t('logout')}
+          </button>
+        </div>
       </header>
 
       {/* User Hero */}
       <div className="px-5 pt-5 pb-4">
         <GlassCard className="p-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full overflow-hidden border border-white/[.12] flex-shrink-0">
+            <div className="w-14 h-14 rounded-full overflow-hidden border border-white/12 shrink-0">
               <Avatar className="size-full">
                 <AvatarImage src={tgUser?.photo_url} />
                 <AvatarFallback className="text-[18px] font-bold bg-transparent">
@@ -186,7 +193,7 @@ export const Profile = () => {
                   {name}
                 </p>
                 {isPremium && (
-                  <div className="inline-flex items-center gap-[3px] px-2 py-[2px] rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-semibold text-amber-400/80 flex-shrink-0">
+                  <div className="inline-flex items-center gap-[3px] px-2 py-[2px] rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-semibold text-amber-400/80 shrink-0">
                     <Star size={8} fill="currentColor" /> Premium
                   </div>
                 )}
@@ -217,7 +224,7 @@ export const Profile = () => {
         >
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-semibold tracking-[0.5px] uppercase text-white/35">
-              Токены
+              {t('tokens')}
             </span>
             <ExternalLink size={11} className="text-white/25" />
           </div>
@@ -232,7 +239,7 @@ export const Profile = () => {
             </div>
           )}
           <span className="text-[11px] font-medium text-white/40">
-            Пополнить →
+            {t('topUp')}
           </span>
         </button>
 
@@ -250,7 +257,7 @@ export const Profile = () => {
         >
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-semibold tracking-[0.5px] uppercase text-white/35">
-              Рефералы
+              {t('referrals')}
             </span>
             <Users size={11} className="text-white/25" />
           </div>
@@ -262,7 +269,7 @@ export const Profile = () => {
             </span>
           )}
           <span className="text-[11px] text-white/35">
-            {refStats?.earned ?? refStats?.total_tokens ?? 0} ◈ заработано
+            {t('earned', { amount: refStats?.earned ?? refStats?.total_tokens ?? 0 })}
           </span>
         </button>
       </div>
@@ -272,7 +279,7 @@ export const Profile = () => {
         <div className="px-5 pb-4">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/35">
-              Реферальная ссылка
+              {t('referralLink')}
             </span>
             <LinkIcon size={11} className="text-white/25" />
           </div>
@@ -283,7 +290,7 @@ export const Profile = () => {
             <button
               onClick={handleCopyRef}
               className={cn(
-                'flex-shrink-0 p-1.5 rounded-lg',
+                'shrink-0 p-1.5 rounded-lg',
                 spring,
                 'active:scale-[0.88]'
               )}
@@ -296,25 +303,25 @@ export const Profile = () => {
             </button>
           </GlassCard>
           <p className="text-[10px] text-white/25 mt-2 px-1">
-            Поделитесь ссылкой — получайте бонусы за каждого приглашённого
+            {t('shareLink')}
           </p>
         </div>
       )}
 
-      <div className="h-px bg-white/[.06] mx-5 mb-4" />
+      <div className="h-px bg-white/6 mx-5 mb-4" />
 
       {/* API Tokens */}
       <div className="px-5 pb-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/35">
-            API-токены
+            {t('apiTokens')}
           </span>
           <button
             onClick={handleGenerateToken}
             disabled={generateToken.isPending}
             className={cn(
               'flex items-center gap-1.5 px-3 py-[5px] rounded-full',
-              'bg-white/[.06] border border-white/[.10]',
+              'bg-white/6 border border-white/10',
               'text-white/50 text-[11px] font-medium',
               spring,
               'active:scale-[0.94]',
@@ -326,12 +333,12 @@ export const Profile = () => {
             ) : (
               <Key size={10} />
             )}{' '}
-            Создать
+            {t('createToken')}
           </button>
         </div>
         {!apiTokens || apiTokens.length === 0 ? (
           <p className="text-[12px] text-white/30 px-1">
-            Нет токенов. Создайте для доступа к API.
+            {t('noTokens')}
           </p>
         ) : (
           <div className="flex flex-col gap-2">
@@ -343,13 +350,13 @@ export const Profile = () => {
                 <code className="flex-1 text-[11px] text-white/40 overflow-hidden text-ellipsis whitespace-nowrap font-mono">
                   {t.token}
                 </code>
-                <span className="text-[10px] text-white/25 flex-shrink-0">
+                <span className="text-[10px] text-white/25 shrink-0">
                   {t.generations} req
                 </span>
                 <button
                   onClick={() => handleCopyToken(t.token)}
                   className={cn(
-                    'flex-shrink-0 p-1.5 rounded-lg',
+                    'shrink-0 p-1.5 rounded-lg',
                     spring,
                     'active:scale-[0.88]'
                   )}
@@ -366,19 +373,19 @@ export const Profile = () => {
         )}
       </div>
 
-      <div className="h-px bg-white/[.06] mx-5 mb-4" />
+      <div className="h-px bg-white/6 mx-5 mb-4" />
 
       {/* History */}
       <div className="px-5">
         <span className="block text-[10px] font-semibold tracking-[0.6px] uppercase text-white/35 mb-3">
-          История генераций
+          {t('generationHistory')}
         </span>
         {reqLoading ? (
           <div className="flex flex-col gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div
-                  className={cn('w-9 h-9 rounded-2xl flex-shrink-0', g.thin)}
+                  className={cn('w-9 h-9 rounded-2xl shrink-0', g.thin)}
                 />
                 <div className="flex-1 flex flex-col gap-1.5">
                   <div className={cn('w-1/2 h-3 rounded', g.thin)} />
@@ -388,23 +395,23 @@ export const Profile = () => {
             ))}
           </div>
         ) : requests.length === 0 ? (
-          <p className="text-[13px] text-white/30 py-4">Нет генераций</p>
+          <p className="text-[13px] text-white/30 py-4">{t('noGenerations')}</p>
         ) : (
           <div className="flex flex-col">
             {requests.map((req) => {
               const st = STATUS[req.status] || {
                 icon: '⏳',
                 color: 'rgba(255,255,255,0.4)',
-                label: req.status,
+                key: 'statusProcessing',
               };
               return (
                 <div
                   key={req.id}
-                  className="flex items-center gap-3 pb-4 mb-4 border-b border-white/[.05]"
+                  className="flex items-center gap-3 pb-4 mb-4 border-b border-white/5"
                 >
                   <div
                     className={cn(
-                      'w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center text-[13px]',
+                      'w-9 h-9 rounded-2xl shrink-0 flex items-center justify-center text-[13px]',
                       g.thin
                     )}
                   >
@@ -418,12 +425,12 @@ export const Profile = () => {
                       {req.id} · {timeAgo(req.created_at)}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-[3px] flex-shrink-0">
+                  <div className="flex flex-col items-end gap-[3px] shrink-0">
                     <span
                       className="text-[11px] font-medium"
                       style={{ color: st.color }}
                     >
-                      {st.label}
+                      {t(st.key as any)}
                     </span>
                     <span className="text-[10px] text-white/25">
                       {req.cost} ◈
@@ -449,10 +456,10 @@ export const Profile = () => {
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" /> Загрузка…
+                    <Loader2 size={13} className="animate-spin" /> {t('loading')}
                   </>
                 ) : (
-                  'Загрузить ещё'
+                  t('loadMore')
                 )}
               </button>
             )}

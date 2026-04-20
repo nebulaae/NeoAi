@@ -10,6 +10,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Loader2, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
+import { useTranslations, useLocale } from 'next-intl';
 
 type AppEnv = 'telegram' | 'max' | 'browser';
 type LoginView = 'main' | 'email-login' | 'email-register';
@@ -100,6 +101,8 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const Login = () => {
+  const t = useTranslations('Login');
+  const locale = useLocale();
   const router = useRouter();
   const { user, login, isLoading: authLoading } = useAuth();
   const { bot, isLoading: botLoading } = useBot();
@@ -188,17 +191,17 @@ export const Login = () => {
         localStorage.setItem('auth_user_id', String(data.user.id));
       login(data.user);
       haptic.success();
-      toast.success('Вход выполнен!');
+      toast.success(t('loginSuccess'));
       router.replace('/');
     } catch {
       haptic.error();
-      toast.error('Ошибка входа через Telegram');
+      toast.error(t('loginError'));
     }
   };
 
   const handleEmailLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      toast.error('Введите email и пароль');
+      toast.error(t('emailRequired'));
       return;
     }
     setEmailLoading(true);
@@ -213,7 +216,7 @@ export const Login = () => {
         if (u.id) localStorage.setItem('auth_user_id', String(u.id));
         login(u);
         haptic.success();
-        toast.success('Вход выполнен!');
+        toast.success(t('loginSuccess'));
         router.replace('/');
       } else if (data.session_hash && data.session_data) {
         const sd =
@@ -229,15 +232,15 @@ export const Login = () => {
         });
         login({ id: sd.id, first_name: dn, auth_date: 0 });
         haptic.success();
-        toast.success('Вход выполнен!');
+        toast.success(t('loginSuccess'));
         router.replace('/');
-      } else throw new Error(data.error || 'Неверный ответ сервера');
+      } else throw new Error(data.error || 'Invalid server response');
     } catch (e: any) {
       haptic.error();
       const msg =
         e?.response?.status === 401
-          ? 'Неверный email или пароль'
-          : e?.response?.data?.error || e?.message || 'Ошибка входа';
+          ? t('authFailed') || 'Invalid email or password'
+          : e?.response?.data?.error || e?.message || t('loginError');
       toast.error(msg);
     } finally {
       setEmailLoading(false);
@@ -246,18 +249,18 @@ export const Login = () => {
 
   const handleEmailRegister = async () => {
     if (!email.trim() || !password.trim() || !name.trim()) {
-      toast.error('Заполните все поля');
+      toast.error(t('fillAllFields') || 'Fill all fields');
       return;
     }
     setEmailLoading(true);
     try {
       const { data } = await api.post(
         `/api/auth/create/email?bot_id=${bot?.bot_id}`,
-        { email: email.trim(), password, name: name.trim(), lang: 'ru' }
+        { email: email.trim(), password, name: name.trim(), lang: locale }
       );
-      if (!data.success) throw new Error(data.error || 'Ошибка регистрации');
+      if (!data.success) throw new Error(data.error || 'Registration error');
       haptic.success();
-      toast.success('Аккаунт создан!');
+      toast.success(t('registerSuccess'));
       if (data.session_hash && data.session_data) {
         const sd =
           typeof data.session_data === 'string'
@@ -271,15 +274,15 @@ export const Login = () => {
         router.replace('/');
       } else {
         setView('email-login');
-        toast('Войдите с новым аккаунтом');
+        toast(t('signInWithNewAccount') || 'Sign in with your new account');
       }
     } catch (e: any) {
       haptic.error();
       if (e?.response?.status === 409)
-        toast.error('Пользователь с таким email уже существует');
+        toast.error(t('emailExists'));
       else
         toast.error(
-          e?.response?.data?.error || e?.message || 'Ошибка регистрации'
+          e?.response?.data?.error || e?.message || 'Registration error'
         );
     } finally {
       setEmailLoading(false);
@@ -299,7 +302,7 @@ export const Login = () => {
             <Loader2 size={20} className="animate-spin text-white/40" />
           </div>
           <p className="text-[13px] text-white/40">
-            {autoLogging ? 'Выполняется вход…' : 'Загрузка…'}
+            {autoLogging ? t('autoLoginLoading') : t('loading') || 'Loading…'}
           </p>
         </div>
       </PageWrapper>
@@ -319,7 +322,7 @@ export const Login = () => {
         'active:scale-[0.94]'
       )}
     >
-      <ArrowLeft size={15} /> Назад
+      <ArrowLeft size={15} /> {t('back')}
     </button>
   );
 
@@ -329,21 +332,21 @@ export const Login = () => {
         <BackBtn onClick={() => setView('main')} />
         <div className="mb-7">
           <h2 className="text-[26px] font-bold tracking-[-0.5px] mb-1 text-white/90">
-            Вход
+            {t('emailLoginTitle')}
           </h2>
-          <p className="text-[13px] text-white/40">Email и пароль</p>
+          <p className="text-[13px] text-white/40">{t('emailLoginSubtitle')}</p>
         </div>
         <div className={cn(g.card, 'p-5 flex flex-col gap-3')}>
           <GlassInput
             type="email"
-            placeholder="Email"
+            placeholder={t('emailPlaceholder')}
             value={email}
             onChange={(e: any) => setEmail(e.target.value)}
             autoComplete="email"
           />
           <GlassInput
             type={showPass ? 'text' : 'password'}
-            placeholder="Пароль"
+            placeholder={t('passwordPlaceholder')}
             value={password}
             onChange={(e: any) => setPassword(e.target.value)}
             autoComplete="current-password"
@@ -370,11 +373,11 @@ export const Login = () => {
             )}
           >
             {emailLoading && <Loader2 size={15} className="animate-spin" />}{' '}
-            Войти
+            {t('signIn')}
           </button>
         </div>
         <p className="text-center text-[12px] text-white/35 mt-5">
-          Нет аккаунта?{' '}
+          {t('noAccount')}{' '}
           <button
             onClick={() => {
               haptic.light();
@@ -382,7 +385,7 @@ export const Login = () => {
             }}
             className="bg-transparent border-none cursor-pointer text-white/60 font-semibold text-[12px]"
           >
-            Зарегистрироваться
+            {t('register')}
           </button>
         </p>
       </PageWrapper>
@@ -394,27 +397,27 @@ export const Login = () => {
         <BackBtn onClick={() => setView('email-login')} />
         <div className="mb-7">
           <h2 className="text-[26px] font-bold tracking-[-0.5px] mb-1 text-white/90">
-            Регистрация
+            {t('registerTitle')}
           </h2>
-          <p className="text-[13px] text-white/40">Создайте аккаунт по email</p>
+          <p className="text-[13px] text-white/40">{t('registerSubtitle')}</p>
         </div>
         <div className={cn(g.card, 'p-5 flex flex-col gap-3')}>
           <GlassInput
             type="text"
-            placeholder="Ваше имя"
+            placeholder={t('namePlaceholder')}
             value={name}
             onChange={(e: any) => setName(e.target.value)}
           />
           <GlassInput
             type="email"
-            placeholder="Email"
+            placeholder={t('emailPlaceholder')}
             value={email}
             onChange={(e: any) => setEmail(e.target.value)}
             autoComplete="email"
           />
           <GlassInput
             type={showPass ? 'text' : 'password'}
-            placeholder="Пароль"
+            placeholder={t('passwordPlaceholder')}
             value={password}
             onChange={(e: any) => setPassword(e.target.value)}
             autoComplete="new-password"
@@ -441,11 +444,11 @@ export const Login = () => {
             )}
           >
             {emailLoading && <Loader2 size={15} className="animate-spin" />}{' '}
-            Создать аккаунт
+            {t('createAccount')}
           </button>
         </div>
         <p className="text-center text-[12px] text-white/35 mt-5">
-          Уже есть аккаунт?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <button
             onClick={() => {
               haptic.light();
@@ -453,7 +456,7 @@ export const Login = () => {
             }}
             className="bg-transparent border-none cursor-pointer text-white/60 font-semibold text-[12px]"
           >
-            Войти
+            {t('signIn')}
           </button>
         </p>
       </PageWrapper>
@@ -474,7 +477,7 @@ export const Login = () => {
         <h1 className="text-[30px] font-extrabold tracking-[-0.7px] mb-1.5 text-white/90">
           NeoAI
         </h1>
-        <p className="text-[14px] text-white/40">Платформа нового поколения</p>
+        <p className="text-[14px] text-white/40">{t('tagline')}</p>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -487,7 +490,7 @@ export const Login = () => {
               </svg>
             </div>
             <span className="text-[14px] font-semibold text-white/80">
-              Telegram
+              {t('telegramSection')}
             </span>
           </div>
           {bot?.bot_username ? (
@@ -498,7 +501,7 @@ export const Login = () => {
                 showAvatar={false}
                 buttonSize="large"
                 cornerRadius={12}
-                lang="ru"
+                lang={locale as any}
               />
             </div>
           ) : (
@@ -512,9 +515,7 @@ export const Login = () => {
         <button
           onClick={() => {
             haptic.light();
-            toast(
-              'Откройте приложение через Max Messenger для автоматического входа'
-            );
+            toast(t('maxToast'));
           }}
           className={cn(
             g.card,
@@ -528,12 +529,11 @@ export const Login = () => {
               <span className="text-white/80 font-bold text-[10px]">M</span>
             </div>
             <span className="text-[14px] font-semibold text-white/80">
-              Max Messenger
+              {t('maxSection')}
             </span>
           </div>
           <p className="text-[12px] text-white/35 leading-[1.4]">
-            Откройте сервис через мини-приложение в Max — вход произойдёт
-            автоматически
+            {t('maxDescription')}
           </p>
         </button>
 
@@ -559,20 +559,19 @@ export const Login = () => {
             <Mail size={14} className="text-white/40" />
           </div>
           <span className="text-[14px] font-semibold text-white/70">
-            Войти по Email
+            {t('emailLogin')}
           </span>
         </button>
 
         {autoError && (
           <p className="text-center text-[12px] text-red-400/80">
-            Не удалось войти автоматически. Попробуйте выше.
+            {t('autoLoginError')}
           </p>
         )}
       </div>
 
       <p className="text-center text-[11px] text-white/25 mt-8 leading-[1.6]">
-        Продолжая, вы соглашаетесь с условиями использования и политикой
-        конфиденциальности.
+        {t('terms')}
       </p>
     </PageWrapper>
   );

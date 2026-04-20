@@ -17,6 +17,7 @@ import { MessageSquarePlus, Loader2 } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
 import { toast as chatsToast } from 'sonner';
 import { useHaptic as useChatsHaptic } from '@/hooks/useHaptic';
+import { useTranslations } from 'next-intl';
 
 const gc = {
   ultraThin:
@@ -41,6 +42,7 @@ function cacheDialogueModel(
 }
 
 export const Chats = () => {
+  const t = useTranslations('Chats');
   const router = useChatsRouter();
   const searchParams = useSearchParams();
   const haptic = useChatsHaptic();
@@ -71,7 +73,7 @@ export const Chats = () => {
       ? roles?.find((r) => r.id === parseInt(roleParam))
       : null;
     if (roleParam && !role) {
-      chatsToast.error('Ассистент не найден');
+      chatsToast.error(t('assistantNotFound'));
       router.replace('/chats');
       return;
     }
@@ -81,7 +83,7 @@ export const Chats = () => {
     if (modelParam) {
       const model = models?.find((m) => m.tech_name === modelParam);
       if (!model) {
-        chatsToast.error('Модель не найдена');
+        chatsToast.error(t('modelNotFound'));
         router.replace('/chats');
         return;
       }
@@ -98,7 +100,7 @@ export const Chats = () => {
       )?.label;
     }
     if (!techName) {
-      chatsToast.error('Подходящая модель не найдена');
+      chatsToast.error(t('suitableModelNotFound'));
       router.replace('/chats');
       return;
     }
@@ -116,8 +118,8 @@ export const Chats = () => {
     return (
       <div className="flex items-center justify-center min-h-screen p-6">
         <ChatsError
-          title="Ошибка"
-          description="Не удалось загрузить чаты."
+          title={t('error')}
+          description={t('errorLoadChats')}
           onRetry={refetch}
         />
       </div>
@@ -127,7 +129,7 @@ export const Chats = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-3">
         <Loader2 className="size-6 animate-spin text-white/30" />
-        <p className="text-[13px] text-white/40">Открываем чат…</p>
+        <p className="text-[13px] text-white/40">{t('openingChat')}</p>
       </div>
     );
 
@@ -142,7 +144,7 @@ export const Chats = () => {
         )}
       >
         <span className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
-          Чаты
+          {t('title')}
         </span>
         <button
           onClick={() => {
@@ -155,7 +157,7 @@ export const Chats = () => {
             springC,
             'active:scale-[0.88]'
           )}
-          title="Новый чат"
+          title={t('newChat')}
         >
           <MessageSquarePlus className="size-4 text-white/40" />
         </button>
@@ -173,7 +175,7 @@ export const Chats = () => {
           <>
             {chats.map((chat) => {
               const displayName =
-                chat.version || chat.title || chat.model || 'Диалог';
+                chat.version || chat.title || chat.model || t('dialogue');
               return (
                 <button
                   key={chat.dialogue_id}
@@ -190,20 +192,20 @@ export const Chats = () => {
                   }}
                   className={cn(
                     'flex items-center gap-3 px-5 py-4 w-full text-left',
-                    'border-b border-white/[.05]',
+                    'border-b border-white/5',
                     'bg-transparent',
                     springC,
-                    'hover:bg-white/[.03] active:bg-white/[.05]'
+                    'hover:bg-white/3 active:bg-white/5'
                   )}
                 >
-                  <ChatsAvatar className="size-11 rounded-[13px] border border-white/[.10] flex-shrink-0">
+                  <ChatsAvatar className="size-11 rounded-[13px] border border-white/10 shrink-0">
                     <ChatsImage
                       src={
                         chat.avatar ||
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=18181b&color=ffffff`
                       }
                     />
-                    <ChatsFallback className="rounded-[13px] bg-white/[.07] text-[11px] font-bold text-white/50">
+                    <ChatsFallback className="rounded-[13px] bg-white/7 text-[11px] font-bold text-white/50">
                       {displayName.slice(0, 2).toUpperCase()}
                     </ChatsFallback>
                   </ChatsAvatar>
@@ -212,7 +214,7 @@ export const Chats = () => {
                       {displayName}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-[11px] text-white/30">
                       {timeAgo(chat.last_activity || chat.started_at)}
                     </span>
@@ -238,10 +240,10 @@ export const Chats = () => {
                 >
                   {isFetchingNextPage ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="size-3.5 animate-spin" /> Загрузка…
+                      <Loader2 className="size-3.5 animate-spin" /> {t('loading')}
                     </span>
                   ) : (
-                    'Загрузить ещё'
+                    t('loadMore')
                   )}
                 </button>
               </div>
