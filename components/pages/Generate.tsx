@@ -23,7 +23,8 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { getParamLabel, getParamValueLabel } from '@/lib/paramHelpers';
 
 function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   return useQuery({
@@ -139,6 +140,7 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 
 export const Generate = () => {
   const router = useRouter();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const modelParam = searchParams.get('model');
   const haptic = useHaptic();
@@ -237,7 +239,7 @@ export const Generate = () => {
                   role_id: null,
                 })
               );
-            } catch {}
+            } catch { }
           }
           if (data.status === 'processing') {
             toast(t('generationStarted'));
@@ -435,7 +437,7 @@ export const Generate = () => {
 
             {params &&
               params.filter((p: any) => p.name !== 'aspect_ratio').length >
-                0 && (
+              0 && (
                 <div>
                   <button
                     onClick={() => {
@@ -460,7 +462,8 @@ export const Generate = () => {
                         .map((p: any) => (
                           <div key={p.name}>
                             <label className="block text-[11px] text-white/35 mb-1.5">
-                              {paramLabel(p.name, t)}
+                              {getParamLabel(p.name, locale)}
+
                             </label>
                             {p.type === 'select' && p.values ? (
                               <div className="flex flex-wrap gap-1.5">
@@ -477,7 +480,7 @@ export const Generate = () => {
                                       }))
                                     }
                                   >
-                                    {paramValueLabel(p.name, val, t)}
+                                    {getParamValueLabel(p.name, val, locale)}
                                   </PillBtn>
                                 ))}
                               </div>
@@ -584,7 +587,7 @@ export const Generate = () => {
                 ((!prompt.trim() && media.length === 0) ||
                   generate.isPending ||
                   upload.isPending) &&
-                  'opacity-40'
+                'opacity-40'
               )}
             >
               {generate.isPending || upload.isPending ? (
@@ -635,39 +638,39 @@ export const Generate = () => {
         <div className="max-w-[700px] mx-auto flex flex-col gap-1">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
-                  <div className="w-11 h-11 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
-                  <div className="flex-1">
-                    <div className="w-[40%] h-3 rounded-md mb-1.5 bg-white/[.05] animate-pulse" />
-                    <div className="w-[22%] h-2.5 rounded-md bg-white/[.04] animate-pulse" />
-                  </div>
+              <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
+                <div className="w-11 h-11 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
+                <div className="flex-1">
+                  <div className="w-[40%] h-3 rounded-md mb-1.5 bg-white/[.05] animate-pulse" />
+                  <div className="w-[22%] h-2.5 rounded-md bg-white/[.04] animate-pulse" />
                 </div>
-              ))
+              </div>
+            ))
             : catOrder.map((cat) => {
-                const catModels = models.filter(
-                  (m) => m.mainCategory === cat || m.categories?.includes(cat)
-                );
-                if (!catModels.length) return null;
-                return (
-                  <div key={cat} className="mb-2">
-                    <div className="flex items-center gap-2 px-4 py-2 mb-1">
-                      <span className="text-[11px] text-white/30">
-                        {catIcon[cat]}
-                      </span>
-                      <span className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/30">
-                        {CAT_LABEL[cat]}
-                      </span>
-                    </div>
-                    {catModels.map((m) => (
-                      <ModelCard
-                        key={m.tech_name}
-                        m={m}
-                        onClick={() => setSelectedTech(m.tech_name)}
-                      />
-                    ))}
+              const catModels = models.filter(
+                (m) => m.mainCategory === cat || m.categories?.includes(cat)
+              );
+              if (!catModels.length) return null;
+              return (
+                <div key={cat} className="mb-2">
+                  <div className="flex items-center gap-2 px-4 py-2 mb-1">
+                    <span className="text-[11px] text-white/30">
+                      {catIcon[cat]}
+                    </span>
+                    <span className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/30">
+                      {CAT_LABEL[cat]}
+                    </span>
                   </div>
-                );
-              })}
+                  {catModels.map((m) => (
+                    <ModelCard
+                      key={m.tech_name}
+                      m={m}
+                      onClick={() => setSelectedTech(m.tech_name)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
         </div>
       </div>
     </div>

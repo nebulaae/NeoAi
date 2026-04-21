@@ -67,7 +67,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -82,7 +82,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch {}
+  } catch { }
 }
 
 function getDialogueModel(
@@ -337,18 +337,24 @@ export default function ChatPage() {
     true;
 
   const chatTitle = (() => {
+    // Если есть реальная история — берём только из неё, игнорируем URL
+    if (msgs.length > 0) {
+      const modelName = currentModel?.model_name;
+      if (modelName && activeVersion) return `${modelName} · ${activeVersion}`;
+      if (modelName) return modelName;
+      if (activeVersion) return activeVersion;
+      return msgs[0].version || msgs[0].model || t('dialogue');
+    }
+
+    // Только для пустого/нового чата — смотрим URL
     const modelName = currentModel?.model_name;
     if (modelName && activeVersion) return `${modelName} · ${activeVersion}`;
     if (modelName) return modelName;
-    if (activeVersion) return activeVersion;
-    // ← Фикс: если модель ещё не загрузилась из allModels,
-    //   но есть urlModel — показываем его, а не устаревший кеш
     if (urlModel) {
       const ver = urlVersion || activeVersion;
       return ver ? `${urlModel} · ${ver}` : urlModel;
     }
-    if (msgs.length > 0)
-      return msgs[0].version || msgs[0].model || t('dialogue');
+
     return t('dialogue');
   })();
 
@@ -595,7 +601,7 @@ export default function ChatPage() {
                         spring,
                         'active:scale-[0.97]',
                         selectedRoleId === role.id &&
-                          'border-zinc-800 bg-zinc-900/50'
+                        'border-zinc-800 bg-zinc-900/50'
                       )}
                     >
                       <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/[.14] shrink-0">
