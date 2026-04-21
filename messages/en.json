@@ -133,17 +133,75 @@
     "uploading": "Uploading...",
     "back": "Back",
     "version": "Version",
+    "versions": "{count} versions",
     "prompt": "Description",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what you want to create...",
     "placeholder": "Describe what you want to create...",
     "aspectRatio": "Aspect ratio",
     "advancedParams": "Advanced settings",
     "media": "Media file",
     "attach": "Attach",
     "generate": "Create",
+    "generating": "Creating...",
     "catImage": "Images",
     "catVideo": "Video",
     "catAudio": "Audio",
-    "uploadError": "File upload error"
+    "catImageEmoji": "🖼 Images",
+    "catVideoEmoji": "🎬 Video",
+    "catAudioEmoji": "🎵 Audio",
+    "uploadError": "File upload error",
+    "params": {
+      "aspect_ratio": "Aspect ratio",
+      "seed": "Seed",
+      "output_format": "Output format",
+      "safety_tolerance": "Safety tolerance",
+      "resolution": "Resolution",
+      "image_size": "Image size",
+      "background": "Background",
+      "quality": "Quality",
+      "input_fidelity": "Input fidelity",
+      "duration": "Duration (sec.)",
+      "title": "Track title",
+      "style": "Music style",
+      "negative_tags": "Exclude tags",
+      "vocal_gender": "Voice gender",
+      "instrumental": "Instrumental",
+      "custom_mode": "Custom mode",
+      "enable_web_search": "Web search"
+    },
+    "paramValues": {
+      "vocal_gender": {
+        "m": "Male",
+        "f": "Female"
+      },
+      "instrumental": {
+        "true": "Yes",
+        "false": "No"
+      },
+      "custom_mode": {
+        "true": "On",
+        "false": "Off"
+      },
+      "enable_web_search": {
+        "true": "On",
+        "false": "Off"
+      },
+      "background": {
+        "auto": "Auto",
+        "transparent": "Transparent",
+        "opaque": "Opaque"
+      },
+      "quality": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "input_fidelity": {
+        "low": "Low",
+        "high": "High"
+      }
+    }
   },
   "Profile": {
     "title": "Profile",

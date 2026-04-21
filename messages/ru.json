@@ -133,17 +133,75 @@
     "uploading": "Загрузка...",
     "back": "Назад",
     "version": "Версия",
+    "versions": "{count} версии",
     "prompt": "Описание",
+    "description": "Описание",
+    "descriptionPlaceholder": "Опишите, что хотите создать...",
     "placeholder": "Опишите, что хотите создать...",
     "aspectRatio": "Соотношение сторон",
     "advancedParams": "Дополнительные параметры",
     "media": "Медиафайл",
     "attach": "Прикрепить",
     "generate": "Создать",
+    "generating": "Создаём...",
     "catImage": "Изображения",
     "catVideo": "Видео",
     "catAudio": "Аудио",
-    "uploadError": "Ошибка загрузки файла"
+    "catImageEmoji": "🖼 Изображения",
+    "catVideoEmoji": "🎬 Видео",
+    "catAudioEmoji": "🎵 Аудио",
+    "uploadError": "Ошибка загрузки файла",
+    "params": {
+      "aspect_ratio": "Соотношение сторон",
+      "seed": "Сид (случайность)",
+      "output_format": "Формат вывода",
+      "safety_tolerance": "Уровень безопасности",
+      "resolution": "Разрешение",
+      "image_size": "Размер изображения",
+      "background": "Фон",
+      "quality": "Качество",
+      "input_fidelity": "Точность входного изображения",
+      "duration": "Длительность (сек.)",
+      "title": "Название трека",
+      "style": "Стиль музыки",
+      "negative_tags": "Исключить теги",
+      "vocal_gender": "Голос",
+      "instrumental": "Инструментал",
+      "custom_mode": "Кастомный режим",
+      "enable_web_search": "Веб-поиск"
+    },
+    "paramValues": {
+      "vocal_gender": {
+        "m": "Мужской",
+        "f": "Женский"
+      },
+      "instrumental": {
+        "true": "Да",
+        "false": "Нет"
+      },
+      "custom_mode": {
+        "true": "Вкл",
+        "false": "Выкл"
+      },
+      "enable_web_search": {
+        "true": "Вкл",
+        "false": "Выкл"
+      },
+      "background": {
+        "auto": "Авто",
+        "transparent": "Прозрачный",
+        "opaque": "Непрозрачный"
+      },
+      "quality": {
+        "low": "Низкое",
+        "medium": "Среднее",
+        "high": "Высокое"
+      },
+      "input_fidelity": {
+        "low": "Низкая",
+        "high": "Высокая"
+      }
+    }
   },
   "Profile": {
     "title": "Профиль",
