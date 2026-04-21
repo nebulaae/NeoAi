@@ -98,6 +98,20 @@ function getDialogueModel(
     return { model: null, version: null, roleId: null };
   }
 
+  // Для нового чата — только URL, никакого sessionStorage
+  if (dialogueId === 'new') {
+    if (urlParams?.model) {
+      const roleId = urlParams.role ? parseInt(urlParams.role) : null;
+      return {
+        model: urlParams.model,
+        version: urlParams.version ?? null,
+        roleId: isNaN(roleId as number) ? null : roleId,
+      };
+    }
+    return { model: null, version: null, roleId: null };
+  }
+
+  // Для существующего чата — история → sessionStorage
   let fromHistory = messages.find((m) => m.model);
   if (!fromHistory && messages.length > 0) {
     fromHistory = messages[0];
@@ -116,15 +130,6 @@ function getDialogueModel(
       model: cached.model,
       version: cached.version,
       roleId: cached.role_id,
-    };
-  }
-
-  if (dialogueId === 'new' && urlParams?.model) {
-    const roleId = urlParams.role ? parseInt(urlParams.role) : null;
-    return {
-      model: urlParams.model,
-      version: urlParams.version ?? null,
-      roleId: isNaN(roleId as number) ? null : roleId,
     };
   }
 
@@ -276,27 +281,13 @@ export default function ChatPage() {
   const urlVersion = searchParams.get('version');
   const urlRole = searchParams.get('role');
 
-  // ✅ useEffect ВЫШЕ условного return — Rules of Hooks соблюдены
   useEffect(() => {
-    // Инициализируем selectedRoleId из URL при монтировании
     if (urlRole) {
       const parsed = parseInt(urlRole);
       if (!isNaN(parsed)) setSelectedRoleId(parsed);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => {
-    // При смене модели через URL — сбрасываем кеш sessionStorage
-    if (!dialogueId || !urlModel) return;
-    writeStoredModel(
-      dialogueId,
-      urlModel,
-      urlVersion || '',
-      urlRole ? (isNaN(parseInt(urlRole)) ? null : parseInt(urlRole)) : null
-    );
-  }, [dialogueId, urlModel, urlVersion, urlRole]);
-
-  // ✅ Теперь безопасно делать ранний return
   if (!dialogueId) return null;
 
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(
