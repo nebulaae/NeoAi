@@ -16,6 +16,7 @@ import {
   Settings2,
   ChevronDown,
   Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -39,23 +40,20 @@ function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   });
 }
 
-const g = {
-  ultraThin:
-    'bg-zinc-950/30 backdrop-blur-2xl border border-white/[.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
-  thin: 'bg-zinc-900/40 backdrop-blur-xl border border-white/[.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
-  regular:
-    'bg-zinc-900/50 backdrop-blur-2xl border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
-  thick:
-    'bg-zinc-900/60 backdrop-blur-3xl border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_32px_rgba(0,0,0,0.32)]',
-};
-const spring =
-  'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
-
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 mb-2.5">
-    {children}
-  </p>
-);
+function paramLabel(name: string, t: any): string {
+  try {
+    return t(`params.${name}`);
+  } catch {
+    return name;
+  }
+}
+function paramValueLabel(paramName: string, val: string, t: any): string {
+  try {
+    return t(`paramValues.${paramName}.${val}`);
+  } catch {
+    return val;
+  }
+}
 
 const PillBtn = ({
   active,
@@ -74,12 +72,11 @@ const PillBtn = ({
         onClick();
       }}
       className={cn(
-        'px-3.5 py-1.5 rounded-full text-[12px] font-medium cursor-pointer shrink-0',
-        spring,
-        'active:scale-[0.92]',
+        'px-3.5 py-1.5 rounded-full text-[12px] font-semibold cursor-pointer flex-shrink-0',
+        'transition-all duration-150 active:scale-[0.92]',
         active
-          ? 'bg-white/[.14] border border-white/[.20] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-          : cn(g.thin, 'text-white/40')
+          ? 'bg-white/[.14] border border-white/[.22] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]'
+          : 'bg-white/[.04] border border-white/[.07] text-white/40 hover:text-white/55 hover:bg-white/[.07]'
       )}
     >
       {children}
@@ -87,9 +84,9 @@ const PillBtn = ({
   );
 };
 
-const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
-  const t = useTranslations('Generate');
+const ModelCard = ({ m, onClick }: { m: any; onClick: () => void }) => {
   const haptic = useHaptic();
+  const t = useTranslations('Generate');
   const cost =
     m.versions?.find((v: any) => v.default)?.cost ?? m.versions?.[0]?.cost ?? 1;
   const avatarUrl =
@@ -101,18 +98,12 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
         haptic.light();
         onClick();
       }}
-      className={cn(
-        'flex items-center gap-3.5 px-5 py-3.5 w-full text-left bg-transparent border-none border-b border-white/5 cursor-pointer',
-        spring,
-        'hover:bg-white/3 active:bg-white/5 active:scale-[0.985]'
-      )}
+      className="group flex items-center gap-3.5 px-4 py-3.5 w-full text-left rounded-2xl
+        bg-white/[.03] border border-white/[.06]
+        hover:bg-white/[.06] hover:border-white/[.10]
+        active:scale-[0.985] transition-all duration-150"
     >
-      <div
-        className={cn(
-          'w-11 h-11 rounded-[13px] overflow-hidden shrink-0',
-          g.thin
-        )}
-      >
+      <div className="w-11 h-11 rounded-[14px] overflow-hidden flex-shrink-0 border border-white/[.09] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
         <Avatar className="size-full">
           <AvatarImage src={avatarUrl} />
           <AvatarFallback className="text-[11px] font-semibold bg-transparent text-white/50">
@@ -130,24 +121,28 @@ const ModelRow = ({ m, onClick }: { m: any; onClick: () => void }) => {
             : m.versions?.[0]?.label || ''}
         </p>
       </div>
-      <div
-        className={cn(
-          'inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/35 shrink-0',
-          g.thin
-        )}
-      >
-        ◈ {cost}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="px-2.5 py-[3px] rounded-full text-[11px] font-medium text-white/30 bg-white/[.04] border border-white/[.07]">
+          ◈ {cost}
+        </div>
+        <ChevronRight className="size-4 text-white/20 group-hover:text-white/40 transition-colors" />
       </div>
     </button>
   );
 };
 
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-[11px] font-semibold tracking-[0.5px] uppercase text-white/35 mb-2.5">
+    {children}
+  </p>
+);
+
 export const Generate = () => {
-  const t = useTranslations('Generate');
   const router = useRouter();
   const searchParams = useSearchParams();
   const modelParam = searchParams.get('model');
   const haptic = useHaptic();
+  const t = useTranslations('Generate');
 
   const [selectedTech, setSelectedTech] = useState<string | null>(modelParam);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
@@ -165,7 +160,7 @@ export const Generate = () => {
   const generate = useGenerateAI();
   const upload = useUpload();
   const models = (allModels || []).filter(
-    (m) => !m.categories?.includes('text')
+    (m) => !m.categories?.includes('text') && m.mainCategory !== 'text'
   );
   const selected = models.find((m) => m.tech_name === selectedTech);
   const currentVersion =
@@ -242,7 +237,7 @@ export const Generate = () => {
                   role_id: null,
                 })
               );
-            } catch { }
+            } catch {}
           }
           if (data.status === 'processing') {
             toast(t('generationStarted'));
@@ -271,34 +266,31 @@ export const Generate = () => {
     } else if (lastMessage.status === 'error') {
       haptic.error();
       setIsWaiting(false);
-      toast.error(t('errorTitle') + ': ' + (lastMessage.error || t('unknownError')));
+      toast.error(
+        t('errorTitle') + ': ' + (lastMessage.error || t('unknownError'))
+      );
       setPendingId(null);
     }
-  }, [lastMessage, isWaiting, pendingId]);
+  }, [lastMessage, isWaiting, pendingId, t, router]);
 
-  /* Waiting screen */
+  /* ── Waiting screen ── */
   if (isWaiting && pendingId) {
     const status = lastMessage?.status;
     return (
       <div className="flex flex-col items-center justify-center min-h-[100svh] gap-6 px-5 text-center">
-        <div
-          className={cn(
-            'w-18 h-18 rounded-[24px] flex items-center justify-center',
-            g.thick
-          )}
-        >
+        <div className="w-20 h-20 rounded-[26px] flex items-center justify-center bg-white/[.05] border border-white/[.10] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
           {status === 'completed' ? (
-            <CheckCircle size={28} className="text-emerald-400/80" />
+            <CheckCircle size={30} className="text-emerald-400/80" />
           ) : status === 'error' ? (
-            <AlertCircle size={28} className="text-red-400/80" />
+            <AlertCircle size={30} className="text-red-400/80" />
           ) : (
-            <Loader2 size={28} className="animate-spin text-white/40" />
+            <Loader2 size={30} className="animate-spin text-white/40" />
           )}
         </div>
         <div className="flex flex-col gap-1.5">
-          <p className="text-[18px] font-bold tracking-[-0.3px] text-white/90">
+          <p className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
             {status === 'completed'
-              ? t('doneTitle')
+              ? t('done')
               : status === 'error'
                 ? t('errorTitle')
                 : t('waitingTitle')}
@@ -307,7 +299,7 @@ export const Generate = () => {
             {status === 'completed'
               ? t('doneSubtitle')
               : status === 'error'
-                ? lastMessage?.error || t('errorTitle')
+                ? lastMessage?.error || t('unknownError')
                 : t('waitingSubtitle')}
           </p>
         </div>
@@ -326,7 +318,7 @@ export const Generate = () => {
             setPendingId(null);
             router.push(`/chats/${pendingId}`);
           }}
-          className="text-[12px] text-white/30 bg-transparent border-none cursor-pointer"
+          className="text-[12px] text-white/30 bg-transparent border-none cursor-pointer hover:text-white/50 transition-colors"
         >
           {t('goToChat')}
         </button>
@@ -335,27 +327,22 @@ export const Generate = () => {
     );
   }
 
-  /* Detail view */
+  /* ── Detail view ── */
   if (selected) {
     const cost =
       selected.versions?.find((v) => v.label === currentVersion)?.cost ??
       selected.versions?.[0]?.cost ??
       1;
-    const canAttach = selected.input?.some((t) =>
-      ['image', 'video', 'audio'].includes(t)
+    const canAttach = selected.input?.some((i) =>
+      ['image', 'video', 'audio'].includes(i)
     );
     const aspectParam = (params || []).find(
       (p: any) => p.name === 'aspect_ratio'
     );
+
     return (
-      <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
-        <header
-          className={cn(
-            'sticky top-0 z-40',
-            g.ultraThin,
-            'border-x-0 border-t-0 rounded-none'
-          )}
-        >
+      <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
+        <header className="sticky top-0 z-40 bg-gradient-to-b from-zinc-950/95 to-zinc-950/0 backdrop-blur-2xl border-b border-white/[.05]">
           <div className="flex items-center justify-between px-4 py-3.5">
             <button
               onClick={() => {
@@ -366,16 +353,12 @@ export const Generate = () => {
                 setExtraParams({});
                 setShowParams(false);
               }}
-              className={cn(
-                'flex items-center gap-1 text-[14px] font-medium text-white/50 bg-transparent border-none cursor-pointer px-2 py-1 rounded-lg',
-                spring,
-                'active:scale-[0.92]'
-              )}
+              className="flex items-center gap-1.5 text-[14px] font-medium text-white/50 bg-transparent border-none cursor-pointer px-2 py-1.5 rounded-xl hover:text-white/70 active:scale-[0.92] transition-all duration-150"
             >
               <ChevronLeft size={16} /> {t('back')}
             </button>
-            <div className="flex items-center gap-2">
-              <div className={cn('w-6 h-6 rounded-lg overflow-hidden', g.thin)}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-[9px] overflow-hidden border border-white/[.10]">
                 <Avatar className="size-full">
                   <AvatarImage src={selected.avatar} />
                   <AvatarFallback className="text-[8px] bg-transparent">
@@ -387,19 +370,14 @@ export const Generate = () => {
                 {selected.model_name}
               </span>
             </div>
-            <div
-              className={cn(
-                'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/35',
-                g.thin
-              )}
-            >
+            <div className="px-2.5 py-1 rounded-full text-[11px] font-medium text-white/35 bg-white/[.04] border border-white/[.07]">
               ◈ {cost}
             </div>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[700px] mx-auto flex flex-col gap-5 px-5 py-5">
+          <div className="max-w-[700px] mx-auto flex flex-col gap-5 px-4 py-5">
             {selected.versions && selected.versions.length > 1 && (
               <div>
                 <SectionLabel>{t('version')}</SectionLabel>
@@ -411,7 +389,7 @@ export const Generate = () => {
                       onClick={() => setSelectedVersion(v.label)}
                     >
                       {v.label}{' '}
-                      <span className="opacity-50 ml-1">· {v.cost}◈</span>
+                      <span className="opacity-40 ml-1">· {v.cost}◈</span>
                     </PillBtn>
                   ))}
                 </div>
@@ -425,14 +403,10 @@ export const Generate = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={t('placeholder')}
                 rows={4}
-                className={cn(
-                  'w-full resize-none outline-none px-4 py-[14px] rounded-2xl',
-                  g.regular,
-                  'text-[15px] leading-[1.55] text-white placeholder:text-white/30',
-                  'box-border font-[var(--font-sf)]',
-                  spring,
-                  'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_3px_rgba(0,122,255,0.12)]'
-                )}
+                className="w-full resize-none outline-none px-4 py-[14px] rounded-2xl
+                  bg-white/[.04] border border-white/[.08] text-[15px] leading-[1.55] text-white/90
+                  placeholder:text-white/25 box-border transition-all duration-200
+                  focus:bg-white/[.06] focus:border-white/[.16] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.04)]"
                 style={{ fontSize: 16 }}
               />
             </div>
@@ -461,20 +435,20 @@ export const Generate = () => {
 
             {params &&
               params.filter((p: any) => p.name !== 'aspect_ratio').length >
-              0 && (
+                0 && (
                 <div>
                   <button
                     onClick={() => {
                       haptic.selection();
                       setShowParams(!showParams);
                     }}
-                    className="flex items-center gap-1.5 text-[12px] text-white/35 bg-transparent border-none cursor-pointer py-1.5"
+                    className="flex items-center gap-2 text-[12px] text-white/35 bg-transparent border-none cursor-pointer py-1.5 hover:text-white/50 transition-colors"
                   >
                     <Settings2 size={13} /> {t('advancedParams')}
                     <ChevronDown
                       size={13}
                       className={cn(
-                        'transition-transform duration-[260ms]',
+                        'transition-transform duration-200',
                         showParams && 'rotate-180'
                       )}
                     />
@@ -486,7 +460,7 @@ export const Generate = () => {
                         .map((p: any) => (
                           <div key={p.name}>
                             <label className="block text-[11px] text-white/35 mb-1.5">
-                              {p.label || p.name}
+                              {paramLabel(p.name, t)}
                             </label>
                             {p.type === 'select' && p.values ? (
                               <div className="flex flex-wrap gap-1.5">
@@ -503,7 +477,7 @@ export const Generate = () => {
                                       }))
                                     }
                                   >
-                                    {val}
+                                    {paramValueLabel(p.name, val, t)}
                                   </PillBtn>
                                 ))}
                               </div>
@@ -522,10 +496,7 @@ export const Generate = () => {
                                         : e.target.value,
                                   }))
                                 }
-                                className={cn(
-                                  'w-full box-border px-3.5 py-[10px] rounded-xl text-[13px] outline-none text-white/80',
-                                  g.thin
-                                )}
+                                className="w-full box-border px-3.5 py-[10px] rounded-xl text-[13px] outline-none text-white/80 bg-white/[.04] border border-white/[.08] focus:border-white/[.14] transition-colors"
                               />
                             )}
                           </div>
@@ -542,11 +513,7 @@ export const Generate = () => {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={upload.isPending}
-                    className={cn(
-                      'flex items-center gap-1.5 text-[12px] font-medium text-white/45 bg-transparent border-none cursor-pointer',
-                      spring,
-                      upload.isPending && 'opacity-50'
-                    )}
+                    className="flex items-center gap-1.5 text-[12px] font-medium text-white/40 bg-transparent border-none cursor-pointer hover:text-white/60 transition-colors"
                   >
                     {upload.isPending ? (
                       <Loader2 size={12} className="animate-spin" />
@@ -568,10 +535,7 @@ export const Generate = () => {
                     {media.map((m, i) => (
                       <div
                         key={i}
-                        className={cn(
-                          'relative w-18 h-18 rounded-2xl overflow-hidden',
-                          g.thin
-                        )}
+                        className="relative w-[72px] h-[72px] rounded-2xl overflow-hidden border border-white/[.09] shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                       >
                         {m.type === 'image' ? (
                           <img
@@ -583,7 +547,7 @@ export const Generate = () => {
                             }}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[24px] bg-white/5">
+                          <div className="w-full h-full flex items-center justify-center text-[22px] bg-white/[.05]">
                             {m.type === 'video' ? '▶' : '♫'}
                           </div>
                         )}
@@ -593,7 +557,7 @@ export const Generate = () => {
                               prev.filter((_, idx) => idx !== i)
                             )
                           }
-                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/60 backdrop-blur-lg rounded-full flex items-center justify-center text-white border-none cursor-pointer"
                         >
                           <X size={10} />
                         </button>
@@ -612,22 +576,21 @@ export const Generate = () => {
                 upload.isPending
               }
               className={cn(
-                'w-full py-4 px-6 rounded-full text-[16px] font-semibold text-white/90',
-                'flex items-center justify-center gap-2',
-                'bg-white/10 border border-white/18 backdrop-blur-xl',
-                'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_6px_24px_rgba(0,0,0,0.25)]',
-                spring,
-                'active:scale-[0.97]',
+                'w-full py-4 px-6 rounded-full text-[15px] font-semibold text-white/90',
+                'flex items-center justify-center gap-2.5',
+                'bg-white/[.09] border border-white/[.16]',
+                'shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_20px_rgba(0,0,0,0.2)]',
+                'transition-all duration-150 active:scale-[0.97]',
                 ((!prompt.trim() && media.length === 0) ||
                   generate.isPending ||
                   upload.isPending) &&
-                'opacity-40'
+                  'opacity-40'
               )}
             >
               {generate.isPending || upload.isPending ? (
                 <>
                   <Loader2 size={17} className="animate-spin" />
-                  {upload.isPending ? t('uploading') : t('waitingTitle')}
+                  {upload.isPending ? t('uploading') : t('generating')}
                 </>
               ) : (
                 <>
@@ -642,97 +605,71 @@ export const Generate = () => {
     );
   }
 
-  /* Model picker */
+  /* ── Model picker ── */
   const catOrder = ['image', 'video', 'audio'] as const;
-  const CAT_LABELS: Record<string, string> = {
+  const CAT_LABEL: Record<string, string> = {
     image: t('catImage'),
     video: t('catVideo'),
     audio: t('catAudio'),
   };
-  const CAT_ICONS: Record<string, string> = {
+  const catIcon: Record<string, string> = {
     image: '◈',
     video: '▶',
     audio: '♫',
   };
 
   return (
-    <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] overflow-x-hidden">
-      <header
-        className={cn(
-          'sticky top-0 z-40 px-5 py-4',
-          g.ultraThin,
-          'border-x-0 border-t-0 rounded-none'
-        )}
-      >
+    <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
+      <header className="sticky top-0 z-40 px-5 pt-5 pb-4 bg-gradient-to-b from-zinc-950/95 to-zinc-950/0 backdrop-blur-2xl border-b border-white/[.05]">
         <div className="max-w-[700px] mx-auto">
-          <p className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
+          <p className="text-[22px] font-bold tracking-[-0.5px] text-white/90">
             {t('title')}
           </p>
-          <p className="text-[12px] text-white/35 mt-0.5">{t('subtitle')}</p>
+          <p className="text-[12px] text-white/35 mt-0.5 font-medium">
+            {t('subtitle')}
+          </p>
         </div>
       </header>
-      <div className="flex-1">
-        <div className="max-w-[700px] mx-auto">
+
+      <div className="flex-1 px-3 pt-3">
+        <div className="max-w-[700px] mx-auto flex flex-col gap-1">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/5"
-              >
-                <div
-                  className={cn(
-                    'w-11 h-11 rounded-[13px] shrink-0 animate-[pulse-opacity_1.6s_ease-in-out_infinite]',
-                    g.thin
-                  )}
-                />
-                <div className="flex-1">
-                  <div
-                    className={cn(
-                      'w-[40%] h-3 rounded-md mb-1.5 animate-[pulse-opacity_1.6s_ease-in-out_0.1s_infinite]',
-                      g.thin
-                    )}
-                  />
-                  <div
-                    className={cn(
-                      'w-[22%] h-2.5 rounded-md animate-[pulse-opacity_1.6s_ease-in-out_0.2s_infinite]',
-                      g.thin
-                    )}
-                  />
-                </div>
-              </div>
-            ))
-            : catOrder.map((cat) => {
-              const catModels = models.filter(
-                (m) => m.mainCategory === cat || m.categories?.includes(cat)
-              );
-              if (!catModels.length) return null;
-              return (
-                <div key={cat}>
-                  <div
-                    className={cn(
-                      'px-5 py-2.5 border-b border-white/5',
-                      g.ultraThin,
-                      'rounded-none border-x-0'
-                    )}
-                  >
-                    <p className="text-[10px] font-semibold tracking-[0.7px] uppercase text-white/35 flex items-center gap-1.5">
-                      <span>{CAT_ICONS[cat]}</span>
-                      {CAT_LABELS[cat]}
-                    </p>
+                <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
+                  <div className="w-11 h-11 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
+                  <div className="flex-1">
+                    <div className="w-[40%] h-3 rounded-md mb-1.5 bg-white/[.05] animate-pulse" />
+                    <div className="w-[22%] h-2.5 rounded-md bg-white/[.04] animate-pulse" />
                   </div>
-                  {catModels.map((m) => (
-                    <ModelRow
-                      key={m.tech_name}
-                      m={m}
-                      onClick={() => setSelectedTech(m.tech_name)}
-                    />
-                  ))}
                 </div>
-              );
-            })}
+              ))
+            : catOrder.map((cat) => {
+                const catModels = models.filter(
+                  (m) => m.mainCategory === cat || m.categories?.includes(cat)
+                );
+                if (!catModels.length) return null;
+                return (
+                  <div key={cat} className="mb-2">
+                    <div className="flex items-center gap-2 px-4 py-2 mb-1">
+                      <span className="text-[11px] text-white/30">
+                        {catIcon[cat]}
+                      </span>
+                      <span className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/30">
+                        {CAT_LABEL[cat]}
+                      </span>
+                    </div>
+                    {catModels.map((m) => (
+                      <ModelCard
+                        key={m.tech_name}
+                        m={m}
+                        onClick={() => setSelectedTech(m.tech_name)}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
         </div>
       </div>
-      <style>{`@keyframes pulse-opacity{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
     </div>
   );
 };

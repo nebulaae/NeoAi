@@ -217,7 +217,9 @@ export const Models = () => {
                       {m.versions && m.versions.length > 1 && (
                         <>
                           <span className="opacity-40">·</span>
-                          <span>{t('versions', { count: m.versions.length })}</span>
+                          <span>
+                            {t('versions', { count: m.versions.length })}
+                          </span>
                         </>
                       )}
                     </p>

@@ -132,13 +132,13 @@ export const Login = () => {
     try {
       maxWA.ready?.();
       maxWA.expand?.();
-    } catch { }
+    } catch {}
   }, [env]);
 
   useEffect(() => {
     if (env === 'browser' || attempted.current || authLoading || user) return;
     if (!bot?.bot_id) return;
-    
+
     const tg = (window as any)?.Telegram?.WebApp;
     const initData = env === 'telegram' ? tg?.initData : getMaxInitData();
     if (!initData) return;
@@ -148,7 +148,7 @@ export const Login = () => {
       try {
         tg.ready();
         tg.expand();
-      } catch { }
+      } catch {}
     }
     api
       .post(
@@ -278,8 +278,7 @@ export const Login = () => {
       }
     } catch (e: any) {
       haptic.error();
-      if (e?.response?.status === 409)
-        toast.error(t('emailExists'));
+      if (e?.response?.status === 409) toast.error(t('emailExists'));
       else
         toast.error(
           e?.response?.data?.error || e?.message || 'Registration error'

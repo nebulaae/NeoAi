@@ -122,9 +122,7 @@ export const Referrals = () => {
           <p className="text-[15px] font-semibold tracking-[-0.2px] text-white/85">
             {t('title')}
           </p>
-          <span className="text-[11px] text-white/30">
-            {t('subtitle')}
-          </span>
+          <span className="text-[11px] text-white/30">{t('subtitle')}</span>
         </div>
       </header>
 

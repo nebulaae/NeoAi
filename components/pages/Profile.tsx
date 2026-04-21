@@ -269,7 +269,9 @@ export const Profile = () => {
             </span>
           )}
           <span className="text-[11px] text-white/35">
-            {t('earned', { amount: refStats?.earned ?? refStats?.total_tokens ?? 0 })}
+            {t('earned', {
+              amount: refStats?.earned ?? refStats?.total_tokens ?? 0,
+            })}
           </span>
         </button>
       </div>
@@ -337,9 +339,7 @@ export const Profile = () => {
           </button>
         </div>
         {!apiTokens || apiTokens.length === 0 ? (
-          <p className="text-[12px] text-white/30 px-1">
-            {t('noTokens')}
-          </p>
+          <p className="text-[12px] text-white/30 px-1">{t('noTokens')}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {apiTokens.map((t: any) => (
@@ -384,9 +384,7 @@ export const Profile = () => {
           <div className="flex flex-col gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div
-                  className={cn('w-9 h-9 rounded-2xl shrink-0', g.thin)}
-                />
+                <div className={cn('w-9 h-9 rounded-2xl shrink-0', g.thin)} />
                 <div className="flex-1 flex flex-col gap-1.5">
                   <div className={cn('w-1/2 h-3 rounded', g.thin)} />
                   <div className={cn('w-1/3 h-2.5 rounded', g.thin)} />
@@ -456,7 +454,8 @@ export const Profile = () => {
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" /> {t('loading')}
+                    <Loader2 size={13} className="animate-spin" />{' '}
+                    {t('loading')}
                   </>
                 ) : (
                   t('loadMore')

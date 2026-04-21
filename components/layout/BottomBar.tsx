@@ -117,11 +117,7 @@ export const BottomBar = () => {
                   'w-full h-full py-1 flex flex-col items-center justify-center rounded-full',
                   'transition-all duration-280 ease-[cubic-bezier(0.32,0.72,0,1)]',
                   isCreate
-                    ? cn(
-                        'bg-zinc-800 backdrop-blur-xl',
-                        '',
-                        'text-white'
-                      )
+                    ? cn('bg-zinc-800 backdrop-blur-xl', '', 'text-white')
                     : active
                       ? cn(
                           'bg-white/[.14] backdrop-blur-xl',

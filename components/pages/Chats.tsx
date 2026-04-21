@@ -240,7 +240,8 @@ export const Chats = () => {
                 >
                   {isFetchingNextPage ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="size-3.5 animate-spin" /> {t('loading')}
+                      <Loader2 className="size-3.5 animate-spin" />{' '}
+                      {t('loading')}
                     </span>
                   ) : (
                     t('loadMore')
