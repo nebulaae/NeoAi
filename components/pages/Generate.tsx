@@ -73,7 +73,7 @@ const PillBtn = ({
         onClick();
       }}
       className={cn(
-        'px-3.5 py-1.5 rounded-full text-[12px] font-semibold cursor-pointer flex-shrink-0',
+        'px-3.5 py-1.5 rounded-full text-[14px] font-semibold cursor-pointer flex-shrink-0',
         'transition-all duration-150 active:scale-[0.92]',
         active
           ? 'bg-white/[.14] border border-white/[.22] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]'
@@ -104,19 +104,19 @@ const ModelCard = ({ m, onClick }: { m: any; onClick: () => void }) => {
         hover:bg-white/[.06] hover:border-white/[.10]
         active:scale-[0.985] transition-all duration-150"
     >
-      <div className="w-11 h-11 rounded-[14px] overflow-hidden flex-shrink-0 border border-white/[.09] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+      <div className="w-12 h-12 rounded-[14px] overflow-hidden flex-shrink-0 border border-white/[.09] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
         <Avatar className="size-full">
           <AvatarImage src={avatarUrl} />
-          <AvatarFallback className="text-[11px] font-semibold bg-transparent text-white/50">
+          <AvatarFallback className="text-[12px] font-semibold bg-transparent text-white/50">
             {m.model_name.slice(0, 2)}
           </AvatarFallback>
         </Avatar>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-semibold text-white/85 truncate tracking-[-0.2px]">
+        <p className="text-[16px] font-semibold text-white/85 truncate tracking-[-0.2px]">
           {m.model_name}
         </p>
-        <p className="text-[11px] text-white/35 mt-0.5">
+        <p className="text-[12px] text-white/35 mt-0.5">
           {m.versions?.length > 1
             ? t('versions', { count: m.versions.length })
             : m.versions?.[0]?.label || ''}
@@ -133,7 +133,7 @@ const ModelCard = ({ m, onClick }: { m: any; onClick: () => void }) => {
 };
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[11px] font-semibold tracking-[0.5px] uppercase text-white/35 mb-2.5">
+  <p className="text-[12px] font-semibold tracking-[0.5px] uppercase text-white/35 mb-2.5">
     {children}
   </p>
 );
@@ -360,10 +360,10 @@ export const Generate = () => {
               <ChevronLeft size={16} /> {t('back')}
             </button>
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-[9px] overflow-hidden border border-white/[.10]">
+              <div className="w-8 h-8 rounded-[9px] overflow-hidden border border-white/[.10]">
                 <Avatar className="size-full">
                   <AvatarImage src={selected.avatar} />
-                  <AvatarFallback className="text-[8px] bg-transparent">
+                  <AvatarFallback className="text-[10px] bg-transparent">
                     {selected.model_name.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
@@ -372,7 +372,7 @@ export const Generate = () => {
                 {selected.model_name}
               </span>
             </div>
-            <div className="px-2.5 py-1 rounded-full text-[11px] font-medium text-white/35 bg-white/[.04] border border-white/[.07]">
+            <div className="px-2.5 py-1 rounded-full text-[14px] font-medium text-white/35 bg-white/[.04] border border-white/[.07]">
               ◈ {cost}
             </div>
           </div>
@@ -391,7 +391,7 @@ export const Generate = () => {
                       onClick={() => setSelectedVersion(v.label)}
                     >
                       {v.label}{' '}
-                      <span className="opacity-40 ml-1">· {v.cost}◈</span>
+                      <span className="opacity-40 ml-1 text-sm">· {v.cost}◈</span>
                     </PillBtn>
                   ))}
                 </div>
@@ -406,7 +406,7 @@ export const Generate = () => {
                 placeholder={t('placeholder')}
                 rows={4}
                 className="w-full resize-none outline-none px-4 py-[14px] rounded-2xl
-                  bg-white/[.04] border border-white/[.08] text-[15px] leading-[1.55] text-white/90
+                  bg-white/[.04] border border-white/[.08] text-base leading-[1.55] text-white/90
                   placeholder:text-white/25 box-border transition-all duration-200
                   focus:bg-white/[.06] focus:border-white/[.16] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.04)]"
                 style={{ fontSize: 16 }}
@@ -625,10 +625,10 @@ export const Generate = () => {
     <div className="flex flex-col min-h-[100svh] pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
       <header className="sticky top-0 z-40 px-5 pt-5 pb-4 bg-gradient-to-b from-zinc-950/95 to-zinc-950/0 backdrop-blur-2xl border-b border-white/[.05]">
         <div className="max-w-[700px] mx-auto">
-          <p className="text-[22px] font-bold tracking-[-0.5px] text-white/90">
+          <p className="text-[24px] font-bold tracking-[-0.5px] text-white/90">
             {t('title')}
           </p>
-          <p className="text-[12px] text-white/35 mt-0.5 font-medium">
+          <p className="text-[14px] text-white/35 mt-0.5 font-medium">
             {t('subtitle')}
           </p>
         </div>
@@ -639,7 +639,7 @@ export const Generate = () => {
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
-                <div className="w-11 h-11 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
+                <div className="w-12 h-12 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
                 <div className="flex-1">
                   <div className="w-[40%] h-3 rounded-md mb-1.5 bg-white/[.05] animate-pulse" />
                   <div className="w-[22%] h-2.5 rounded-md bg-white/[.04] animate-pulse" />
@@ -654,10 +654,10 @@ export const Generate = () => {
               return (
                 <div key={cat} className="mb-2">
                   <div className="flex items-center gap-2 px-4 py-2 mb-1">
-                    <span className="text-[11px] text-white/30">
+                    <span className="text-[12px] text-white/30">
                       {catIcon[cat]}
                     </span>
-                    <span className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/30">
+                    <span className="text-[12px] font-semibold tracking-[0.6px] uppercase text-white/30">
                       {CAT_LABEL[cat]}
                     </span>
                   </div>

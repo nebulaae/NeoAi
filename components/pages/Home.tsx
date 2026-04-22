@@ -135,11 +135,11 @@ export const Home = () => {
       >
         <div className="flex items-center gap-2.5">
           <div
-            className={`w-7 h-7 rounded-[9px] flex items-center justify-center ${g.thin}`}
+            className={`w-8 h-8 rounded-[9px] flex items-center justify-center ${g.thin}`}
           >
-            <span className="text-[13px]">✦</span>
+            <span className="text-[14px]">✦</span>
           </div>
-          <span className="text-[17px] font-semibold tracking-[-0.3px] text-white/90">
+          <span className="text-[20px] font-bold tracking-[-0.3px] text-white/90">
             NeoAI
           </span>
         </div>
@@ -147,7 +147,7 @@ export const Home = () => {
           onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${g.thin} ${spring} active:scale-[0.94] text-[13px] font-medium text-white/70`}
         >
-          <span className="text-[11px]">◈</span>
+          <span className="text-[14px]">◈</span>
           <span>{tokens}</span>
         </button>
       </header>
@@ -155,12 +155,12 @@ export const Home = () => {
       {/* ── Models ── */}
       <section className="px-5 pt-6 pb-2">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[11px] font-semibold tracking-[0.8px] uppercase text-white/40">
+          <span className="text-[14px] font-semibold tracking-[0.8px] uppercase text-white/40">
             {t('models')}
           </span>
           <button
             onClick={() => router.push('/models')}
-            className={`text-[12px] font-medium text-white/50 px-2.5 py-1 rounded-lg ${g.ultraThin} ${spring} active:scale-[0.94]`}
+            className={`text-[14px] font-medium text-white/50 px-2.5 py-1 rounded-lg ${g.ultraThin} ${spring} active:scale-[0.94]`}
           >
             {t('all')} →
           </button>
@@ -189,12 +189,12 @@ export const Home = () => {
                           `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=fff`
                         }
                       />
-                      <AvatarFallback className="text-[12px] font-semibold bg-transparent text-white/60">
+                      <AvatarFallback className="text-[14px] font-semibold bg-transparent text-white/60">
                         {m.model_name.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <span className="text-[10px] font-medium text-white/50 max-w-[56px] text-center truncate leading-tight">
+                  <span className="text-[12px] font-medium text-white/50 max-w-[56px] text-center truncate leading-tight">
                     {m.model_name}
                   </span>
                 </button>
@@ -208,12 +208,12 @@ export const Home = () => {
       {/* ── Assistants ── */}
       <section className="pb-2">
         <div className="flex items-center justify-between px-5 mb-4">
-          <span className="text-[11px] font-semibold tracking-[0.8px] uppercase text-white/40">
+          <span className="text-[14px] font-semibold tracking-[0.8px] uppercase text-white/40">
             {t('aiAssistants')}
           </span>
           <button
             onClick={() => router.push('/chats')}
-            className={`text-[12px] font-medium text-white/50 px-2.5 py-1 rounded-lg ${g.ultraThin} ${spring} active:scale-[0.94]`}
+            className={`text-[14px] font-medium text-white/50 px-2.5 py-1 rounded-lg ${g.ultraThin} ${spring} active:scale-[0.94]`}
           >
             {t('all')} →
           </button>
@@ -248,7 +248,7 @@ export const Home = () => {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <span className="text-[10px] font-medium text-white/50 w-14 text-center truncate">
+                  <span className="text-[12px] font-medium text-white/50 w-14 text-center truncate">
                     {localize(role.label)}
                   </span>
                 </button>
@@ -260,7 +260,7 @@ export const Home = () => {
 
       {/* ── Trending ── */}
       <section className="px-5 pb-4">
-        <span className="block text-[11px] font-semibold tracking-[0.8px] uppercase text-white/40 mb-4">
+        <span className="block text-[14px] font-semibold tracking-[0.8px] uppercase text-white/40 mb-4">
           {t('trending')}
         </span>
         <div className="flex flex-col gap-2">

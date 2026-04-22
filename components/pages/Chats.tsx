@@ -143,7 +143,7 @@ export const Chats = () => {
           'border-x-0 border-t-0 rounded-none'
         )}
       >
-        <span className="text-[20px] font-bold tracking-[-0.4px] text-white/90">
+        <span className="text-[24px] font-bold tracking-[-0.4px] text-white/90">
           {t('title')}
         </span>
         <button
@@ -198,20 +198,25 @@ export const Chats = () => {
                     'hover:bg-white/3 active:bg-white/5'
                   )}
                 >
-                  <ChatsAvatar className="size-11 rounded-[13px] border border-white/10 shrink-0">
+                  <ChatsAvatar className="size-12 rounded-[13px] border border-white/10 shrink-0">
                     <ChatsImage
                       src={
                         chat.avatar ||
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=18181b&color=ffffff`
                       }
                     />
-                    <ChatsFallback className="rounded-[13px] bg-white/7 text-[11px] font-bold text-white/50">
+                    <ChatsFallback className="rounded-[13px] bg-white/7 text-[13px] font-bold text-white/50">
                       {displayName.slice(0, 2).toUpperCase()}
                     </ChatsFallback>
                   </ChatsAvatar>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-semibold text-white/85 truncate">
-                      {displayName}
+                    <div className="text-[16px] font-semibold text-white/85 truncate">
+                      {chat.title || displayName}
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      <span className="text-[13px] text-white/35 mt-0.5 flex items-center gap-1.5">
+                        <span>{chat.title === null ? null : displayName}</span>
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
