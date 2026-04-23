@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5081",
-    "build": "next build -p 5081",
+    "build": "next build",
     "build:debug": "next build --debug-prerender",
-    "start": "next start",
+    "start": "next start -p 5081",
     "lint": "eslint",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write ."
