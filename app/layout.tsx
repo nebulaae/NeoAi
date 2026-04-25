@@ -29,8 +29,10 @@ export default async function RootLayout({
     <html lang={locale} className="dark">
       <head>
         <DynamicScripts />
-        <Script src="https://cdn.jsdelivr.net/npm/eruda" />
-        <Script>{`eruda.init();`}</Script>
+        <Script src="https://cdn.jsdelivr.net/npm/eruda" strategy='afterInteractive' />
+        <script>
+          eruda.init();
+        </script>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
