@@ -10,6 +10,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 import { DynamicScripts } from '@/components/layout/DynamicScripts';
 
 import './globals.css';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'NeoAI',
@@ -28,6 +29,8 @@ export default async function RootLayout({
     <html lang={locale} className="dark">
       <head>
         <DynamicScripts />
+        <Script src="https://cdn.jsdelivr.net/npm/eruda" />
+        <Script>{`eruda.init();`}</Script>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
