@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
+import { getAppSource } from '@/lib/source';
 
 export const TelegramProvider = ({
   children,
@@ -17,6 +18,9 @@ export const TelegramProvider = ({
   const expanded = useRef(false);
 
   useEffect(() => {
+    const source = getAppSource();
+    if (source !== 'tg') return;
+
     const tg = (window as any)?.Telegram?.WebApp;
     if (!tg?.initData) return;
 

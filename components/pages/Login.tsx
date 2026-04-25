@@ -7,6 +7,7 @@ import { LoginButton } from '@telegram-auth/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { useEffect, useState, useRef } from 'react';
+import { getAppSource } from '@/lib/source';
 import { Loader2, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
@@ -16,11 +17,9 @@ type AppEnv = 'telegram' | 'max' | 'browser';
 type LoginView = 'main' | 'email-login' | 'email-register';
 
 function detectEnv(): AppEnv {
-  if (typeof window === 'undefined') return 'browser';
-  const tg = (window as any)?.Telegram?.WebApp;
-  if (tg?.initData) return 'telegram';
-  const maxWA = (window as any)?.WebApp;
-  if (maxWA?.initData) return 'max';
+  const source = getAppSource();
+  if (source === 'tg') return 'telegram';
+  if (source === 'max') return 'max';
   return 'browser';
 }
 function getMaxInitData(): string | null {
@@ -481,60 +480,64 @@ export const Login = () => {
 
       <div className="flex flex-col gap-3">
         {/* Telegram */}
-        <div className={cn(g.card, 'p-5')}>
-          <div className="flex items-center gap-2 mb-3.5">
-            <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="white">
-                <path d="M5.5 11.5l2.8 1 1.1 3.4 1.7-2 3.4 2.5 2.5-9.4-11.5 4.5z" />
-              </svg>
+        {env === 'telegram' && (
+          <div className={cn(g.card, 'p-5')}>
+            <div className="flex items-center gap-2 mb-3.5">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="white">
+                  <path d="M5.5 11.5l2.8 1 1.1 3.4 1.7-2 3.4 2.5 2.5-9.4-11.5 4.5z" />
+                </svg>
+              </div>
+              <span className="text-[14px] font-semibold text-white/80">
+                {t('telegramSection')}
+              </span>
             </div>
-            <span className="text-[14px] font-semibold text-white/80">
-              {t('telegramSection')}
-            </span>
+            {bot?.bot_username ? (
+              <div className="flex justify-center">
+                <LoginButton
+                  botUsername={bot.bot_username}
+                  onAuthCallback={handleTelegramAuth}
+                  showAvatar={false}
+                  buttonSize="large"
+                  cornerRadius={12}
+                  lang={locale as any}
+                />
+              </div>
+            ) : (
+              <div className="flex justify-center py-1.5">
+                <Loader2 size={18} className="animate-spin text-white/25" />
+              </div>
+            )}
           </div>
-          {bot?.bot_username ? (
-            <div className="flex justify-center">
-              <LoginButton
-                botUsername={bot.bot_username}
-                onAuthCallback={handleTelegramAuth}
-                showAvatar={false}
-                buttonSize="large"
-                cornerRadius={12}
-                lang={locale as any}
-              />
-            </div>
-          ) : (
-            <div className="flex justify-center py-1.5">
-              <Loader2 size={18} className="animate-spin text-white/25" />
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Max */}
-        <button
-          onClick={() => {
-            haptic.light();
-            toast(t('maxToast'));
-          }}
-          className={cn(
-            g.card,
-            'p-5 w-full text-left cursor-pointer flex flex-col gap-1.5',
-            spring,
-            'active:scale-[0.985]'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-              <span className="text-white/80 font-bold text-[10px]">M</span>
+        {env === 'max' && (
+          <button
+            onClick={() => {
+              haptic.light();
+              toast(t('maxToast'));
+            }}
+            className={cn(
+              g.card,
+              'p-5 w-full text-left cursor-pointer flex flex-col gap-1.5',
+              spring,
+              'active:scale-[0.985]'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="text-white/80 font-bold text-[10px]">M</span>
+              </div>
+              <span className="text-[14px] font-semibold text-white/80">
+                {t('maxSection')}
+              </span>
             </div>
-            <span className="text-[14px] font-semibold text-white/80">
-              {t('maxSection')}
-            </span>
-          </div>
-          <p className="text-[12px] text-white/35 leading-[1.4]">
-            {t('maxDescription')}
-          </p>
-        </button>
+            <p className="text-[12px] text-white/35 leading-[1.4]">
+              {t('maxDescription')}
+            </p>
+          </button>
+        )}
 
         {/* Email */}
         <button

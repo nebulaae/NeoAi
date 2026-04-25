@@ -1,4 +1,3 @@
-import Script from 'next/script';
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import { TelegramProvider } from './providers/TelegramProvider';
@@ -8,6 +7,7 @@ import { AuthProvider } from './providers/AuthProvider';
 import { BotProvider } from './providers/BotProvider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { DynamicScripts } from '@/components/layout/DynamicScripts';
 
 import './globals.css';
 
@@ -27,14 +27,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="dark">
       <head>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          src="https://st.max.ru/js/max-web-app.js"
-          strategy="beforeInteractive"
-        />
+        <DynamicScripts />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAppSource } from './source';
 
 const AUTH_FREE_PATHS = [
   '/api/auth/create/email',
@@ -71,10 +72,12 @@ api.interceptors.request.use((config) => {
 
     const botId = getBotId();
     const userId = getUserId();
+    const source = getAppSource();
 
     config.params = config.params || {};
     if (botId && !config.params.bot_id) config.params.bot_id = botId;
     if (userId && !config.params.user_id) config.params.user_id = userId;
+    if (source) config.params.source = source;
   }
   return config;
 });
