@@ -22,6 +22,12 @@ export function getAppSource(): AppSource {
     return persisted as AppSource;
   }
 
-  // 3. Default to browser
+  // 3. Try User Agent
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('telegram')) return 'tg';
+  }
+
+  // 4. Default to browser
   return 'browser';
 }

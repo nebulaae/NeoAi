@@ -110,6 +110,7 @@ export const Login = () => {
   const [autoLogging, setAutoLogging] = useState(false);
   const [autoError, setAutoError] = useState(false);
   const [view, setView] = useState<LoginView>('main');
+  const [retry, setRetry] = useState(0);
   const attempted = useRef(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -123,6 +124,14 @@ export const Login = () => {
   }, [user, authLoading, router]);
   useEffect(() => {
     setEnv(detectEnv());
+    const t = setInterval(() => {
+      setEnv((prev) => {
+        const next = detectEnv();
+        return next !== prev ? next : prev;
+      });
+      setRetry((r) => r + 1);
+    }, 500);
+    return () => clearInterval(t);
   }, []);
   useEffect(() => {
     if (env !== 'max') return;
@@ -177,7 +186,7 @@ export const Login = () => {
         setAutoError(true);
         attempted.current = false;
       });
-  }, [env, authLoading, user, bot]);
+  }, [env, authLoading, user, bot, retry]);
 
   const handleTelegramAuth = async (tgUser: any) => {
     try {
