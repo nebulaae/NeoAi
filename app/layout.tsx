@@ -10,7 +10,6 @@ import { getLocale, getMessages } from 'next-intl/server';
 import { DynamicScripts } from '@/components/layout/DynamicScripts';
 
 import './globals.css';
-import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'NeoAI',
