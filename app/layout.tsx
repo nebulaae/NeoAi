@@ -10,11 +10,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 import { DynamicScripts } from '@/components/layout/DynamicScripts';
 
 import './globals.css';
-<<<<<<< HEAD
-=======
 import Script from 'next/script';
-import ErudaInit from './providers/ErudaInit';
->>>>>>> parent of 16a38b7 (feat: initialize root layout with providers, internationalization, and eruda debugging tools)
 
 export const metadata: Metadata = {
   title: 'NeoAI',
@@ -45,7 +41,6 @@ export default async function RootLayout({
               <TelegramProvider>
                 <MaxProvider>
                   <NextIntlClientProvider locale={locale} messages={messages}>
-                    <ErudaInit />
                     {children}
                     <Toaster
                       position="top-center"
