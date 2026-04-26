@@ -11,7 +11,6 @@ import { DynamicScripts } from '@/components/layout/DynamicScripts';
 
 import './globals.css';
 import Script from 'next/script';
-import ErudaInit from './providers/ErudaInit';
 
 export const metadata: Metadata = {
   title: 'NeoAI',
@@ -46,7 +45,6 @@ export default async function RootLayout({
               <TelegramProvider>
                 <MaxProvider>
                   <NextIntlClientProvider locale={locale} messages={messages}>
-                    <ErudaInit />
                     {children}
                     <Toaster
                       position="top-center"
