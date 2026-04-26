@@ -7,24 +7,24 @@ import { LoginButton } from '@telegram-auth/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { useEffect, useState, useRef } from 'react';
-import { getAppSource } from '@/lib/source';
 import { Loader2, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 import { useTranslations, useLocale } from 'next-intl';
 
+import { getAppSource } from '@/lib/source';
+
 type AppEnv = 'telegram' | 'max' | 'browser';
 type LoginView = 'main' | 'email-login' | 'email-register';
 
-function detectEnv(): AppEnv {
-  const source = getAppSource();
-  if (source === 'tg') return 'telegram';
-  if (source === 'max') return 'max';
-  return 'browser';
+function getPlatformInitData(): string | null {
+  if (typeof window === 'undefined') return null;
+  const tg = (window as any)?.Telegram?.WebApp;
+  if (tg?.initData) return tg.initData;
+  const maxWA = (window as any)?.WebApp;
+  return maxWA?.initData || null;
 }
-function getMaxInitData(): string | null {
-  return (window as any)?.WebApp?.initData || null;
-}
+
 function saveSessionAuth(
   hash: string,
   sd: { id: number; time: number },
@@ -100,17 +100,16 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const Login = () => {
-  const t = useTranslations('Login');
-  const locale = useLocale();
   const router = useRouter();
   const { user, login, isLoading: authLoading } = useAuth();
   const { bot, isLoading: botLoading } = useBot();
   const haptic = useHaptic();
-  const [env, setEnv] = useState<AppEnv>('browser');
+  const t = useTranslations('Login');
+  const locale = useLocale();
+  const [source, setSource] = useState<string | null>(null);
   const [autoLogging, setAutoLogging] = useState(false);
   const [autoError, setAutoError] = useState(false);
   const [view, setView] = useState<LoginView>('main');
-  const [retry, setRetry] = useState(0);
   const attempted = useRef(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -122,33 +121,29 @@ export const Login = () => {
   useEffect(() => {
     if (!authLoading && user) router.replace('/');
   }, [user, authLoading, router]);
+
   useEffect(() => {
-    setEnv(detectEnv());
-    const t = setInterval(() => {
-      setEnv((prev) => {
-        const next = detectEnv();
-        return next !== prev ? next : prev;
-      });
-      setRetry((r) => r + 1);
-    }, 500);
-    return () => clearInterval(t);
+    const s = getAppSource();
+    setSource(s);
   }, []);
+
   useEffect(() => {
-    if (env !== 'max') return;
+    if (source !== 'max') return;
     const maxWA = (window as any)?.WebApp;
     if (!maxWA) return;
     try {
       maxWA.ready?.();
       maxWA.expand?.();
     } catch {}
-  }, [env]);
+  }, [source]);
 
   useEffect(() => {
-    if (env === 'browser' || attempted.current || authLoading || user) return;
+    if (!source || source === 'browser' || attempted.current || authLoading || user) return;
     if (!bot?.bot_id) return;
 
+    const env = source as AppEnv;
     const tg = (window as any)?.Telegram?.WebApp;
-    const initData = env === 'telegram' ? tg?.initData : getMaxInitData();
+    const initData = env === 'telegram' ? tg?.initData : getPlatformInitData();
     if (!initData) return;
     attempted.current = true;
     setAutoLogging(true);
@@ -186,7 +181,7 @@ export const Login = () => {
         setAutoError(true);
         attempted.current = false;
       });
-  }, [env, authLoading, user, bot, retry]);
+  }, [source, authLoading, user, bot, login, router]);
 
   const handleTelegramAuth = async (tgUser: any) => {
     try {
@@ -199,24 +194,28 @@ export const Login = () => {
         localStorage.setItem('auth_user_id', String(data.user.id));
       login(data.user);
       haptic.success();
-      toast.success(t('loginSuccess'));
+      toast.success(t('authSuccess'));
       router.replace('/');
     } catch {
       haptic.error();
-      toast.error(t('loginError'));
+      toast.error(t('errorLoginTelegram'));
     }
   };
 
   const handleEmailLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      toast.error(t('emailRequired'));
+      toast.error(t('errorEmailPasswordRequired'));
       return;
     }
     setEmailLoading(true);
     try {
       const { data } = await api.post(
         `/api/auth/login/email?bot_id=${bot?.bot_id}`,
-        { email: email.trim(), password }
+        {
+          email: email.trim(),
+          password,
+          initData: getPlatformInitData(),
+        }
       );
       if (data.token) {
         localStorage.setItem('auth_token', data.token);
@@ -224,7 +223,7 @@ export const Login = () => {
         if (u.id) localStorage.setItem('auth_user_id', String(u.id));
         login(u);
         haptic.success();
-        toast.success(t('loginSuccess'));
+        toast.success(t('authSuccess'));
         router.replace('/');
       } else if (data.session_hash && data.session_data) {
         const sd =
@@ -240,15 +239,15 @@ export const Login = () => {
         });
         login({ id: sd.id, first_name: dn, auth_date: 0 });
         haptic.success();
-        toast.success(t('loginSuccess'));
+        toast.success(t('authSuccess'));
         router.replace('/');
-      } else throw new Error(data.error || 'Invalid server response');
+      } else throw new Error(data.error || t('unknownError'));
     } catch (e: any) {
       haptic.error();
       const msg =
         e?.response?.status === 401
-          ? t('authFailed') || 'Invalid email or password'
-          : e?.response?.data?.error || e?.message || t('loginError');
+          ? t('errorInvalidCredentials')
+          : e?.response?.data?.error || e?.message || t('errorLogin');
       toast.error(msg);
     } finally {
       setEmailLoading(false);
@@ -257,18 +256,24 @@ export const Login = () => {
 
   const handleEmailRegister = async () => {
     if (!email.trim() || !password.trim() || !name.trim()) {
-      toast.error(t('fillAllFields') || 'Fill all fields');
+      toast.error(t('errorFillAllFields'));
       return;
     }
     setEmailLoading(true);
     try {
       const { data } = await api.post(
         `/api/auth/create/email?bot_id=${bot?.bot_id}`,
-        { email: email.trim(), password, name: name.trim(), lang: locale }
+        {
+          email: email.trim(),
+          password,
+          name: name.trim(),
+          lang: locale,
+          initData: getPlatformInitData(),
+        }
       );
-      if (!data.success) throw new Error(data.error || 'Registration error');
+      if (!data.success) throw new Error(data.error || t('errorRegister'));
       haptic.success();
-      toast.success(t('registerSuccess'));
+      toast.success(t('accountCreated'));
       if (data.session_hash && data.session_data) {
         const sd =
           typeof data.session_data === 'string'
@@ -282,14 +287,14 @@ export const Login = () => {
         router.replace('/');
       } else {
         setView('email-login');
-        toast(t('signInWithNewAccount') || 'Sign in with your new account');
+        toast(t('loginWithNewAccount'));
       }
     } catch (e: any) {
       haptic.error();
-      if (e?.response?.status === 409) toast.error(t('emailExists'));
+      if (e?.response?.status === 409) toast.error(t('errorEmailExists'));
       else
         toast.error(
-          e?.response?.data?.error || e?.message || 'Registration error'
+          e?.response?.data?.error || e?.message || t('errorRegister')
         );
     } finally {
       setEmailLoading(false);
@@ -309,7 +314,7 @@ export const Login = () => {
             <Loader2 size={20} className="animate-spin text-white/40" />
           </div>
           <p className="text-[13px] text-white/40">
-            {autoLogging ? t('autoLoginLoading') : t('loading') || 'Loading…'}
+            {autoLogging ? t('autoLoginLoading') : t('loading')}
           </p>
         </div>
       </PageWrapper>
@@ -489,7 +494,7 @@ export const Login = () => {
 
       <div className="flex flex-col gap-3">
         {/* Telegram */}
-        {env === 'telegram' && (
+        {source === 'tg' && (
           <div className={cn(g.card, 'p-5')}>
             <div className="flex items-center gap-2 mb-3.5">
               <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
@@ -509,7 +514,7 @@ export const Login = () => {
                   showAvatar={false}
                   buttonSize="large"
                   cornerRadius={12}
-                  lang={locale as any}
+                  lang={locale === 'ru' ? 'ru' : 'en'}
                 />
               </div>
             ) : (
@@ -521,7 +526,7 @@ export const Login = () => {
         )}
 
         {/* Max */}
-        {env === 'max' && (
+        {source === 'max' && (
           <button
             onClick={() => {
               haptic.light();

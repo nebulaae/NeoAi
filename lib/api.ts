@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAppSource } from './source';
+import { getAppSource } from '@/lib/source';
 
 const AUTH_FREE_PATHS = [
   '/api/auth/create/email',
@@ -63,37 +63,27 @@ api.interceptors.request.use((config) => {
     const url = config.url || '';
     const isFree = isAuthFreePath(url);
 
-    const token = localStorage.getItem('auth_token');
-    if (token && !isFree) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (!isFree) {
+      const token = localStorage.getItem('auth_token');
+      if (token) config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const tg = (window as any)?.Telegram?.WebApp;
-    const maxWA = (window as any)?.WebApp;
-    const initData = tg?.initData || maxWA?.initData;
-
-    if (initData) {
-      config.headers.set('X-Init-Data', initData);
-      config.headers.set('x-init-data', initData);
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      const tg = (window as any)?.Telegram?.WebApp;
+      const maxWA = (window as any)?.WebApp;
+      const initData = tg?.initData || maxWA?.initData;
+      if (initData) config.headers['X-Init-Data'] = initData;
     }
 
     const botId = getBotId();
     const userId = getUserId();
     const source = getAppSource();
 
-    if (botId) {
-      config.headers.set('X-Bot-Id', String(botId));
-      config.headers.set('x-bot-id', String(botId));
-    }
-    if (source) {
-      config.headers.set('X-Platform', source);
-      config.headers.set('x-platform', source);
-    }
-
     config.params = config.params || {};
     if (botId && !config.params.bot_id) config.params.bot_id = botId;
     if (userId && !config.params.user_id) config.params.user_id = userId;
-    if (source && !config.params.source) config.params.source = source;
+    if (source) config.params.source = source;
   }
   return config;
 });

@@ -7,7 +7,7 @@ import { AuthProvider } from './providers/AuthProvider';
 import { BotProvider } from './providers/BotProvider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-import { DynamicScripts } from '@/components/layout/DynamicScripts';
+import { PlatformScripts } from './providers/PlatformScripts';
 
 import './globals.css';
 
@@ -27,7 +27,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="dark">
       <head>
-        <DynamicScripts />
+        <PlatformScripts />
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
