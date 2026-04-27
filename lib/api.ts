@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAppSource } from '@/lib/source';
+import { getPlatformInitData } from './platform';
 
 const AUTH_FREE_PATHS = [
   '/api/auth/create/email',
@@ -37,7 +38,7 @@ function getUserId(): number | null {
       const user = JSON.parse(tgUser);
       if (user?.id) return user.id;
     }
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -49,7 +50,7 @@ function getBotId(): number | string | undefined {
       const parsed = JSON.parse(raw);
       if (parsed?.bot_id) return parsed.bot_id;
     }
-  } catch {}
+  } catch { }
   return process.env.NEXT_PUBLIC_BOT_ID;
 }
 
@@ -70,9 +71,7 @@ api.interceptors.request.use((config) => {
 
     const token = localStorage.getItem('auth_token');
     if (!token) {
-      const tg = (window as any)?.Telegram?.WebApp;
-      const maxWA = (window as any)?.WebApp;
-      const initData = tg?.initData || maxWA?.initData;
+      const initData = getPlatformInitData();
       if (initData) config.headers['X-Init-Data'] = initData;
     }
 

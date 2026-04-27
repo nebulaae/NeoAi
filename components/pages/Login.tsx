@@ -13,17 +13,18 @@ import { cn } from '@/lib/utils';
 import { useTranslations, useLocale } from 'next-intl';
 
 import { getAppSource } from '@/lib/source';
+import { getPlatformInitData } from '@/lib/platform';
 
 type AppEnv = 'telegram' | 'max' | 'browser';
 type LoginView = 'main' | 'email-login' | 'email-register';
 
-function getPlatformInitData(): string | null {
-  if (typeof window === 'undefined') return null;
-  const tg = (window as any)?.Telegram?.WebApp;
-  if (tg?.initData) return tg.initData;
-  const maxWA = (window as any)?.WebApp;
-  return maxWA?.initData || null;
-}
+// function getPlatformInitData(): string | null {
+//   if (typeof window === 'undefined') return null;
+//   const tg = (window as any)?.Telegram?.WebApp;
+//   if (tg?.initData) return tg.initData;
+//   const maxWA = (window as any)?.WebApp;
+//   return maxWA?.initData || null;
+// }
 
 function saveSessionAuth(
   hash: string,
@@ -134,7 +135,7 @@ export const Login = () => {
     try {
       maxWA.ready?.();
       maxWA.expand?.();
-    } catch {}
+    } catch { }
   }, [source]);
 
   useEffect(() => {
@@ -143,15 +144,16 @@ export const Login = () => {
 
     const env = source as AppEnv;
     const tg = (window as any)?.Telegram?.WebApp;
-    const initData = env === 'telegram' ? tg?.initData : getPlatformInitData();
+    const initData = getPlatformInitData();
     if (!initData) return;
     attempted.current = true;
     setAutoLogging(true);
-    if (env === 'telegram') {
+
+    if (source === 'telegram' || source === 'tg') {
       try {
-        tg.ready();
-        tg.expand();
-      } catch {}
+        (window as any)?.Telegram?.WebApp?.ready?.();
+        (window as any)?.Telegram?.WebApp?.expand?.();
+      } catch { }
     }
     api
       .post(

@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { getAppSource } from '@/lib/source';
+import { getPlatformInitData } from '@/lib/platform';
 
 export const TelegramProvider = ({
   children,
@@ -27,14 +28,14 @@ export const TelegramProvider = ({
     const source = getAppSource();
     if (source !== 'tg') return;
 
-    const tg = (window as any)?.Telegram?.WebApp;
-    if (!tg?.initData) return;
+    const initData = getPlatformInitData();
+    if (!initData) return;
 
     if (!expanded.current) {
       try {
-        tg.ready();
-        tg.expand();
-      } catch {}
+        (window as any)?.Telegram?.WebApp?.ready?.();
+        (window as any)?.Telegram?.WebApp?.expand?.();
+      } catch { }
       expanded.current = true;
     }
 
@@ -44,21 +45,27 @@ export const TelegramProvider = ({
     const token = localStorage.getItem('auth_token');
     if (token) return;
 
-    // Ждём пока bot_id загрузится
     if (!bot?.bot_id) return;
 
     api
       .post('/api/auth/tma', {
-        initData: tg.initData,
+        initData,           // ← из хелпера
         platform: 'telegram',
-        bot_id: bot.bot_id, // 👈 динамически
+        bot_id: bot.bot_id,
+      }, {
+        headers: {
+          'x-init-data': initData,
+          'x-bot-id': String(bot.bot_id),
+          'x-platform': 'telegram',
+        }
       })
       .then(({ data }) => {
         localStorage.setItem('auth_token', data.token);
+        if (data.user?.id) localStorage.setItem('auth_user_id', String(data.user.id));
         login(data.user);
       })
-      .catch(() => {});
-  }, [pathname, user, bot, retry]); // 👈 зависимость от bot и retry
+      .catch(() => { });
+  }, [pathname, user, bot, retry]);
 
   return <>{children}</>;
 };
