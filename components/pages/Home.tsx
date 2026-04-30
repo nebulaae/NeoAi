@@ -78,37 +78,14 @@ export const Home = () => {
   const tokens = userData?.user?.tokens ?? 0;
 
   const handleModelClick = (techName: string, mainCategory?: string) =>
-    mainCategory === 'text'
-      ? router.push(`/chats?model=${techName}`)
-      : router.push(`/generate?model=${techName}`);
+    router.push(`/generate?model=${techName}`);
 
   const handleRoleClick = (id: number) => router.push(`/chats?role=${id}`);
 
   const handleTrendClick = (item: any) => {
     if (item.tech_name) {
       const model = models?.find((m) => m.tech_name === item.tech_name);
-      if (model) {
-        model.mainCategory === 'text'
-          ? router.push(`/chats?model=${item.tech_name}`)
-          : router.push(`/generate?model=${item.tech_name}`);
-      } else {
-        const textKeywords = [
-          'gpt',
-          'claude',
-          'gemini',
-          'llama',
-          'mistral',
-          'chat',
-        ];
-        const isText = textKeywords.some((kw) =>
-          item.tech_name.toLowerCase().includes(kw)
-        );
-        router.push(
-          isText
-            ? `/chats?model=${item.tech_name}`
-            : `/generate?model=${item.tech_name}`
-        );
-      }
+      router.push(`/generate?model=${item.tech_name}`);
     } else if (item.model) {
       router.push(`/generate?model=${item.model}`);
     } else if (item.role_id) {

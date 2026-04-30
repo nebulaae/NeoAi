@@ -56,6 +56,18 @@ function paramValueLabel(paramName: string, val: string, t: any): string {
   }
 }
 
+const g = {
+  ultraThin:
+    'bg-zinc-950/30 backdrop-blur-2xl border border-white/[.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
+  thin: 'bg-zinc-900/40 backdrop-blur-xl border border-white/[.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+  regular:
+    'bg-zinc-900/50 backdrop-blur-2xl border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
+  thick:
+    'bg-zinc-900/60 backdrop-blur-3xl border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_32px_rgba(0,0,0,0.32)]',
+};
+const spring =
+  'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
+
 const PillBtn = ({
   active,
   onClick,
@@ -161,9 +173,7 @@ export const Generate = () => {
   const { data: allModels, isLoading } = useAIModels();
   const generate = useGenerateAI();
   const upload = useUpload();
-  const models = (allModels || []).filter(
-    (m) => !m.categories?.includes('text') && m.mainCategory !== 'text'
-  );
+  const models = allModels || [];
   const selected = models.find((m) => m.tech_name === selectedTech);
   const currentVersion =
     selectedVersion ||
@@ -208,6 +218,17 @@ export const Generate = () => {
 
   const handleGenerate = () => {
     if (!selected) return;
+
+    const isTextModel =
+      selected.mainCategory === 'text' || selected.categories?.includes('text');
+    if (isTextModel) {
+      haptic.medium();
+      router.push(
+        `/chats/new?model=${selected.tech_name}&version=${currentVersion || ''}`
+      );
+      return;
+    }
+
     if (!prompt.trim() && media.length === 0) {
       toast.error(t('enterDescription'));
       return;
@@ -239,7 +260,7 @@ export const Generate = () => {
                   role_id: null,
                 })
               );
-            } catch { }
+            } catch {}
           }
           if (data.status === 'processing') {
             toast(t('generationStarted'));
@@ -338,6 +359,8 @@ export const Generate = () => {
     const canAttach = selected.input?.some((i) =>
       ['image', 'video', 'audio'].includes(i)
     );
+    const isTextModel =
+      selected.mainCategory === 'text' || selected.categories?.includes('text');
     const aspectParam = (params || []).find(
       (p: any) => p.name === 'aspect_ratio'
     );
@@ -391,27 +414,35 @@ export const Generate = () => {
                       onClick={() => setSelectedVersion(v.label)}
                     >
                       {v.label}{' '}
-                      <span className="opacity-40 ml-1 text-sm">· {v.cost}◈</span>
+                      <span className="opacity-40 ml-1 text-sm">
+                        · {v.cost}◈
+                      </span>
                     </PillBtn>
                   ))}
                 </div>
               </div>
             )}
 
-            <div>
-              <SectionLabel>{t('prompt')}</SectionLabel>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={t('placeholder')}
-                rows={4}
-                className="w-full resize-none outline-none px-4 py-[14px] rounded-2xl
-                  bg-white/[.04] border border-white/[.08] text-base leading-[1.55] text-white/90
-                  placeholder:text-white/25 box-border transition-all duration-200
-                  focus:bg-white/[.06] focus:border-white/[.16] focus:shadow-[0_0_0_3px_rgba(255,255,255,0.04)]"
-                style={{ fontSize: 16 }}
-              />
-            </div>
+            {!isTextModel && (
+              <div>
+                <SectionLabel>{t('prompt')}</SectionLabel>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={t('placeholder')}
+                  rows={4}
+                  className={cn(
+                    'w-full resize-none outline-none px-4 py-[14px] rounded-2xl',
+                    g.regular,
+                    'text-[16px] leading-[1.55] text-white placeholder:text-white/30',
+                    'box-border font-[var(--font-sf)]',
+                    spring,
+                    'focus:border-[rgba(0,122,255,0.40)] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_0_0_3px_rgba(0,122,255,0.12)]'
+                  )}
+                  style={{ fontSize: 16 }}
+                />
+              </div>
+            )}
 
             {aspectParam && (
               <div>
@@ -437,7 +468,7 @@ export const Generate = () => {
 
             {params &&
               params.filter((p: any) => p.name !== 'aspect_ratio').length >
-              0 && (
+                0 && (
                 <div>
                   <button
                     onClick={() => {
@@ -463,7 +494,6 @@ export const Generate = () => {
                           <div key={p.name}>
                             <label className="block text-[11px] text-white/35 mb-1.5">
                               {getParamLabel(p.name, locale)}
-
                             </label>
                             {p.type === 'select' && p.values ? (
                               <div className="flex flex-wrap gap-1.5">
@@ -509,7 +539,7 @@ export const Generate = () => {
                 </div>
               )}
 
-            {canAttach && (
+            {canAttach && !isTextModel && (
               <div>
                 <div className="flex items-center justify-between mb-2.5">
                   <SectionLabel>{t('media')}</SectionLabel>
@@ -574,7 +604,7 @@ export const Generate = () => {
             <button
               onClick={handleGenerate}
               disabled={
-                (!prompt.trim() && media.length === 0) ||
+                (!isTextModel && !prompt.trim() && media.length === 0) ||
                 generate.isPending ||
                 upload.isPending
               }
@@ -584,10 +614,10 @@ export const Generate = () => {
                 'bg-white/[.09] border border-white/[.16]',
                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_20px_rgba(0,0,0,0.2)]',
                 'transition-all duration-150 active:scale-[0.97]',
-                ((!prompt.trim() && media.length === 0) ||
+                ((!isTextModel && !prompt.trim() && media.length === 0) ||
                   generate.isPending ||
                   upload.isPending) &&
-                'opacity-40'
+                  'opacity-40'
               )}
             >
               {generate.isPending || upload.isPending ? (
@@ -609,13 +639,15 @@ export const Generate = () => {
   }
 
   /* ── Model picker ── */
-  const catOrder = ['image', 'video', 'audio'] as const;
+  const catOrder = ['text', 'image', 'video', 'audio'] as const;
   const CAT_LABEL: Record<string, string> = {
+    text: t('catText') || 'Text',
     image: t('catImage'),
     video: t('catVideo'),
     audio: t('catAudio'),
   };
   const catIcon: Record<string, string> = {
+    text: '✦',
     image: '◈',
     video: '▶',
     audio: '♫',
@@ -638,39 +670,39 @@ export const Generate = () => {
         <div className="max-w-[700px] mx-auto flex flex-col gap-1">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
-                <div className="w-12 h-12 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
-                <div className="flex-1">
-                  <div className="w-[40%] h-3 rounded-md mb-1.5 bg-white/[.05] animate-pulse" />
-                  <div className="w-[22%] h-2.5 rounded-md bg-white/[.04] animate-pulse" />
-                </div>
-              </div>
-            ))
-            : catOrder.map((cat) => {
-              const catModels = models.filter(
-                (m) => m.mainCategory === cat || m.categories?.includes(cat)
-              );
-              if (!catModels.length) return null;
-              return (
-                <div key={cat} className="mb-2">
-                  <div className="flex items-center gap-2 px-4 py-2 mb-1">
-                    <span className="text-[12px] text-white/30">
-                      {catIcon[cat]}
-                    </span>
-                    <span className="text-[12px] font-semibold tracking-[0.6px] uppercase text-white/30">
-                      {CAT_LABEL[cat]}
-                    </span>
+                <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
+                  <div className="w-12 h-12 rounded-[14px] flex-shrink-0 bg-white/[.04] border border-white/[.06] animate-pulse" />
+                  <div className="flex-1">
+                    <div className="w-[40%] h-3 rounded-md mb-1.5 bg-white/[.05] animate-pulse" />
+                    <div className="w-[22%] h-2.5 rounded-md bg-white/[.04] animate-pulse" />
                   </div>
-                  {catModels.map((m) => (
-                    <ModelCard
-                      key={m.tech_name}
-                      m={m}
-                      onClick={() => setSelectedTech(m.tech_name)}
-                    />
-                  ))}
                 </div>
-              );
-            })}
+              ))
+            : catOrder.map((cat) => {
+                const catModels = models.filter(
+                  (m) => m.mainCategory === cat || m.categories?.includes(cat)
+                );
+                if (!catModels.length) return null;
+                return (
+                  <div key={cat} className="mb-2">
+                    <div className="flex items-center gap-2 px-4 py-2 mb-1">
+                      <span className="text-[12px] text-white/30">
+                        {catIcon[cat]}
+                      </span>
+                      <span className="text-[12px] font-semibold tracking-[0.6px] uppercase text-white/30">
+                        {CAT_LABEL[cat]}
+                      </span>
+                    </div>
+                    {catModels.map((m) => (
+                      <ModelCard
+                        key={m.tech_name}
+                        m={m}
+                        onClick={() => setSelectedTech(m.tech_name)}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
         </div>
       </div>
     </div>

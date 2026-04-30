@@ -213,7 +213,7 @@ export const Chats = () => {
                     <div className="text-[16px] font-semibold text-white/85 truncate">
                       {chat.title || displayName}
                     </div>
-                    <div className='flex items-center gap-1'>
+                    <div className="flex items-center gap-1">
                       <span className="text-[13px] text-white/35 mt-0.5 flex items-center gap-1.5">
                         <span>{chat.title === null ? null : displayName}</span>
                       </span>

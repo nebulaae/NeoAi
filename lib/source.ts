@@ -49,7 +49,7 @@ export const getAppSource = (): string | null => {
 
     // Max WebApp — глобальный объект WebApp (не Telegram)
     const maxWA = (window as any)?.WebApp;
-    if (maxWA && maxWA?.initData && !((window as any)?.Telegram)) {
+    if (maxWA && maxWA?.initData && !(window as any)?.Telegram) {
       sessionStorage.setItem('app_source', 'max');
       return 'max';
     }
@@ -96,7 +96,9 @@ export const setAppSource = (source: string): void => {
  * для более точного авто-детекта.
  * Используется в провайдерах при неизвестном source.
  */
-export async function detectAppSourceAsync(timeoutMs = 3000): Promise<string | null> {
+export async function detectAppSourceAsync(
+  timeoutMs = 3000
+): Promise<string | null> {
   // Сначала пробуем синхронно
   const sync = getAppSource();
   if (sync) return sync;
