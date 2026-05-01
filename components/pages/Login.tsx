@@ -241,7 +241,7 @@ export const Login = () => {
       const w = (window as any)?.WebApp;
       w?.ready?.();
       w?.expand?.();
-    } catch {}
+    } catch { }
   }, [source]);
 
   useEffect(() => {
@@ -249,7 +249,7 @@ export const Login = () => {
     try {
       (window as any)?.Telegram?.WebApp?.ready?.();
       (window as any)?.Telegram?.WebApp?.expand?.();
-    } catch {}
+    } catch { }
   }, [source]);
 
   const attemptTMALogin = useCallback(async () => {
@@ -274,7 +274,7 @@ export const Login = () => {
         (window as any)?.WebApp?.ready?.();
         (window as any)?.WebApp?.expand?.();
       }
-    } catch {}
+    } catch { }
 
     const initData = await waitForPlatformInitData(8000);
 
@@ -672,7 +672,7 @@ export const Login = () => {
 
             {telegramBotUsername && (
               <MessengerBtn
-                href={`https://t.me/${telegramBotUsername}`}
+                href={`https://t.me/${telegramBotUsername}?startapp=1`}
                 icon={'/telegram.png'}
                 label={t('openInTelegram')}
                 sublabel={t('openInTelegramSub')}
@@ -682,7 +682,7 @@ export const Login = () => {
 
             {maxBotUsername && (
               <MessengerBtn
-                href={`https://max.ru/${maxBotUsername}`}
+                href={`https://max.ru/${maxBotUsername}?startapp=1`}
                 icon={'/max.png'}
                 label={t('openInMax')}
                 sublabel={t('openInMaxSub')}
@@ -701,11 +701,11 @@ export const Login = () => {
         )}
 
         {/* ── Telegram widget (inside TG web app) ── */}
-        {isTg && (
+        {(isTg || isBrowser) && (
           <div className={cn(g.card, 'p-5')}>
             <div className="flex items-center gap-2 mb-3.5">
               <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-                <TelegramIcon />
+                <Image src="/telegram.png" width={16} height={16} alt="Telegram" />
               </div>
               <span className="text-[14px] font-semibold text-white/80">
                 {t('telegramSection')}
