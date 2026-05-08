@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ErrorComponent } from '@/components/states/Error';
 import { localize } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { Zap } from 'lucide-react';
 
 /* ─── Design tokens ─── */
 const g = {
@@ -120,13 +121,22 @@ export const Home = () => {
             NeoAI
           </span>
         </div>
-        <button
-          onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${g.thin} ${spring} active:scale-[0.94] text-[13px] font-medium text-white/70`}
-        >
-          <span className="text-[14px]">◈</span>
-          <span>{tokens}</span>
-        </button>
+        <div className='flex items-center gap-1'>
+          <button
+            onClick={() => router.push('https://t.me/cubixvpnbot?start=HYDylP')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${g.thin} ${spring} active:scale-[0.94] text-[13px] font-medium text-white/70`}
+          >
+            <Zap className='size-4 text-[#007AFF]' />
+            <span className="text-[14px]">Vpn</span>
+          </button>
+          <button
+            onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${g.thin} ${spring} active:scale-[0.94] text-[13px] font-medium text-white/70`}
+          >
+            <span className="text-[#007AFF] text-[16px]">◈</span>
+            <span className=''>{Math.trunc(tokens)}</span>
+          </button>
+        </div>
       </header>
 
       {/* ── Models ── */}
@@ -145,37 +155,37 @@ export const Home = () => {
         <div className="grid grid-cols-4 gap-y-5 gap-x-2">
           {modelsLoading
             ? Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <Shimmer w="52px" h="52px" circle />
-                  <Shimmer w="40px" h="9px" />
-                </div>
-              ))
+              <div key={i} className="flex flex-col items-center gap-2">
+                <Shimmer w="52px" h="52px" circle />
+                <Shimmer w="40px" h="9px" />
+              </div>
+            ))
             : displayModels.map((m) => (
-                <button
-                  key={m.tech_name}
-                  onClick={() => handleModelClick(m.tech_name, m.mainCategory)}
-                  className={`flex flex-col items-center gap-2 p-0 bg-transparent border-none cursor-pointer ${spring} active:scale-[0.88]`}
+              <button
+                key={m.tech_name}
+                onClick={() => handleModelClick(m.tech_name, m.mainCategory)}
+                className={`flex flex-col items-center gap-2 p-0 bg-transparent border-none cursor-pointer ${spring} active:scale-[0.88]`}
+              >
+                <div
+                  className={`w-[52px] h-[52px] rounded-full overflow-hidden ${g.thin}`}
                 >
-                  <div
-                    className={`w-[52px] h-[52px] rounded-full overflow-hidden ${g.thin}`}
-                  >
-                    <Avatar className="size-full">
-                      <AvatarImage
-                        src={
-                          m.avatar ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=fff`
-                        }
-                      />
-                      <AvatarFallback className="text-[14px] font-semibold bg-transparent text-white/60">
-                        {m.model_name.slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-[12px] font-medium text-white/50 max-w-[56px] text-center truncate leading-tight">
-                    {m.model_name}
-                  </span>
-                </button>
-              ))}
+                  <Avatar className="size-full">
+                    <AvatarImage
+                      src={
+                        m.avatar ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=fff`
+                      }
+                    />
+                    <AvatarFallback className="text-[14px] font-semibold bg-transparent text-white/60">
+                      {m.model_name.slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <span className="text-[12px] font-medium text-white/50 max-w-[56px] text-center truncate leading-tight">
+                  {m.model_name}
+                </span>
+              </button>
+            ))}
         </div>
       </section>
 
@@ -201,35 +211,35 @@ export const Home = () => {
         >
           {rolesLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="shrink-0 flex flex-col items-center gap-2"
-                >
-                  <Shimmer w="56px" h="56px" rounded="14px" />
-                  <Shimmer w="48px" h="9px" />
-                </div>
-              ))
+              <div
+                key={i}
+                className="shrink-0 flex flex-col items-center gap-2"
+              >
+                <Shimmer w="56px" h="56px" rounded="14px" />
+                <Shimmer w="48px" h="9px" />
+              </div>
+            ))
             : displayRoles.map((role) => (
-                <button
-                  key={role.id}
-                  onClick={() => handleRoleClick(role.id)}
-                  className={`shrink-0 flex flex-col items-center gap-2 bg-transparent border-none cursor-pointer ${spring} active:scale-[0.88]`}
+              <button
+                key={role.id}
+                onClick={() => handleRoleClick(role.id)}
+                className={`shrink-0 flex flex-col items-center gap-2 bg-transparent border-none cursor-pointer ${spring} active:scale-[0.88]`}
+              >
+                <div
+                  className={`w-14 h-14 rounded-[16px] overflow-hidden ${g.thin}`}
                 >
-                  <div
-                    className={`w-14 h-14 rounded-[16px] overflow-hidden ${g.thin}`}
-                  >
-                    <Avatar className="size-full rounded-none">
-                      <AvatarImage src={role.image || ''} />
-                      <AvatarFallback className="text-[20px] bg-transparent">
-                        {localize(role.label).slice(0, 1)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <span className="text-[12px] font-medium text-white/50 w-14 text-center truncate">
-                    {localize(role.label)}
-                  </span>
-                </button>
-              ))}
+                  <Avatar className="size-full rounded-none">
+                    <AvatarImage src={role.image || ''} />
+                    <AvatarFallback className="text-[20px] bg-transparent">
+                      {localize(role.label).slice(0, 1)}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <span className="text-[12px] font-medium text-white/50 w-14 text-center truncate">
+                  {localize(role.label)}
+                </span>
+              </button>
+            ))}
         </div>
       </section>
 
@@ -243,58 +253,58 @@ export const Home = () => {
         <div className="flex flex-col gap-2">
           {trendsLoading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <Shimmer key={i} w="100%" h="54px" rounded="16px" />
-              ))
+              <Shimmer key={i} w="100%" h="54px" rounded="16px" />
+            ))
             : ((trends as any[]) || []).length === 0
               ? (
-                  [
-                    {
-                      icon: '✦',
-                      title: t('trend1'),
-                      href: '/generate',
-                    },
-                    { icon: '◈', title: t('trend2'), href: '/chats' },
-                    { icon: '▶', title: t('trend3'), href: '/generate' },
-                    { icon: '♫', title: t('trend4'), href: '/generate' },
-                  ] as any[]
-                ).map((item) => (
-                  <button
-                    key={item.title}
-                    onClick={() => router.push(item.href)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
-                  >
-                    <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
-                      {item.icon}
-                    </span>
-                    <span className="text-[14px] font-medium text-white/80 flex-1">
-                      {item.title}
-                    </span>
-                    <span className="text-white/20 text-[12px]">›</span>
-                  </button>
-                ))
+                [
+                  {
+                    icon: '✦',
+                    title: t('trend1'),
+                    href: '/generate',
+                  },
+                  { icon: '◈', title: t('trend2'), href: '/chats' },
+                  { icon: '▶', title: t('trend3'), href: '/generate' },
+                  { icon: '♫', title: t('trend4'), href: '/generate' },
+                ] as any[]
+              ).map((item) => (
+                <button
+                  key={item.title}
+                  onClick={() => router.push(item.href)}
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
+                >
+                  <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
+                    {item.icon}
+                  </span>
+                  <span className="text-[14px] font-medium text-white/80 flex-1">
+                    {item.title}
+                  </span>
+                  <span className="text-white/20 text-[12px]">›</span>
+                </button>
+              ))
               : (trends as any[]).map((item: any, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => handleTrendClick(item)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
-                  >
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt=""
-                        className="w-8 h-8 rounded-[10px] object-cover shrink-0"
-                      />
-                    ) : (
-                      <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
-                        ✦
-                      </span>
-                    )}
-                    <span className="text-[14px] font-medium text-white/80 flex-1">
-                      {localize(item.title)}
+                <button
+                  key={i}
+                  onClick={() => handleTrendClick(item)}
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
+                >
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt=""
+                      className="w-8 h-8 rounded-[10px] object-cover shrink-0"
+                    />
+                  ) : (
+                    <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
+                      ✦
                     </span>
-                    <span className="text-white/20 text-[12px]">›</span>
-                  </button>
-                ))}
+                  )}
+                  <span className="text-[14px] font-medium text-white/80 flex-1">
+                    {localize(item.title)}
+                  </span>
+                  <span className="text-white/20 text-[12px]">›</span>
+                </button>
+              ))}
         </div>
       </section>
 

@@ -250,7 +250,9 @@
     "tokenCreateError": "Не удалось создать токен",
     "statusCompleted": "Готово",
     "statusError": "Ошибка",
-    "statusProcessing": "Обработка"
+    "statusProcessing": "Обработка",
+    "topUpBalance": "Пополнить Баланс",
+    "support": "Поддержка"
   },
   "Referrals": {
     "title": "Рефералы",

@@ -21,6 +21,9 @@ import {
   Copy,
   Check,
   Link as LinkIcon,
+  Headset,
+  Link,
+  ChevronRight,
 } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -262,9 +265,6 @@ export const Profile = () => {
               <span className="text-[12px] mb-0.5 text-white/50">◈</span>
             </div>
           )}
-          <span className="text-[12px] font-medium text-white/40">
-            {t('topUp')}
-          </span>
         </button>
 
         <button
@@ -292,11 +292,43 @@ export const Profile = () => {
               {refStats?.total ?? refStats?.total_referrals ?? 0}
             </span>
           )}
-          <span className="text-[12px] text-white/35">
-            {t('earned', {
-              amount: refStats?.earned ?? refStats?.total_tokens ?? 0,
-            })}
-          </span>
+        </button>
+      </div>
+
+      <div className='px-5 pb-5'>
+        <button
+          onClick={() => router.push('/profile/referral')}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: '16px',
+            borderRadius: 18,
+            background: 'rgba(0,122,255,0.12)',
+            border: '1px solid rgba(0,122,255,0.35)',
+            boxShadow:
+              'inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 32px rgba(0,122,255,0.15)',
+            cursor: 'pointer',
+            transition: 'all 0.24s cubic-bezier(0.32,0.72,0,1)',
+            color: '#fff',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(0,122,255,0.18)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(0,122,255,0.12)';
+            e.currentTarget.style.transform = 'none';
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>
+              {t('topUpBalance')}
+            </p>
+          </div>
+          <ChevronRight size={18} className="ml-auto opacity-30 text-white" />
         </button>
       </div>
 

@@ -250,7 +250,9 @@
     "tokenCreateError": "Failed to create token",
     "statusCompleted": "Done",
     "statusError": "Error",
-    "statusProcessing": "Processing"
+    "statusProcessing": "Processing",
+    "topUpBalance": "Top Up Balance",
+    "support": "Support"
   },
   "Referrals": {
     "title": "Referrals",
