@@ -21,7 +21,9 @@ import {
   Download,
   Pause,
   Play,
+  Share2,
 } from 'lucide-react';
+import { PublishDialog } from '@/components/dialogs/PublishDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -272,6 +274,9 @@ export default function ChatPage() {
     url: string;
     type: string;
   } | null>(null);
+  const [publishingMessage, setPublishingMessage] = useState<Message | null>(
+    null
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -632,7 +637,7 @@ export default function ChatPage() {
                       className={cn(
                         'max-w-[78%] px-3.5 py-2.5',
                         'bg-zinc-900/50 backdrop-blur-2xl',
-                        'border border-white/[.12]',
+                        'border border-white/12',
                         'shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
                         'text-white rounded-[20px_20px_4px_20px]',
                         'text-[15px] leading-[1.45]'
@@ -771,11 +776,25 @@ export default function ChatPage() {
                                       'absolute top-2 right-2 p-1.5 rounded-full',
                                       'bg-black/45 backdrop-blur-xl border border-white/15',
                                       'text-white flex items-center justify-center',
-                                      'opacity-0 group-hover:opacity-100 transition-opacity'
+                                      'opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity'
                                     )}
                                   >
                                     <Download size={14} />
                                   </a>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPublishingMessage(msg);
+                                    }}
+                                    className={cn(
+                                      'absolute top-2 left-2 p-1.5 rounded-full',
+                                      'bg-blue-600/60 backdrop-blur-xl border border-white/15',
+                                      'text-white flex items-center justify-center',
+                                      'opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity'
+                                    )}
+                                  >
+                                    <Share2 size={14} />
+                                  </button>
                                 </div>
                               );
                             })}
@@ -968,6 +987,14 @@ export default function ChatPage() {
         @keyframes pulse-opacity { 0%,100%{opacity:1}50%{opacity:.4} }
         textarea::placeholder { color: rgba(255,255,255,0.30); }
       `}</style>
+
+      {publishingMessage && (
+        <PublishDialog
+          isOpen={!!publishingMessage}
+          onClose={() => setPublishingMessage(null)}
+          message={publishingMessage}
+        />
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ export interface GenerateAIParams {
   params?: Record<string, any>;
   dialogue_id?: string;
   role_id?: number | null;
+  post_id?: number;
   callback_webhook?: string;
 }
 
@@ -95,8 +96,8 @@ export const useGenerateAI = () => {
         apiError ||
         (axios.isAxiosError(error)
           ? error.response?.data?.error ||
-            error.response?.data?.message ||
-            'Ошибка генерации'
+          error.response?.data?.message ||
+          'Ошибка генерации'
           : error.message || 'Неизвестная ошибка');
 
       if (

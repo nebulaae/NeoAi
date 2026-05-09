@@ -8,6 +8,8 @@ import {
   useReferrals,
   useApiTokens,
   useGenerateApiToken,
+  useRecurrentStatus,
+  useCancelRecurrent,
 } from '@/hooks/useApiExtras';
 import { useBot } from '@/app/providers/BotProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,6 +26,7 @@ import {
   Headset,
   Link,
   ChevronRight,
+  Zap,
 } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -70,6 +73,8 @@ export const Profile = () => {
   const { data: refData } = useReferrals();
   const { data: apiTokens } = useApiTokens();
   const generateToken = useGenerateApiToken();
+  const { data: recurrentData } = useRecurrentStatus();
+  const cancelRecurrent = useCancelRecurrent();
   const {
     data: reqData,
     isLoading: reqLoading,
@@ -169,6 +174,20 @@ export const Profile = () => {
     });
   };
 
+  const handleCancelRecurrent = () => {
+    haptic.warning();
+    if (window.confirm(t('confirmCancelSubscription'))) {
+      cancelRecurrent.mutate(undefined, {
+        onSuccess: () => {
+          toast.success(t('subscriptionCanceled'));
+        },
+        onError: () => {
+          toast.error(t('subscriptionCancelError'));
+        },
+      });
+    }
+  };
+
   return (
     <div className="pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] max-w-2xl mx-auto">
       {/* Header */}
@@ -253,18 +272,21 @@ export const Profile = () => {
             <span className="text-[12px] font-semibold tracking-[0.5px] uppercase text-white/35">
               {t('tokens')}
             </span>
-            <ExternalLink size={11} className="text-white/25" />
+            <Zap size={12} className="text-amber-400/50" />
           </div>
           {userLoading ? (
             <div className={cn('w-14 h-7 rounded-lg', g.thin)} />
           ) : (
-            <div className="flex items-end gap-1">
+            <div className="flex items-end gap-1 mb-1">
               <span className="text-[26px] font-bold tracking-[-0.6px] leading-none text-white/90">
                 {tokens}
               </span>
               <span className="text-[12px] mb-0.5 text-white/50">◈</span>
             </div>
           )}
+          <span className="text-[12px] font-medium text-white/35 flex items-center gap-1 mt-auto">
+            {t('topUp')} <ExternalLink size={9} />
+          </span>
         </button>
 
         <button
@@ -283,21 +305,30 @@ export const Profile = () => {
             <span className="text-[12px] font-semibold tracking-[0.5px] uppercase text-white/35">
               {t('referrals')}
             </span>
-            <Users size={11} className="text-white/25" />
+            <Users size={12} className="text-white/25" />
           </div>
           {!refStats ? (
             <div className={cn('w-10 h-7 rounded-lg', g.thin)} />
           ) : (
-            <span className="text-[26px] font-bold tracking-[-0.6px] leading-none text-white/90">
-              {refStats?.total ?? refStats?.total_referrals ?? 0}
-            </span>
+            <div className="mb-1">
+              <span className="text-[26px] font-bold tracking-[-0.6px] leading-none text-white/90">
+                {refStats?.total ?? refStats?.total_referrals ?? 0}
+              </span>
+            </div>
           )}
+          <span className="text-[12px] text-white/35 flex items-center gap-1 mt-auto">
+            {t('earned', {
+              amount: refStats?.earned ?? refStats?.total_tokens ?? 0,
+            })}{' '}
+            ◈
+            <ChevronRight size={10} />
+          </span>
         </button>
       </div>
 
-      <div className='px-5 pb-5'>
+      <div className="px-5 pb-5">
         <button
-          onClick={() => router.push('/profile/referral')}
+          onClick={handleTopUp}
           style={{
             width: '100%',
             display: 'flex',
@@ -330,6 +361,40 @@ export const Profile = () => {
           </div>
           <ChevronRight size={18} className="ml-auto opacity-30 text-white" />
         </button>
+
+        {recurrentData?.recurrent && (
+          <div className="mt-3">
+            <GlassCard className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[12px] font-semibold tracking-[0.5px] uppercase text-white/30 mb-1">
+                    {t('recurrentStatus')}
+                  </p>
+                  <p className={cn(
+                    "text-[14px] font-bold",
+                    recurrentData?.recurrent ? "text-emerald-400" : "text-white/40"
+                  )}>
+                    {recurrentData?.recurrent ? t('active') : t('inactive')}
+                  </p>
+                </div>
+                {recurrentData?.recurrent && (
+                  <button
+                    onClick={handleCancelRecurrent}
+                    disabled={cancelRecurrent.isPending}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] font-medium",
+                      spring,
+                      "active:scale-[0.95]",
+                      cancelRecurrent.isPending && "opacity-50"
+                    )}
+                  >
+                    {cancelRecurrent.isPending ? <Loader2 size={12} className="animate-spin" /> : t('cancelSubscription')}
+                  </button>
+                )}
+              </div>
+            </GlassCard>
+          </div>
+        )}
       </div>
 
       {/* Referral Link */}

@@ -4,22 +4,23 @@ import { useRouter } from 'next/navigation';
 import { useAIModels } from '@/hooks/useModels';
 import { useRoles } from '@/hooks/useRoles';
 import { useUser } from '@/hooks/useUser';
-import { useUI, usePaymentLink } from '@/hooks/useApiExtras';
+import { useUI, usePaymentLink, usePosts } from '@/hooks/useApiExtras';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ErrorComponent } from '@/components/states/Error';
 import { localize } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /* ─── Design tokens ─── */
 const g = {
   ultraThin:
-    'bg-zinc-950/30 backdrop-blur-2xl backdrop-saturate-150 border border-white/[.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
-  thin: 'bg-zinc-900/40 backdrop-blur-xl backdrop-saturate-150 border border-white/[.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+    'bg-zinc-950/30 backdrop-blur-2xl backdrop-saturate-150 border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+  thin: 'bg-zinc-900/40 backdrop-blur-xl backdrop-saturate-150 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
   regular:
-    'bg-zinc-900/50 backdrop-blur-2xl backdrop-saturate-180 border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_4px_20px_rgba(0,0,0,0.30)]',
+    'bg-zinc-900/50 backdrop-blur-2xl backdrop-saturate-180 border border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_4px_20px_rgba(0,0,0,0.30)]',
   thick:
-    'bg-zinc-900/60 backdrop-blur-3xl backdrop-saturate-200 border border-white/[.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_32px_rgba(0,0,0,0.35)]',
+    'bg-zinc-900/60 backdrop-blur-3xl backdrop-saturate-200 border border-white/14 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_32px_rgba(0,0,0,0.35)]',
 };
 const spring =
   'transition-all duration-[260ms] [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
@@ -69,8 +70,9 @@ export const Home = () => {
     isError,
     refetch,
   } = useAIModels();
-  const { data: trends, isLoading: trendsLoading } = useUI('trends');
   const { data: roles, isLoading: rolesLoading } = useRoles();
+  const { data: postsData, isLoading: postsLoading } = usePosts({ limit: 4 });
+  const posts = postsData?.items || [];
   const { data: userData } = useUser();
   const { data: paymentUrl } = usePaymentLink();
 
@@ -247,62 +249,64 @@ export const Home = () => {
 
       {/* ── Trending ── */}
       <section className="px-5 pb-4">
-        <span className="block text-[14px] font-semibold tracking-[0.8px] uppercase text-white/40 mb-4">
-          {t('trending')}
-        </span>
-        <div className="flex flex-col gap-2">
-          {trendsLoading
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[14px] font-semibold tracking-[0.8px] uppercase text-white/40">
+            {t('trending')}
+          </span>
+          <button
+            onClick={() => router.push('/trends')}
+            className={`text-[14px] font-medium text-[#4FC3F7] ${spring} active:scale-[0.94]`}
+          >
+            {t('all')}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-full">
+          {postsLoading
             ? Array.from({ length: 4 }).map((_, i) => (
-              <Shimmer key={i} w="100%" h="54px" rounded="16px" />
-            ))
-            : ((trends as any[]) || []).length === 0
-              ? (
-                [
-                  {
-                    icon: '✦',
-                    title: t('trend1'),
-                    href: '/generate',
-                  },
-                  { icon: '◈', title: t('trend2'), href: '/chats' },
-                  { icon: '▶', title: t('trend3'), href: '/generate' },
-                  { icon: '♫', title: t('trend4'), href: '/generate' },
-                ] as any[]
-              ).map((item) => (
-                <button
-                  key={item.title}
-                  onClick={() => router.push(item.href)}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
-                >
-                  <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
-                    {item.icon}
-                  </span>
-                  <span className="text-[14px] font-medium text-white/80 flex-1">
-                    {item.title}
-                  </span>
-                  <span className="text-white/20 text-[12px]">›</span>
-                </button>
-              ))
-              : (trends as any[]).map((item: any, i: number) => (
-                <button
+                <div
                   key={i}
-                  onClick={() => handleTrendClick(item)}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left ${g.thin} ${spring} active:scale-[0.985] active:bg-white/8`}
+                  className={cn(
+                    'w-full h-[58px] rounded-[14px] animate-pulse bg-white/5 border border-white/10'
+                  )}
+                />
+              ))
+            : posts.map((post: any) => (
+                <button
+                  key={post.id}
+                  onClick={() => router.push(`/trends?post=${post.id}`)}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-[14px] w-full text-left',
+                    g.thin,
+                    spring,
+                    'active:scale-[0.985] hover:bg-white/8'
+                  )}
                 >
-                  {item.image ? (
+                  {post.result?.url ? (
                     <img
-                      src={item.image}
+                      src={post.result.url}
                       alt=""
-                      className="w-8 h-8 rounded-[10px] object-cover shrink-0"
+                      className="w-[34px] h-[34px] rounded-[8px] object-cover shrink-0"
                     />
                   ) : (
-                    <span className="text-white/40 text-[15px] w-6 text-center shrink-0">
-                      ✦
+                    <span className="text-[22px] w-[34px] text-center shrink-0">
+                      ✨
                     </span>
                   )}
-                  <span className="text-[14px] font-medium text-white/80 flex-1">
-                    {localize(item.title)}
+                  <span className="text-[14px] font-medium text-white/90 flex-1 truncate">
+                    {post.inputs?.text || t('trend')}
                   </span>
-                  <span className="text-white/20 text-[12px]">›</span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    className="text-white/30 shrink-0"
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
                 </button>
               ))}
         </div>

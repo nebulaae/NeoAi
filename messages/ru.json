@@ -29,7 +29,8 @@
     "modelNotAccept": "Модель не принимает {fileType}",
     "maxFiles": "Максимум {limit} файл(ов) типа {fileType}",
     "dialogue": "Диалог",
-    "error": "Ошибка"
+    "error": "Ошибка",
+    "publishToTrends": "В Тренды"
   },
   "Chats": {
     "title": "Чаты",
@@ -47,8 +48,9 @@
   "Home": {
     "models": "Модели",
     "all": "Все",
-    "aiAssistants": "AI Ассистенты",
-    "trending": "В тренде",
+    "aiAssistants": "ИИ Ассистенты",
+    "trending": "Тренды",
+    "trend": "Тренд",
     "error": "Ошибка",
     "errorLoadData": "Не удалось загрузить данные.",
     "trend1": "Создай свой 2D-аватар",
@@ -252,7 +254,44 @@
     "statusError": "Ошибка",
     "statusProcessing": "Обработка",
     "topUpBalance": "Пополнить Баланс",
-    "support": "Поддержка"
+    "support": "Поддержка",
+    "recurrentStatus": "Автопродление",
+    "active": "Активно",
+    "inactive": "Отключено",
+    "cancelSubscription": "Отменить подписку",
+    "confirmCancelSubscription": "Вы уверены, что хотите отменить автопродление?",
+    "subscriptionCanceled": "Автопродление отменено",
+    "subscriptionCancelError": "Ошибка при отмене автопродления"
+  },
+  "Trends": {
+    "title": "Тренды",
+    "subtitle": "Откройте для себя лучшие генерации сообщества и создайте своё на их основе",
+    "error": "Ошибка загрузки",
+    "errorDesc": "Не удалось загрузить ленту трендов. Попробуйте позже.",
+    "new": "Новое",
+    "prompt": "Промпт",
+    "promptHidden": "Промпт скрыт автором",
+    "uploadMedia": "Ваши медиа",
+    "uploadMediaDesc": "Нажмите, чтобы заменить",
+    "done": "Готово",
+    "model": "Модель",
+    "generate": "Создать похожее",
+    "insufficientCredits": "Недостаточно токенов",
+    "untitled": "Без названия",
+    "noPrompt": "Без описания"
+  },
+  "Publish": {
+    "title": "Опубликовать в Тренды",
+    "description": "Поделитесь своим результатом с сообществом. Вы можете скрыть промпт или разрешить другим заменять медиа.",
+    "hidePrompt": "Скрыть промпт",
+    "hidePromptDesc": "Другие пользователи не увидят ваш текстовый запрос",
+    "mediaSettings": "Настройки медиа",
+    "media": "Медиа",
+    "hide": "Скрыть",
+    "replace": "Замена",
+    "publish": "Опубликовать",
+    "success": "Опубликовано!",
+    "error": "Ошибка публикации"
   },
   "Referrals": {
     "title": "Рефералы",
