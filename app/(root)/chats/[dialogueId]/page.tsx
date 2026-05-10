@@ -22,6 +22,8 @@ import {
   Pause,
   Play,
   Share2,
+  Clock,
+  CheckCheck,
 } from 'lucide-react';
 import { PublishDialog } from '@/components/dialogs/PublishDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -54,6 +56,7 @@ interface Message {
   status: 'completed' | 'processing' | 'error' | 'pending';
   error?: string | null;
   cost?: number;
+  post_id?: number | null;
   created_at?: string;
 }
 
@@ -277,6 +280,7 @@ export default function ChatPage() {
   const [publishingMessage, setPublishingMessage] = useState<Message | null>(
     null
   );
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -307,21 +311,23 @@ export default function ChatPage() {
   const generate = useGenerateAI();
   const upload = useUpload();
 
-  const msgs = (messages as Message[]) || [];
+  const msgsFromHistory = (messages as Message[]) || [];
 
   const {
     model: activeModel,
     version: activeVersion,
     roleId: activeRoleId,
-  } = getDialogueModel(dialogueId, msgs, {
+  } = getDialogueModel(dialogueId, msgsFromHistory, {
     model: urlModel,
     version: urlVersion,
     role: urlRole,
   });
 
-  const isProcessing = msgs.some(
-    (m) => m.status === 'processing' || m.status === 'pending'
-  );
+  const msgs = (messages as Message[]) || [];
+
+  const isProcessing =
+    msgs.some((m) => m.status === 'processing' || m.status === 'pending') ||
+    optimisticMessages.length > 0;
 
   const currentModel = allModels?.find((m) => m.tech_name === activeModel);
   const currentVersion = currentModel?.versions?.find(
@@ -334,12 +340,12 @@ export default function ChatPage() {
 
   const chatTitle = (() => {
     // Если есть реальная история — берём только из неё, игнорируем URL
-    if (msgs.length > 0) {
+    if (msgsFromHistory.length > 0) {
       const modelName = currentModel?.model_name;
       if (modelName && activeVersion) return `${modelName} · ${activeVersion}`;
       if (modelName) return modelName;
       if (activeVersion) return activeVersion;
-      return msgs[0].version || msgs[0].model || t('dialogue');
+      return msgsFromHistory[0].version || msgsFromHistory[0].model || t('dialogue');
     }
 
     // Только для пустого/нового чата — смотрим URL
@@ -370,10 +376,10 @@ export default function ChatPage() {
 
   const prevProcessingRef = useRef(false);
   useEffect(() => {
-    if (prevProcessingRef.current && !isProcessing && msgs.length > 0)
+    if (prevProcessingRef.current && !isProcessing && msgsFromHistory.length > 0)
       queryClient.invalidateQueries({ queryKey: queryKeys.user });
     prevProcessingRef.current = isProcessing;
-  }, [isProcessing, queryClient]);
+  }, [isProcessing, queryClient, msgsFromHistory.length]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -424,7 +430,7 @@ export default function ChatPage() {
     }
     if (!text.trim() && uploadedFiles.length === 0) return;
 
-    const { model: techName, version } = getDialogueModel(dialogueId, msgs, {
+    const { model: techName, version } = getDialogueModel(dialogueId, msgsFromHistory, {
       model: urlModel,
       version: urlVersion,
       role: urlRole,
@@ -437,15 +443,29 @@ export default function ChatPage() {
     }
 
     haptic.light();
+    const sentText = text;
+    const safeText = text.trim() || (uploadedFiles.length > 0 ? t('describeImage') : '');
     const oldFormatMedia = uploadedFiles.map((f) => ({
       type: f.type,
       format: 'url',
       input: f.url,
     }));
-    const safeText = text.trim() || t('describeImage');
     const inputs = convertMediaToInputs(safeText, oldFormatMedia);
 
-    const sentText = text;
+    // Optimistic message
+    const optimisticMsg: Message = {
+      id: -Date.now(),
+      model: techName,
+      version: version || '',
+      inputs: {
+        text: sentText,
+        media: uploadedFiles.map((f) => ({ type: f.type, url: f.url })),
+      },
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+
+    setOptimisticMessages((prev) => [...prev, optimisticMsg]);
     setText('');
     setUploadedFiles([]);
 
@@ -459,6 +479,7 @@ export default function ChatPage() {
       },
       {
         onSuccess: (data) => {
+          setOptimisticMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
           if (dialogueId === 'new' && data.dialogue_id) {
             queryClient.invalidateQueries({ queryKey: queryKeys.chats });
             router.replace(`/chats/${data.dialogue_id}`);
@@ -470,6 +491,7 @@ export default function ChatPage() {
           }
         },
         onError: () => {
+          setOptimisticMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
           setText(sentText);
         },
       }
@@ -499,11 +521,11 @@ export default function ChatPage() {
     (!text.trim() && uploadedFiles.length === 0);
 
   const showRoles =
-    msgs.length === 0 && !isHistoryLoading && roles && roles.length > 0;
+    msgsFromHistory.length === 0 && !isHistoryLoading && roles && roles.length > 0;
 
   return (
     <div
-      className="flex flex-col h-svh"
+      className="flex flex-col h-svh max-w-2xl mx-auto w-full border-x border-white/5"
       style={{ background: 'var(--page-bg)' }}
     >
       {/* ── Header ── */}
@@ -626,7 +648,7 @@ export default function ChatPage() {
             )}
           </div>
         ) : (
-          msgs.map((msg, idx) => {
+          [...msgsFromHistory, ...optimisticMessages].map((msg, idx) => {
             const userMedia = extractDisplayMedia(msg.inputs);
             const resultMedia = extractResultMedia(msg.result);
             return (
@@ -635,7 +657,7 @@ export default function ChatPage() {
                   <div className="flex justify-end">
                     <div
                       className={cn(
-                        'max-w-[78%] px-3.5 py-2.5',
+                        'max-w-[78%] px-3.5 py-2.5 relative',
                         'bg-zinc-900/50 backdrop-blur-2xl',
                         'border border-white/12',
                         'shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]',
@@ -644,12 +666,12 @@ export default function ChatPage() {
                       )}
                     >
                       {msg.inputs?.text && (
-                        <p className="whitespace-pre-wrap m-0">
+                        <p className="whitespace-pre-wrap m-0 pr-4">
                           {msg.inputs.text}
                         </p>
                       )}
                       {userMedia.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
+                        <div className="mt-2 flex flex-wrap gap-1.5 pr-4">
                           {userMedia.map((m, i) => (
                             <button
                               key={i}
@@ -676,6 +698,13 @@ export default function ChatPage() {
                           ))}
                         </div>
                       )}
+                      <div className="absolute bottom-1.5 right-2 flex items-center">
+                        {msg.status === 'pending' ? (
+                          <Clock size={11} className="text-white/40" />
+                        ) : (
+                          <CheckCheck size={12} className="text-[#0A84FF]" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -781,20 +810,22 @@ export default function ChatPage() {
                                   >
                                     <Download size={14} />
                                   </a>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPublishingMessage(msg);
-                                    }}
-                                    className={cn(
-                                      'absolute top-2 left-2 p-1.5 rounded-full',
-                                      'bg-blue-600/60 backdrop-blur-xl border border-white/15',
-                                      'text-white flex items-center justify-center',
-                                      'opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity'
-                                    )}
-                                  >
-                                    <Share2 size={14} />
-                                  </button>
+                                  {!msg.post_id && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPublishingMessage(msg);
+                                      }}
+                                      className={cn(
+                                        'absolute top-2 left-2 p-1.5 rounded-full',
+                                        'bg-blue-600/60 backdrop-blur-xl border border-white/15',
+                                        'text-white flex items-center justify-center',
+                                        'opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity'
+                                      )}
+                                    >
+                                      <Share2 size={14} />
+                                    </button>
+                                  )}
                                 </div>
                               );
                             })}

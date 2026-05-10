@@ -11,6 +11,7 @@ export interface PostInputMedia {
   };
 }
 
+
 export interface Post {
   id: number;
   bot_id: number;
@@ -28,8 +29,15 @@ export interface Post {
   params: Record<string, any>;
   result: {
     url?: string;
-    [key: string]: any;
+    text?: string | null;
+    media?: Array<{
+      type: string;
+      input: string;
+      format: string;
+    }>;
   };
+  model_name?: string;
+  cost?: number;
   priority: number;
   likes: number;
   created_at: string;

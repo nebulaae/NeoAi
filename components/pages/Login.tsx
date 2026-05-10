@@ -182,6 +182,7 @@ export const Login = () => {
   const { bot, isLoading: botLoading } = useBot();
   const haptic = useHaptic();
   const t = useTranslations('Login');
+  const tLegal = useTranslations('Legal');
   const locale = useLocale();
 
   const [source, setSource] = useState<string | null>(null);
@@ -783,6 +784,25 @@ export const Login = () => {
             {t('emailLogin')}
           </span>
         </button>
+
+        {/* ── Legal Links ── */}
+        <div className="flex flex-col gap-2.5 mt-4 px-1">
+          <div className="flex items-center gap-4 justify-center">
+            <Link
+              href="/legal/offer"
+              className="text-[12px] text-white/30 hover:text-white/50 transition-colors no-underline"
+            >
+              {tLegal('offer')}
+            </Link>
+            <div className="w-1 h-1 rounded-full bg-white/10" />
+            <Link
+              href="/legal/privacy"
+              className="text-[12px] text-white/30 hover:text-white/50 transition-colors no-underline"
+            >
+              {tLegal('privacy')}
+            </Link>
+          </div>
+        </div>
 
         {/* ── Auto-login error ── */}
         {autoError && (

@@ -44,7 +44,6 @@ export const BottomBar = () => {
 
   return (
     <nav
-      aria-label={t('ariaLabel')}
       className="flex sm:hidden fixed bottom-3 left-0 right-0 z-50 justify-center px-3"
     >
       <div className="flex items-center gap-2 w-full max-w-sm">

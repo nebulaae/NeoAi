@@ -261,13 +261,13 @@ export const Home = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 w-full">
+        <div className="grid grid-cols-2 gap-3 w-full">
           {postsLoading
             ? Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
                   className={cn(
-                    'w-full h-[58px] rounded-[14px] animate-pulse bg-white/5 border border-white/10'
+                    'aspect-3/4 rounded-2xl animate-pulse bg-white/5 border border-white/10'
                   )}
                 />
               ))
@@ -276,37 +276,35 @@ export const Home = () => {
                   key={post.id}
                   onClick={() => router.push(`/trends?post=${post.id}`)}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-[14px] w-full text-left',
+                    'relative aspect-3/4 rounded-2xl overflow-hidden text-left group',
                     g.thin,
                     spring,
-                    'active:scale-[0.985] hover:bg-white/8'
+                    'active:scale-[0.96]'
                   )}
                 >
-                  {post.result?.url ? (
+                  {(post.result?.url || post.result?.media?.[0]?.input) ? (
                     <img
-                      src={post.result.url}
+                      src={post.result.url || post.result.media?.[0]?.input}
                       alt=""
-                      className="w-[34px] h-[34px] rounded-[8px] object-cover shrink-0"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                   ) : (
-                    <span className="text-[22px] w-[34px] text-center shrink-0">
-                      ✨
-                    </span>
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+                      <span className="text-[32px]">✨</span>
+                    </div>
                   )}
-                  <span className="text-[14px] font-medium text-white/90 flex-1 truncate">
-                    {post.inputs?.text || t('trend')}
-                  </span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    className="text-white/30 shrink-0"
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
+                  
+                  <div className="absolute inset-x-0 bottom-0 p-3 bg-linear-to-t from-black/80 via-black/20 to-transparent">
+                    <span className="text-[13px] font-semibold text-white/90 line-clamp-2 leading-tight">
+                      {post.inputs?.text || t('trend')}
+                    </span>
+                  </div>
+
+                  <div className="absolute top-2 right-2">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-full text-[11px] font-bold text-white">
+                      💎 {post.cost || 15}
+                    </div>
+                  </div>
                 </button>
               ))}
         </div>

@@ -65,6 +65,7 @@ const GlassCard = ({
 
 export const Profile = () => {
   const t = useTranslations('Profile');
+  const tLegal = useTranslations('Legal');
   const router = useRouter();
   const haptic = useHaptic();
   const { user: tgUser, logout } = useAuth();
@@ -495,6 +496,39 @@ export const Profile = () => {
       </div>
 
       <div className="h-px bg-white/6 mx-5 mb-4" />
+
+      {/* Legal */}
+      <div className="px-5 pb-8">
+        <span className="block text-[12px] font-semibold tracking-[0.6px] uppercase text-white/35 mb-3">
+          {tLegal('title')}
+        </span>
+        <div className="flex flex-col gap-2">
+           <button
+             onClick={() => router.push('/legal/offer')}
+             className={cn(
+               "flex items-center justify-between px-4 py-3.5 rounded-xl",
+               g.thin,
+               spring,
+               "active:scale-[0.98] text-left"
+             )}
+           >
+             <span className="text-[14px] font-medium text-white/70">{tLegal('offer')}</span>
+             <ChevronRight size={14} className="text-white/20" />
+           </button>
+           <button
+             onClick={() => router.push('/legal/privacy')}
+             className={cn(
+               "flex items-center justify-between px-4 py-3.5 rounded-xl",
+               g.thin,
+               spring,
+               "active:scale-[0.98] text-left"
+             )}
+           >
+             <span className="text-[14px] font-medium text-white/70">{tLegal('privacy')}</span>
+             <ChevronRight size={14} className="text-white/20" />
+           </button>
+        </div>
+      </div>
 
       {/* History */}
       <div className="px-5">

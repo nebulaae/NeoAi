@@ -286,5 +286,10 @@
     "retry": "Try again",
     "connectionError": "Connection error",
     "connectionErrorDesc": "Failed to load data. Check your connection."
+  },
+  "Legal": {
+    "title": "Legal Information",
+    "offer": "Public Offer",
+    "privacy": "Privacy Policy"
   }
 }
