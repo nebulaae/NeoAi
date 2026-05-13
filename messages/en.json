@@ -54,7 +54,9 @@
     "trend1": "Create your 2D avatar",
     "trend2": "Discover GPT capabilities",
     "trend3": "Photorealistic images",
-    "trend4": "Music generation"
+    "trend4": "Music generation",
+    "noTrends": "No trends yet",
+    "buy": "Buy"
   },
   "Login": {
     "tagline": "Next-generation AI platform",
@@ -101,6 +103,8 @@
     "tabImage": "Image",
     "tabVideo": "Video",
     "tabAudio": "Audio",
+    "aiAssistants": "AI Assistants",
+    "catAll": "All Models",
     "catText": "Text",
     "catImage": "Image",
     "catVideo": "Video",
@@ -252,7 +256,25 @@
     "statusError": "Error",
     "statusProcessing": "Processing",
     "topUpBalance": "Top Up Balance",
-    "support": "Support"
+    "support": "Support",
+    "tabProfile": "Profile",
+    "tabAccount": "Account",
+    "tabPartnership": "Partnership",
+    "partnershipTitle": "Partnership Program",
+    "partnershipEarned": "Earned",
+    "partnershipInvited": "Invited",
+    "partnershipLink": "Your Link",
+    "partnershipShare": "Share the link and earn 10% from your friends' top-ups",
+    "premiumActive": "Active until {date}",
+    "subscription": "Subscription",
+    "activeSubscription": "Subscription active",
+    "autoRenewalOn": "Auto-renewal on",
+    "cancelSubscription": "Cancel Subscription",
+    "subscriptionInfo": "Your subscription will remain active until the end of the current billing period.",
+    "confirmCancelSubscription": "Are you sure you want to cancel the auto-renewal?",
+    "subscriptionCanceled": "Auto-renewal cancelled successfully",
+    "subscriptionCancelError": "Error cancelling subscription",
+    "statusPending": "Pending"
   },
   "Referrals": {
     "title": "Referrals",
