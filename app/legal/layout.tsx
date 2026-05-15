@@ -6,9 +6,5 @@ export default async function LegalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen bg-zinc-950">
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen bg-zinc-950">{children}</div>;
 }

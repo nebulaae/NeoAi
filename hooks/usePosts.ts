@@ -11,7 +11,6 @@ export interface PostInputMedia {
   };
 }
 
-
 export interface Post {
   id: number;
   bot_id: number;

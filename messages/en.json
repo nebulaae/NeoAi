@@ -274,7 +274,11 @@
     "confirmCancelSubscription": "Are you sure you want to cancel the auto-renewal?",
     "subscriptionCanceled": "Auto-renewal cancelled successfully",
     "subscriptionCancelError": "Error cancelling subscription",
-    "statusPending": "Pending"
+    "statusPending": "Pending",
+    "locale": "Locale",
+    "language": "Language",
+    "securityAndApi": "Security & API",
+    "information": "Information"
   },
   "Referrals": {
     "title": "Referrals",

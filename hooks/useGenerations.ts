@@ -32,11 +32,11 @@ export function normalizeResultMedia(
       // Обработка вложенной структуры: input может быть объектом {type, format, input}
       if (typeof m.input === 'object' && m.input !== null) {
         url = m.input.input || '';
-        type = m.input.type === 'media' ? 'image' : (m.input.type || 'image');
+        type = m.input.type === 'media' ? 'image' : m.input.type || 'image';
       } else {
         // m.url или m.input - обычная строка URL
         url = m.url || m.input || '';
-        type = m.type === 'media' ? 'image' : (m.type || 'image');
+        type = m.type === 'media' ? 'image' : m.type || 'image';
       }
 
       return { url, type };
@@ -96,8 +96,8 @@ export const useGenerateAI = () => {
         apiError ||
         (axios.isAxiosError(error)
           ? error.response?.data?.error ||
-          error.response?.data?.message ||
-          'Ошибка генерации'
+            error.response?.data?.message ||
+            'Ошибка генерации'
           : error.message || 'Неизвестная ошибка');
 
       if (

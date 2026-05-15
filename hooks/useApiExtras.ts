@@ -141,13 +141,15 @@ export const useLikePost = () => {
 };
 
 // GET /api/posts
-export const usePosts = (params: {
-  bot_id?: number;
-  user_id?: number;
-  limit?: number;
-  offset?: number;
-  min_likes?: number;
-} = {}) => {
+export const usePosts = (
+  params: {
+    bot_id?: number;
+    user_id?: number;
+    limit?: number;
+    offset?: number;
+    min_likes?: number;
+  } = {}
+) => {
   return useQuery({
     queryKey: ['posts', params],
     queryFn: async () => {

@@ -275,7 +275,11 @@
     "confirmCancelSubscription": "Вы действительно хотите отменить автопродление подписки?",
     "subscriptionCanceled": "Автопродление успешно отменено",
     "subscriptionCancelError": "Ошибка при отмене подписки",
-    "statusPending": "В ожидании"
+    "statusPending": "В ожидании",
+    "locale": "Локализация",
+    "language": "Язык",
+    "securityAndApi": "Безопасность и API",
+    "information": "Информация"
   },
   "Trends": {
     "title": "Тренды",

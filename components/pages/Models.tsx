@@ -84,7 +84,7 @@ export const Models = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 px-6 py-5 bg-black/60 backdrop-blur-2xl border-b border-white/5">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-[26px] font-bold tracking-tight text-white">
+          <h1 className="text-[34px] font-black tracking-tighter leading-none text-[#007AFF]">
             {t('title')}
           </h1>
         </div>
@@ -121,39 +121,42 @@ export const Models = () => {
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-4">
         {/* Assistants Section (only on 'all' tab or 'text') */}
-        {(tab === 'all' || tab === 'text') && !rolesLoading && roles && roles.length > 0 && (
-          <section className="py-6">
-            <h2 className="text-[14px] font-bold uppercase tracking-widest text-white/30 mb-4 px-2">
-              {t('aiAssistants') || 'AI Assistants'}
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {roles.map((role) => (
-                <button
-                  key={role.id}
-                  onClick={() => handleRoleClick(role.id)}
-                  className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-white/20 transition-all group active:scale-95"
-                >
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shadow-lg transition-transform group-hover:scale-105">
-                     <Avatar className="size-full rounded-none">
+        {(tab === 'all' || tab === 'text') &&
+          !rolesLoading &&
+          roles &&
+          roles.length > 0 && (
+            <section className="py-6">
+              <h2 className="text-[14px] font-bold uppercase tracking-widest text-white/30 mb-4 px-2">
+                {t('aiAssistants') || 'AI Assistants'}
+              </h2>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-1">
+                {roles.map((role) => (
+                  <button
+                    key={role.id}
+                    onClick={() => handleRoleClick(role.id)}
+                    className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-white/20 transition-all group active:scale-95 shrink-0 w-[160px]"
+                  >
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shadow-lg transition-transform group-hover:scale-105">
+                      <Avatar className="size-full rounded-none">
                         <AvatarImage src={role.image || ''} />
                         <AvatarFallback className="text-xl bg-zinc-800">
                           {localize(role.label).slice(0, 1)}
                         </AvatarFallback>
-                     </Avatar>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[15px] font-bold text-white group-hover:text-[#007AFF] transition-colors">
-                      {localize(role.label)}
-                    </p>
-                    <p className="text-[11px] text-white/40 line-clamp-1 mt-0.5">
-                      {localize(role.description)}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+                      </Avatar>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[15px] font-bold text-white group-hover:text-[#007AFF] transition-colors line-clamp-1">
+                        {localize(role.label)}
+                      </p>
+                      <p className="text-[11px] text-white/40 line-clamp-1 mt-0.5">
+                        {localize(role.description)}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
         {/* Models Section */}
         <section className="py-6">
@@ -169,12 +172,15 @@ export const Models = () => {
               </div>
             ) : (
               filtered.map((m: any) => {
-                const defVersion = m.versions?.find((v: any) => v.default) || m.versions?.[0];
+                const defVersion =
+                  m.versions?.find((v: any) => v.default) || m.versions?.[0];
                 const cost = defVersion?.cost ?? 1;
                 const catKey = m.mainCategory || '';
                 const catIcon = CAT_ICON[catKey] || '✦';
-                const avatarUrl = m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=ffffff&size=128`;
-                
+                const avatarUrl =
+                  m.avatar ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(m.model_name)}&background=18181b&color=ffffff&size=128`;
+
                 return (
                   <button
                     key={m.tech_name}
@@ -205,9 +211,11 @@ export const Models = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[13px] font-bold text-white/60">
-                         ◈ {cost}
+                        ◈ {cost}
                       </div>
-                      <span className="text-white/20 group-hover:text-white transition-colors">›</span>
+                      <span className="text-white/20 group-hover:text-white transition-colors">
+                        ›
+                      </span>
                     </div>
                   </button>
                 );
