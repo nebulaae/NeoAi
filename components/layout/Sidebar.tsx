@@ -43,14 +43,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="floating" collapsible="icon">
-      <SidebarContent
-        className={cn(
-          'rounded-xl py-1',
-          'bg-black/65 backdrop-blur-3xl backdrop-saturate-200',
-          'border border-white/22',
-          'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_32px_rgba(0,0,0,0.38)]'
-        )}
-      >
+      <SidebarContent className={cn('rounded-xl py-1')}>
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 py-2">
             <Image
@@ -86,13 +79,13 @@ export function AppSidebar() {
                           'active:scale-[0.96]',
                           active
                             ? cn(
-                                'bg-white/[.14] backdrop-blur-xl',
+                                'backdrop-blur-xl',
                                 'border border-white/18',
                                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.20),0_4px_12px_rgba(0,0,0,0.18)]'
                               )
                             : isCreate
                               ? cn(
-                                  'bg-zinc-800 backdrop-blur-xl',
+                                  'bg-[#007AFF] backdrop-blur-xl',
                                   '',
                                   'text-white'
                                 )

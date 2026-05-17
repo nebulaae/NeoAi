@@ -21,7 +21,7 @@ export default function RootLayout({
           просто через margin auto внутри самих страниц (max-w: 760px).
         */}
         <main
-          className="page-content"
+          className="page-content flex flex-col items-center"
           style={{
             /* Prevent any horizontal scroll leaking from children */
             overflowX: 'hidden',
@@ -29,7 +29,9 @@ export default function RootLayout({
             minHeight: '100svh',
           }}
         >
-          {children}
+          <div className="w-full max-w-2xl flex flex-col flex-1 pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
+            {children}
+          </div>
         </main>
 
         <BottomBar />

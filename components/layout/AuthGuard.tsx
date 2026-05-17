@@ -35,9 +35,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!user && !graceRef.current) {
-      router.replace('/login');
-    }
+    // Remove the router.replace('/login') to keep all pages open
   }, [user, isLoading]);
 
   if (isLoading || (!user && isInsideWebApp())) {
@@ -46,6 +44,33 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-2xl bg-foreground/10 animate-pulse" />
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && !graceRef.current) {
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center p-6 min-h-[80vh] w-full">
+        <div className="p-8 rounded-[32px] bg-zinc-900/60 border border-white/5 flex flex-col items-center text-center gap-6 shadow-2xl backdrop-blur-3xl backdrop-saturate-200 max-w-sm w-full material-chrome">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+            <span className="text-[32px]">🔒</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-[22px] font-black tracking-tight text-white">
+              Вы не зарегистрированы
+            </h2>
+            <p className="text-[14px] text-white/50 font-medium leading-relaxed">
+              Пожалуйста, войдите в аккаунт, чтобы получить полный доступ ко
+              всем функциям платформы.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/login')}
+            className="w-full py-4 rounded-xl bg-white/10 border border-white/10 text-white font-bold text-[15px] hover:bg-white/15 active:scale-95 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+          >
+            Войти в аккаунт
+          </button>
         </div>
       </div>
     );

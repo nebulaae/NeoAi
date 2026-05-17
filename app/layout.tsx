@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
+import { GeistSans } from 'geist/font/sans';
 import { TelegramProvider } from './providers/TelegramProvider';
 import { MaxProvider } from './providers/MaxProvider';
 import { QueryProvider } from './providers/QueryProvider';
@@ -9,7 +10,6 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { PlatformScripts } from './providers/PlatformScripts';
 
-import ErudaInit from './providers/ErudaInit';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="dark">
+    <html lang={locale} className={`dark ${GeistSans.className}`}>
       <head>
         {/*
           PlatformScripts грузит SDK Telegram и Max безусловно.
@@ -41,7 +41,7 @@ export default async function RootLayout({
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
       </head>
-      <body style={{ fontFamily: 'var(--font-sf)', margin: 0 }}>
+      <body style={{ fontFamily: GeistSans.style.fontFamily, margin: 0 }}>
         <QueryProvider>
           <BotProvider>
             <AuthProvider>

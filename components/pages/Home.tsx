@@ -21,7 +21,7 @@ export const Home = () => {
   };
 
   return (
-    <div className="pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] max-w-2xl mx-auto min-h-screen bg-black">
+    <div className="min-h-screen bg-black">
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-black/60 backdrop-blur-2xl border-b border-white/5">
         <div className="flex items-center gap-3">
@@ -52,11 +52,11 @@ export const Home = () => {
             onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
             className="flex items-center gap-1 px-4 py-2 rounded-full bg-[#007AFF]/10 border border-[#007AFF]/30 text-[#007AFF] text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,122,255,0.3)]"
           >
-            <span className="text-[16px]">◈</span>
-            <span>{Math.trunc(tokens)}</span>
             <span className="ml-1 opacity-60 font-medium">
               {t('buy') || 'Buy'}
             </span>
+            <span className="text-[16px]">◈</span>
+            <span>{Math.trunc(tokens)}</span>
           </button>
         </div>
       </header>

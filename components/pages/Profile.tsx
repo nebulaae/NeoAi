@@ -147,7 +147,7 @@ export const Profile = () => {
   ];
 
   return (
-    <div className="pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] max-w-2xl mx-auto bg-black min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="bg-black min-h-screen text-white font-sans overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 px-6 py-6 bg-black/60 backdrop-blur-3xl border-b border-white/5">
         <h1 className="text-[28px] font-black tracking-tight text-[#007AFF] leading-none mb-6">
