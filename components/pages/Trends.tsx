@@ -241,10 +241,14 @@ const TrendCard = memo(
     const onClick = useCallback(() => {
       haptic.light();
 
+      try {
+        sessionStorage.setItem(`trend_post_${post.id}`, JSON.stringify(post));
+      } catch {}
+
       router.push(
         `/trend/${post.id}`
       );
-    }, [post.id, router, haptic]);
+    }, [post.id, post, router, haptic]);
 
     const result = post.result as any;
 

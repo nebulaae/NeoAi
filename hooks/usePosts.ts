@@ -70,6 +70,19 @@ export const usePosts = (params: GetPostsParams = {}) => {
   });
 };
 
+export const usePost = (id: number | string | null | undefined) => {
+  return useQuery({
+    queryKey: ['posts', id],
+    queryFn: async () => {
+      const { data } = await api.get(`/api/posts/${id}`, {
+        params: { skipUserId: true },
+      });
+      return data as Post;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useInfinitePosts = (params: any = {}) => {
   return useInfiniteQuery({
     queryKey: ['posts', 'infinite'],
