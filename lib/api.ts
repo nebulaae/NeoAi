@@ -8,6 +8,7 @@ const AUTH_FREE_PATHS = [
   '/api/auth/tma',
   '/api/auth/telegram',
   '/api/bot',
+  '/api/posts',
 ];
 
 function isAuthFreePath(url?: string): boolean {
@@ -98,11 +99,18 @@ api.interceptors.response.use(
       localStorage.removeItem('session_user');
       localStorage.removeItem('auth_user_id');
       sessionStorage.removeItem('tg_user');
-      if (
-        typeof window !== 'undefined' &&
-        !window.location.pathname.includes('/login')
-      ) {
-        window.location.href = '/login';
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname;
+        const pathWithoutLocale = path.replace(/^\/[a-z]{2}(-[A-Z]{2})?(\/|$)/, '/') || '/';
+        
+        if (
+          !pathWithoutLocale.includes('/login') &&
+          pathWithoutLocale !== '/' &&
+          !pathWithoutLocale.startsWith('/trends') &&
+          !pathWithoutLocale.startsWith('/trend')
+        ) {
+          // window.location.href = '/login
+        }
       }
     }
     return Promise.reject(error);

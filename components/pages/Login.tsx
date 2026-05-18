@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { LoginButton } from '@telegram-auth/react';
 import {
   Loader2,
   Mail,
@@ -147,6 +148,7 @@ export const Login = () => {
   const { user, login, isLoading: authLoading } = useAuth();
   const { bot } = useBot();
   const haptic = useHaptic();
+  const locale = useLocale();
   const t = useTranslations('Login');
   const tLegal = useTranslations('Legal');
 
@@ -241,6 +243,25 @@ export const Login = () => {
     }
   };
 
+  const handleTelegramAuth = async (tgUser: any) => {
+    try {
+      const { data } = await api.post('/api/auth/telegram', {
+        ...tgUser,
+        bot_id: bot?.bot_id,
+      });
+      localStorage.setItem('auth_token', data.token);
+      if (data.user?.id)
+        localStorage.setItem('auth_user_id', String(data.user.id));
+      login(data.user);
+      haptic.success();
+      toast.success(t('loginSuccess'));
+      router.replace('/');
+    } catch {
+      haptic.error();
+      toast.error(t('loginError'));
+    }
+  };
+
   /* ── Auto-login screen ── */
   if (autoLogging) {
     return (
@@ -317,14 +338,14 @@ export const Login = () => {
                 </div>
 
                 {/* Legal */}
-                <div className="mt-7 flex justify-center gap-6">
+                {/* <div className="mt-7 flex justify-center gap-6">
                   <Link href="/legal/offer" className="text-[13px] font-semibold text-white/30 hover:text-white transition-colors">
                     {tLegal('offer')}
                   </Link>
                   <Link href="/legal/privacy" className="text-[13px] font-semibold text-white/30 hover:text-white transition-colors">
                     {tLegal('privacy')}
                   </Link>
-                </div>
+                </div> */}
               </div>
             ) : (
               /* ── Email form ── */
@@ -399,6 +420,22 @@ export const Login = () => {
                     </span>
                   </button>
                 </div>
+              </div>
+            )}
+            {bot?.bot_username ? (
+              <div className="flex justify-center mt-2">
+                <LoginButton
+                  botUsername={bot.bot_username}
+                  onAuthCallback={handleTelegramAuth}
+                  showAvatar={false}
+                  buttonSize="large"
+                  cornerRadius={12}
+                  lang={locale === 'ru' ? 'ru' : 'en'}
+                />
+              </div>
+            ) : (
+              <div className="flex justify-center py-1.5">
+                <Loader2 size={18} className="animate-spin text-white/25" />
               </div>
             )}
           </div>

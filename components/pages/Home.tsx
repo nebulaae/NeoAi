@@ -1,8 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { usePaymentLink, usePosts } from '@/hooks/useApiExtras';
+import { PaymentDialog } from '@/components/dialogs/PaymentDialog';
 import { useTranslations } from 'next-intl';
 import { Zap, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -15,6 +17,7 @@ export const Home = () => {
   const { data: postsData, isLoading: postsLoading } = usePosts({ limit: 12 });
   const posts = postsData?.items || [];
   const tokens = userData?.user?.tokens ?? 0;
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   const handleTrendClick = (id: number) => {
     router.push(`/trend/${id}`);
@@ -49,7 +52,9 @@ export const Home = () => {
             <span>VPN</span>
           </button> */}
           <button
-            onClick={() => paymentUrl && window.open(paymentUrl, '_blank')}
+            onClick={() => {
+              if (paymentUrl) setIsPaymentOpen(true);
+            }}
             className="flex items-center gap-1 px-4 py-2 rounded-full bg-[#007AFF]/10 border border-[#007AFF]/30 text-[#007AFF] text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,122,255,0.3)]"
           >
             <span className="ml-1 opacity-60 font-medium">
@@ -179,6 +184,14 @@ export const Home = () => {
       <style>{`
         @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
       `}</style>
+      
+      {paymentUrl && (
+        <PaymentDialog
+          url={paymentUrl}
+          open={isPaymentOpen}
+          onOpenChange={setIsPaymentOpen}
+        />
+      )}
     </div>
   );
 };

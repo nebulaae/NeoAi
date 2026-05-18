@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { NotAuthorized } from '@/components/states/Error';
 
 function isInsideWebApp(): boolean {
   if (typeof window === 'undefined') return false;
@@ -19,6 +20,7 @@ function isInsideWebApp(): boolean {
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   // Даём провайдерам чуть времени на тихий авто-вход внутри WebApp
   const graceRef = useRef<boolean>(true);
 
@@ -49,34 +51,22 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const pathWithoutLocale = pathname?.replace(/^\/[a-z]{2}(-[A-Z]{2})?(\/|$)/, '/') || '/';
+  
+  const isPublic =
+    pathWithoutLocale === '/' ||
+    pathWithoutLocale.startsWith('/trends') ||
+    pathWithoutLocale.startsWith('/trend');
+
   if (!user && !graceRef.current) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center p-6 min-h-[80vh] w-full">
-        <div className="p-8 rounded-[32px] bg-zinc-900/60 border border-white/5 flex flex-col items-center text-center gap-6 shadow-2xl backdrop-blur-3xl backdrop-saturate-200 max-w-sm w-full material-chrome">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-            <span className="text-[32px]">🔒</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-[22px] font-black tracking-tight text-white">
-              Вы не зарегистрированы
-            </h2>
-            <p className="text-[14px] text-white/50 font-medium leading-relaxed">
-              Пожалуйста, войдите в аккаунт, чтобы получить полный доступ ко
-              всем функциям платформы.
-            </p>
-          </div>
-          <button
-            onClick={() => router.push('/login')}
-            className="w-full py-4 rounded-xl bg-white/10 border border-white/10 text-white font-bold text-[15px] hover:bg-white/15 active:scale-95 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-          >
-            Войти в аккаунт
-          </button>
-        </div>
-      </div>
-    );
+    if (isPublic) return <>{children}</>;
+    return <NotAuthorized />;
   }
 
-  if (!user) return null;
+  if (!user) {
+    if (isPublic) return <>{children}</>;
+    return null;
+  }
 
   return <>{children}</>;
 }

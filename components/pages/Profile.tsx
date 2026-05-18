@@ -41,6 +41,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/layout/LocaleSwitcher';
+import { PaymentDialog } from '@/components/dialogs/PaymentDialog';
 
 type TabType = 'profile' | 'account' | 'partnership';
 
@@ -64,6 +65,8 @@ export const Profile = () => {
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [copiedRef, setCopiedRef] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   const tokens = userData?.user?.tokens ?? 0;
   const isPremium = userData?.user?.premium ?? false;
@@ -88,7 +91,8 @@ export const Profile = () => {
     const PAYMENT_LINK_KEY = `payment_link_${botId}`;
     const saved = localStorage.getItem(PAYMENT_LINK_KEY);
     if (saved) {
-      window.open(saved, '_blank');
+      setPaymentUrl(saved);
+      setIsPaymentOpen(true);
       return;
     }
     import('@/lib/api')
@@ -98,7 +102,8 @@ export const Profile = () => {
           .then(({ data }) => {
             if (data?.success && data?.url) {
               localStorage.setItem(PAYMENT_LINK_KEY, data.url);
-              window.open(data.url, '_blank');
+              setPaymentUrl(data.url);
+              setIsPaymentOpen(true);
             } else {
               toast.error(t('paymentLinkUnavailable'));
             }
@@ -523,6 +528,12 @@ export const Profile = () => {
           </div>
         )}
       </div>
+
+      <PaymentDialog
+        url={paymentUrl}
+        open={isPaymentOpen}
+        onOpenChange={setIsPaymentOpen}
+      />
     </div>
   );
 };

@@ -10,8 +10,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGuard>
-      <SidebarProvider open={false}>
+    <SidebarProvider open={false}>
         <AppSidebar />
 
         {/*
@@ -30,12 +29,11 @@ export default function RootLayout({
           }}
         >
           <div className="w-full max-w-2xl flex flex-col flex-1 pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
-            {children}
+            <AuthGuard>{children}</AuthGuard>
           </div>
         </main>
 
         <BottomBar />
       </SidebarProvider>
-    </AuthGuard>
   );
 }

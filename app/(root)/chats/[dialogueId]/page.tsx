@@ -31,6 +31,11 @@ import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn, localize } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 /* ── Types ── */
 interface MediaItem {
@@ -453,9 +458,9 @@ export default function ChatPage() {
     msgsFromHistory.length === 0 && !isHistoryLoading && !!roles;
 
   return (
-    <div className="flex flex-col h-svh max-w-2xl mx-auto w-full bg-black text-white overflow-hidden">
+    <div className="flex flex-col h-dvh max-w-2xl mx-auto w-full bg-black text-white overflow-hidden -mb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] relative z-40">
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 px-6 py-4 bg-black/60 backdrop-blur-2xl border-b border-white/5 flex items-center gap-4">
+      <header className="sticky top-0 z-50 px-6 py-4 flex items-center gap-4">
         <button
           onClick={() => {
             haptic.light();
@@ -626,8 +631,17 @@ export default function ChatPage() {
                     ) : (
                       <div className="flex flex-col gap-3 w-full">
                         {msg.result?.text && (
-                          <div className="px-5 py-3.5 rounded-[24px_24px_24px_4px] bg-white/5 border border-white/5 shadow-inner text-[15px] leading-relaxed">
-                            {msg.result.text}
+                          <div className="px-5 py-3.5 rounded-[24px_24px_24px_4px] bg-white/5 border border-white/5 shadow-inner text-[15px] leading-relaxed wrap-break-word prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-white/10 prose-pre:p-4 prose-pre:rounded-2xl">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm, remarkMath]}
+                              rehypePlugins={[rehypeKatex]}
+                            >
+                              {msg.result.text
+                                .replace(/\\\[/g, () => '\n$$\n')
+                                .replace(/\\\]/g, () => '\n$$\n')
+                                .replace(/\\\(/g, () => '$')
+                                .replace(/\\\)/g, () => '$')}
+                            </ReactMarkdown>
                           </div>
                         )}
                         {resultMedia.length > 0 && (
@@ -787,7 +801,7 @@ export default function ChatPage() {
       )}
 
       {/* ── Input Bar ── */}
-      <div className="px-4 pt-4 pb-[calc(16px+max(12px,env(safe-area-inset-bottom)))] bg-zinc-950/80 backdrop-blur-3xl border-t border-white/5">
+      <div className="px-4 pt-4 pb-[calc(16px+max(12px,env(safe-area-inset-bottom)))] lg:pb-4 lg:mb-6 lg:rounded-full bg-zinc-950/80 lg:bg-zinc-950/80 lg:backdrop-blur-none backdrop-blur-3xl border-t border-white/5 lg:border-transparent z-50">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
           {uploadedFiles.length > 0 && (
             <div className="flex gap-2 flex-wrap px-2">
@@ -842,7 +856,7 @@ export default function ChatPage() {
               placeholder={
                 isHistoryLoading ? t('loadingPlaceholder') : t('placeholder')
               }
-              className="flex-1 bg-white/5 border border-white/5 rounded-2xl px-4 py-3 text-[16px] leading-tight focus:outline-none focus:border-[#007AFF]/30 transition-all resize-none max-h-32 min-h-[48px] no-scrollbar"
+              className="flex-1 bg-white/5 border border-white/5 lg:bg-transparent lg:border-transparent rounded-2xl px-4 py-3 text-[16px] leading-tight focus:outline-none focus:border-[#007AFF]/30 lg:focus:border-transparent transition-all resize-none max-h-32 min-h-[48px] no-scrollbar lg:shadow-none"
               rows={1}
             />
             <button

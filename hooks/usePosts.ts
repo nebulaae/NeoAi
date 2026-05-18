@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 export interface PostInputMedia {
@@ -57,6 +57,25 @@ export const usePosts = (params: GetPostsParams = {}) => {
     queryFn: async () => {
       const { data } = await api.get('/api/posts', { params });
       return data;
+    },
+  });
+};
+
+export const useInfinitePosts = (params: GetPostsParams = {}) => {
+  return useInfiniteQuery({
+    queryKey: ['posts', 'infinite', params],
+    queryFn: async ({ pageParam = 0 }) => {
+      const { data } = await api.get('/api/posts', {
+        params: { ...params, offset: pageParam },
+      });
+      return data;
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.items && lastPage.items.length === (params.limit || 12)) {
+        return allPages.length * (params.limit || 12);
+      }
+      return undefined;
     },
   });
 };

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useTranslations } from 'next-intl';
-import { usePosts, Post } from '@/hooks/usePosts';
+import { useInfinitePosts, Post } from '@/hooks/usePosts';
 import { useUser } from '@/hooks/useUser';
 import { useAIModels } from '@/hooks/useModels';
 import { useGenerateAI, convertMediaToInputs } from '@/hooks/useGenerations';
@@ -40,8 +40,24 @@ export const Trends = () => {
     data: postsData,
     isLoading: postsLoading,
     isError,
-  } = usePosts({ limit: 50 });
-  const posts = postsData?.items || [];
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfinitePosts({ limit: 12 });
+  
+  const posts = postsData?.pages.flatMap((page) => page.items) || [];
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isFetchingNextPage) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage) {
+        fetchNextPage();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   useEffect(() => {
     if (postParam && posts.length > 0) {
@@ -97,16 +113,14 @@ export const Trends = () => {
                       className="aspect-3/4 rounded-3xl bg-zinc-900 border border-white/5 animate-pulse"
                     />
                   ))
-                : posts.map((post: Post) => (
-                    <TrendCard
-                      key={post.id}
-                      post={post}
-                      onClick={() => {
-                        haptic.light();
-                        router.push(`/trend/${post.id}`);
-                      }}
-                    />
-                  ))}
+                : posts.map((post: Post, index: number) => {
+                    const isLast = posts.length === index + 1;
+                    return (
+                      <div ref={isLast ? lastPostElementRef : null} key={post.id}>
+                        <TrendCard post={post} />
+                      </div>
+                    );
+                  })}
             </div>
           </motion.div>
         ) : (
@@ -124,8 +138,16 @@ export const Trends = () => {
   );
 };
 
-const TrendCard = ({ post, onClick }: { post: Post; onClick: () => void }) => {
+const TrendCard = memo(({ post }: { post: Post }) => {
   const t = useTranslations('Trends');
+  const router = useRouter();
+  const haptic = useHaptic();
+  
+  const onClick = useCallback(() => {
+    haptic.light();
+    router.push(`/trend/${post.id}`);
+  }, [post.id, router, haptic]);
+
   const media = (post.result as any)?.media?.[0] || (post.result as any);
   const isVideo =
     media?.type === 'video' ||
@@ -200,7 +222,8 @@ const TrendCard = ({ post, onClick }: { post: Post; onClick: () => void }) => {
       </div>
     </motion.button>
   );
-};
+});
+TrendCard.displayName = 'TrendCard';
 
 export const TrendDetail = ({
   post,

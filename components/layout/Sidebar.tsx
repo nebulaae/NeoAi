@@ -33,10 +33,10 @@ export function AppSidebar() {
     { id: 5, href: '/profile', label: t('profile'), icon: UserRound },
   ] as const;
 
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) router.replace('/login');
-  }, [router]);
+  // useEffect(() => {
+  //   const token = localStorage.getItem('auth_token');
+  //   if (!token) router.replace('/login');
+  // }, [router]);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
