@@ -70,11 +70,9 @@ export const usePosts = (params: GetPostsParams = {}) => {
   });
 };
 
-export const useInfinitePosts = (
-  params: Omit<GetPostsParams, 'page'> = {}
-) => {
-  return useInfiniteQuery<PostsResponse>({
-    queryKey: ['posts', 'infinite', params],
+export const useInfinitePosts = (params: any = {}) => {
+  return useInfiniteQuery({
+    queryKey: ['posts', 'infinite'],
 
     queryFn: async ({ pageParam = 1 }) => {
       const { data } = await api.get('/api/posts', {
@@ -82,6 +80,9 @@ export const useInfinitePosts = (
           ...params,
           page: pageParam,
           limit: params.limit || 12,
+
+          // 💣 CRITICAL FIX
+          skipUserId: true,
         },
       });
 
@@ -91,9 +92,8 @@ export const useInfinitePosts = (
     initialPageParam: 1,
 
     getNextPageParam: (lastPage) => {
-      return lastPage.hasNextPage
-        ? lastPage.page + 1
-        : undefined;
+      if (!lastPage?.hasNextPage) return undefined;
+      return lastPage.page + 1;
     },
   });
 };
