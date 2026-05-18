@@ -47,8 +47,17 @@ export interface GetPostsParams {
   bot_id?: number;
   user_id?: number;
   limit?: number;
-  offset?: number;
+  page?: number;
   min_likes?: number;
+}
+export interface PostsResponse {
+  success: boolean;
+  items: Post[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
 }
 
 export const usePosts = (params: GetPostsParams = {}) => {
@@ -61,21 +70,30 @@ export const usePosts = (params: GetPostsParams = {}) => {
   });
 };
 
-export const useInfinitePosts = (params: GetPostsParams = {}) => {
-  return useInfiniteQuery({
+export const useInfinitePosts = (
+  params: Omit<GetPostsParams, 'page'> = {}
+) => {
+  return useInfiniteQuery<PostsResponse>({
     queryKey: ['posts', 'infinite', params],
-    queryFn: async ({ pageParam = 0 }) => {
+
+    queryFn: async ({ pageParam = 1 }) => {
       const { data } = await api.get('/api/posts', {
-        params: { ...params, offset: pageParam },
+        params: {
+          ...params,
+          page: pageParam,
+          limit: params.limit || 12,
+        },
       });
+
       return data;
     },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.items && lastPage.items.length === (params.limit || 12)) {
-        return allPages.length * (params.limit || 12);
-      }
-      return undefined;
+
+    initialPageParam: 1,
+
+    getNextPageParam: (lastPage) => {
+      return lastPage.hasNextPage
+        ? lastPage.page + 1
+        : undefined;
     },
   });
 };

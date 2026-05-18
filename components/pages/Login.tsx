@@ -243,24 +243,39 @@ export const Login = () => {
     }
   };
 
-  const handleTelegramAuth = async (tgUser: any) => {
-    try {
-      const { data } = await api.post('/api/auth/telegram', {
-        ...tgUser,
-        bot_id: bot?.bot_id,
-      });
-      localStorage.setItem('auth_token', data.token);
-      if (data.user?.id)
-        localStorage.setItem('auth_user_id', String(data.user.id));
-      login(data.user);
-      haptic.success();
-      toast.success(t('loginSuccess'));
-      router.replace('/');
-    } catch {
-      haptic.error();
-      toast.error(t('loginError'));
-    }
-  };
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (!event.data?.id) return;
+
+      try {
+        const { data } = await api.post('/api/auth/telegram', {
+          ...event.data,
+          bot_id: bot?.bot_id,
+        });
+
+        localStorage.setItem('auth_token', data.token);
+
+        if (data.user?.id) {
+          localStorage.setItem(
+            'auth_user_id',
+            String(data.user.id)
+          );
+        }
+
+        login(data.user);
+        haptic.success();
+        router.replace('/');
+      } catch {
+        haptic.error();
+        toast.error(t('loginError'));
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () =>
+      window.removeEventListener('message', handleMessage);
+  }, [bot, login, router, haptic, t]);
 
   /* ── Auto-login screen ── */
   if (autoLogging) {
@@ -423,15 +438,48 @@ export const Login = () => {
               </div>
             )}
             {bot?.bot_username ? (
-              <div className="flex justify-center mt-2">
-                <LoginButton
-                  botUsername={bot.bot_username}
-                  onAuthCallback={handleTelegramAuth}
-                  showAvatar={false}
-                  buttonSize="large"
-                  cornerRadius={12}
-                  lang={locale === 'ru' ? 'ru' : 'en'}
-                />
+              <div className="flex justify-center mt-2.5">
+                <button
+                  onClick={() => {
+                    window.open(
+                      `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${window.location.origin}&request_access=write`,
+                      'telegram-auth',
+                      'width=550,height=670'
+                    );
+                  }}
+                  className={cn(
+                    'group relative overflow-hidden',
+                    'w-full py-5 rounded-xl',
+                    'bg-[#229ED9]',
+                    'hover:bg-[#1d8ec5]',
+                    'transition-all duration-300',
+                    'active:scale-[0.98]',
+                    'shadow-[0_20px_50px_rgba(34,158,217,0.35)]',
+                    'border border-white/10'
+                  )}
+                >
+                  {/* liquid highlight */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-70" />
+
+                  {/* glow */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute inset-0 bg-white/10 blur-2xl" />
+                  </div>
+
+                  <div className="relative z-10 flex items-center justify-center gap-3">
+                    <Image
+                      src="/telegram.png"
+                      width={22}
+                      height={22}
+                      alt="Telegram"
+                      className="drop-shadow"
+                    />
+
+                    <span className="font-black text-[16px] tracking-tight text-white">
+                      {t('continueWithTelegram')}
+                    </span>
+                  </div>
+                </button>
               </div>
             ) : (
               <div className="flex justify-center py-1.5">
