@@ -21,9 +21,20 @@ import {
   AlertCircle,
   Loader2,
   Play,
+  Lock,
+  Camera,
+  CheckCircle2,
+  ChevronLeft,
+  Zap,
 } from 'lucide-react';
 
 import { useHaptic } from '@/hooks/useHaptic';
+import { cn } from '@/lib/utils';
+import { convertMediaToInputs, useGenerateAI } from '@/hooks/useGenerations';
+import { toast } from 'sonner';
+import { useUpload } from '@/hooks/useApiExtras';
+import { useUser } from '@/hooks/useUser';
+import { useAIModels } from '@/hooks/useModels';
 
 const ACCENT_BLUE = '#007AFF';
 
@@ -335,5 +346,298 @@ const TrendCard = memo(
 );
 
 TrendCard.displayName = 'TrendCard';
+
+
+// TrendDetail остаётся без изменений
+export const TrendDetail = ({
+  post,
+  onBack,
+}: {
+  post: Post;
+  onBack: () => void;
+}) => {
+  // ... (весь код TrendDetail без изменений)
+  const t = useTranslations('Trends');
+  const haptic = useHaptic();
+  const generate = useGenerateAI();
+  const upload = useUpload();
+  const { data: userData } = useUser();
+  const { data: allModels } = useAIModels();
+  const router = useRouter();
+
+  const [userMedia, setUserMedia] = useState<
+    Record<number, { url: string; file?: File }>
+  >({});
+  const [userText] = useState<string>(post.inputs?.text || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
+
+  const tokens = userData?.user?.tokens ?? 0;
+  const model = allModels?.find(
+    (m: any) => m.tech_name === post.model_tech_name
+  );
+  const version = model?.versions?.find(
+    (v: any) => v.label === post.version_label
+  );
+  const cost = post.cost ?? version?.cost ?? 15;
+  const canAfford = tokens >= cost;
+
+  const mediaSlots = post.inputs?.media || [];
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || activeMediaIndex === null) return;
+    try {
+      const uploaded = await upload.mutateAsync(file);
+      setUserMedia((prev) => ({
+        ...prev,
+        [activeMediaIndex]: { url: uploaded.url, file },
+      }));
+      toast.success(t('done'));
+    } catch {
+      toast.error(t('error'));
+    }
+    setActiveMediaIndex(null);
+  };
+
+  const handleGenerate = () => {
+    if (!canAfford) {
+      toast.error(t('insufficientCredits'));
+      return;
+    }
+    haptic.medium();
+    const finalMedia = mediaSlots.map((slot, index) => {
+      const override = userMedia[index];
+      const type = slot.type === 'media' ? 'image' : slot.type || 'image';
+      return {
+        type,
+        format: 'url',
+        input: override
+          ? override.url
+          : (slot.input as any)?.input || slot.input,
+      };
+    });
+    const inputs = convertMediaToInputs(userText, finalMedia as any);
+    generate.mutate(
+      {
+        tech_name: post.model_tech_name,
+        version: post.version_label,
+        inputs,
+        params: post.params,
+        post_id: post.id,
+      },
+      {
+        onSuccess: (data) => {
+          if (data.dialogue_id) router.push(`/chats/${data.dialogue_id}`);
+        },
+      }
+    );
+  };
+
+  const mediaUrl = post.result?.url || post.result?.media?.[0]?.input;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.05 }}
+      className="flex flex-col min-h-screen bg-black"
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-50 px-6 py-5 bg-black/60 backdrop-blur-3xl border-b border-white/5 flex items-center gap-4">
+        <button
+          onClick={onBack}
+          className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center transition-all active:scale-90"
+        >
+          <ChevronLeft size={20} className="text-[#007AFF]" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-[17px] font-black tracking-tight text-white truncate leading-tight">
+            {post.inputs?.text || t('title')}
+          </h2>
+          <p className="text-[11px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
+            {post.model_name || 'AI GENERATION'}
+          </p>
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-10">
+        {/* Hero Preview */}
+        <div className="relative aspect-3/4 rounded-[40px] overflow-hidden border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
+          {mediaUrl ? (
+            <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+              <Sparkles className="size-16 text-white/5" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
+          <div className="absolute bottom-8 left-8 right-8">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[24px] flex-1">
+                <p className="text-[11px] font-black text-white/40 uppercase tracking-widest mb-1">
+                  {t('model')}
+                </p>
+                <p className="text-[15px] font-black text-white truncate">
+                  {post.model_name ||
+                    post.model_tech_name.replace(/^sosana\//, '')}
+                </p>
+              </div>
+              <div className="p-4 bg-[#007AFF]/20 backdrop-blur-2xl border border-[#007AFF]/30 rounded-[24px] text-center min-w-[80px]">
+                <p className="text-[11px] font-black text-[#007AFF] uppercase tracking-widest mb-1">
+                  COST
+                </p>
+                <p className="text-[15px] font-black text-white">{cost} ◈</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Configuration Section */}
+        <div className="flex flex-col gap-8">
+          {/* Media Replacement */}
+          {mediaSlots.some((s) => s.input?.reference?.replace) && (
+            <div className="flex flex-col gap-4">
+              <h3 className="text-[13px] font-black uppercase tracking-[0.15em] text-white/30 px-2">
+                {t('uploadMedia')}
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                {mediaSlots.map((slot, index) => {
+                  const { hide, replace } = slot.input?.reference || {};
+                  if (hide && !replace) return null;
+                  const current = userMedia[index];
+                  const originalUrl = (slot.input as any)?.input;
+
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        if (replace || hide) {
+                          setActiveMediaIndex(index);
+                          fileInputRef.current?.click();
+                        }
+                      }}
+                      className={cn(
+                        'relative aspect-square rounded-[32px] overflow-hidden border transition-all flex flex-col items-center justify-center gap-3',
+                        replace || hide
+                          ? 'cursor-pointer active:scale-95 bg-zinc-900/50 border-white/10 hover:border-white/20'
+                          : 'bg-zinc-900 border-transparent',
+                        current &&
+                        'border-[#007AFF]/50 bg-[#007AFF]/5 shadow-[0_0_20px_rgba(0,122,255,0.1)]'
+                      )}
+                    >
+                      {current ? (
+                        <>
+                          <img
+                            src={
+                              current.file
+                                ? URL.createObjectURL(current.file)
+                                : current.url
+                            }
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                          <CheckCircle2
+                            size={32}
+                            className="text-[#007AFF] relative z-10"
+                          />
+                        </>
+                      ) : !hide && originalUrl && originalUrl !== 'null' ? (
+                        <>
+                          <img
+                            src={originalUrl}
+                            className="absolute inset-0 w-full h-full object-cover opacity-30"
+                          />
+                          <Camera
+                            size={24}
+                            className="text-white/40 relative z-10"
+                          />
+                          <p className="text-[11px] font-black text-white/40 uppercase tracking-widest relative z-10">
+                            {t('uploadMediaDesc')}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Camera size={28} className="text-white/20" />
+                          <p className="text-[11px] font-black text-white/20 uppercase tracking-widest">
+                            {t('uploadMediaDesc')}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Prompt Section */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-[13px] font-black uppercase tracking-[0.15em] text-white/30 px-2">
+              {t('prompt')}
+            </h3>
+            {post.inputs?.hide_text ? (
+              <div className="p-6 rounded-[32px] bg-[#007AFF]/5 border border-[#007AFF]/20 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/20 flex items-center justify-center">
+                  <Lock size={20} className="text-[#007AFF]" />
+                </div>
+                <p className="text-[15px] font-bold text-[#007AFF]/70 leading-tight">
+                  {t('promptHidden')}
+                </p>
+              </div>
+            ) : (
+              <div className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5">
+                <p className="text-[16px] font-medium text-white/90 leading-relaxed italic">
+                  "{post.inputs?.text || t('noPrompt')}"
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Sticky Action */}
+      <div className="sticky bottom-0 px-6 pt-6 pb-[calc(24px+max(12px,env(safe-area-inset-bottom)))] bg-black/80 backdrop-blur-3xl border-t border-white/5">
+        <button
+          disabled={generate.isPending}
+          onClick={handleGenerate}
+          className={cn(
+            'w-full h-16 rounded-[24px] flex items-center justify-center gap-3 font-black text-[17px] transition-all active:scale-[0.98] shadow-2xl',
+            canAfford
+              ? 'bg-[#007AFF] text-white shadow-[0_0_30px_rgba(0,122,255,0.4)]'
+              : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'
+          )}
+        >
+          {generate.isPending ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <>
+              {canAfford ? (
+                <>
+                  <Zap size={20} fill="currentColor" />
+                  {t('generate')}
+                </>
+              ) : (
+                <>
+                  <Lock size={18} />
+                  {t('insufficientCredits')}
+                </>
+              )}
+            </>
+          )}
+        </button>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        className="hidden"
+      />
+    </motion.div>
+  );
+};
 
 export default Trends;
