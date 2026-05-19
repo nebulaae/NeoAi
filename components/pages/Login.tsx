@@ -194,9 +194,16 @@ export const Login = () => {
     const initData = await waitForPlatformInitData(8000);
     if (!initData) { setAutoLogging(false); attempted.current = false; return; }
     try {
-      const { data } = await api.post('/api/auth/tma', { initData, platform: env, bot_id: bot.bot_id });
+      const referrerId = localStorage.getItem('pending_referrer_id');
+      const { data } = await api.post('/api/auth/tma', {
+        initData,
+        platform: env,
+        bot_id: bot.bot_id,
+        ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
+      });
       localStorage.setItem('auth_token', data.token);
       if (data.user?.id) localStorage.setItem('auth_user_id', String(data.user.id));
+      localStorage.removeItem('pending_referrer_id'); // Clear on successful login
       login(data.user);
       router.replace('/');
     } catch {
@@ -214,6 +221,7 @@ export const Login = () => {
     try {
       const { data } = await api.post(`/api/auth/login/email?bot_id=${bot?.bot_id}`, { email: email.trim(), password });
       localStorage.setItem('auth_token', data.token);
+      localStorage.removeItem('pending_referrer_id'); // Clear on successful login
       login(data.user);
       haptic.success();
       router.replace('/');
@@ -230,8 +238,16 @@ export const Login = () => {
     if (!email.trim() || !password.trim() || !name.trim()) return toast.error(t('emailEmpty'));
     setEmailLoading(true);
     try {
-      const { data } = await api.post(`/api/auth/register/email?bot_id=${bot?.bot_id}`, { name: name.trim(), email: email.trim(), password });
+      const referrerId = localStorage.getItem('pending_referrer_id');
+      const queryParams = referrerId ? `&referrer_id=${referrerId}&ref=${referrerId}` : '';
+      const { data } = await api.post(`/api/auth/register/email?bot_id=${bot?.bot_id}${queryParams}`, {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
+      });
       localStorage.setItem('auth_token', data.token);
+      localStorage.removeItem('pending_referrer_id'); // Clear on successful register
       login(data.user);
       haptic.success();
       router.replace('/');
@@ -248,9 +264,11 @@ export const Login = () => {
       if (!event.data?.id) return;
 
       try {
+        const referrerId = localStorage.getItem('pending_referrer_id');
         const { data } = await api.post('/api/auth/telegram', {
           ...event.data,
           bot_id: bot?.bot_id,
+          ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
         });
 
         localStorage.setItem('auth_token', data.token);
@@ -262,6 +280,7 @@ export const Login = () => {
           );
         }
 
+        localStorage.removeItem('pending_referrer_id'); // Clear on successful login
         login(data.user);
         haptic.success();
         router.replace('/');

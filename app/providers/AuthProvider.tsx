@@ -26,6 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Capture referral code from URL search params if present
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const ref = searchParams.get('ref');
+      if (ref) {
+        localStorage.setItem('pending_referrer_id', ref);
+      }
+    } catch (e) {
+      console.error('Error capturing ref parameter in AuthProvider:', e);
+    }
+
     try {
       // 1. Bearer JWT токен (Telegram widget login / TMA)
       const token = localStorage.getItem('auth_token');

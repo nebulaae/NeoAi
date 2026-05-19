@@ -432,19 +432,39 @@ export default function ChatPage() {
     }
   };
 
-  const handleDownload = (url: string) => {
+  const handleDownload = async (url: string) => {
     haptic.selection();
-    if ((window as any).Telegram?.WebApp?.openLink) {
-      (window as any).Telegram.WebApp.openLink(url);
-    } else {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Response status ' + response.status);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Determine file name from URL path
+      const filename = url.split('/').pop()?.split('?')[0] || 'download';
+      
       const a = document.createElement('a');
-      a.href = url;
-      a.download = '';
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
+      a.href = blobUrl;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (err) {
+      console.warn('[handleDownload] Direct blob download failed, using fallback:', err);
+      if ((window as any).Telegram?.WebApp?.openLink) {
+        (window as any).Telegram.WebApp.openLink(url);
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'download';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     }
   };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
@@ -16,6 +16,7 @@ export const TelegramProvider = ({
   const { user, login } = useAuth();
   const { bot } = useBot();
   const pathname = usePathname();
+  const router = useRouter();
   const expanded = useRef(false);
   const attempted = useRef(false);
   const retryTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,12 +66,14 @@ export const TelegramProvider = ({
       }
 
       try {
+        const referrerId = localStorage.getItem('pending_referrer_id');
         const { data } = await api.post(
           '/api/auth/tma',
           {
             initData,
             platform: 'telegram',
             bot_id: botId,
+            ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
           },
           {
             headers: {
@@ -84,6 +87,7 @@ export const TelegramProvider = ({
         if (data.user?.id) {
           localStorage.setItem('auth_user_id', String(data.user.id));
         }
+        localStorage.removeItem('pending_referrer_id'); // Clear on successful login
         login(data.user);
       } catch (err) {
         console.error('[TelegramProvider] auth/tma error:', err);
@@ -120,6 +124,75 @@ export const TelegramProvider = ({
       }
     };
   }, [pathname, user, bot, doAuth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Only process start_param once per app lifetime in this session to prevent redirect loops when navigating back
+    if (sessionStorage.getItem('start_param_processed')) return;
+
+    const checkAndRedirect = () => {
+      let startParam = '';
+
+      // 1. Check window.Telegram.WebApp.initDataUnsafe
+      try {
+        const tg = (window as any)?.Telegram?.WebApp;
+        if (tg?.initDataUnsafe?.start_param) {
+          startParam = tg.initDataUnsafe.start_param;
+        }
+      } catch (e) {
+        console.error('Error reading start_param from Telegram WebApp:', e);
+      }
+
+      // 2. Fallback: check query parameter tgWebAppStartParam
+      if (!startParam) {
+        try {
+          const searchParams = new URLSearchParams(window.location.search);
+          const urlParam = searchParams.get('tgWebAppStartParam');
+          if (urlParam) {
+            startParam = urlParam;
+          }
+        } catch (e) {
+          console.error('Error reading tgWebAppStartParam from search params:', e);
+        }
+      }
+
+      if (startParam) {
+        // Case 1: Post deep link (e.g. post-123, post-123_ref-456, post-123-ref-456)
+        if (startParam.startsWith('post-')) {
+          const match = startParam.match(/^post-(\d+)/);
+          if (match) {
+            const postId = match[1];
+            sessionStorage.setItem('start_param_processed', 'true');
+            
+            // Also extract referrer if present in post parameter
+            const refMatch = startParam.match(/[_-]ref-(\d+)/);
+            if (refMatch) {
+              const referrerId = refMatch[1];
+              localStorage.setItem('pending_referrer_id', referrerId);
+            }
+            
+            router.replace(`/trend/${postId}`);
+          }
+        } 
+        // Case 2: Pure referral link (e.g. start_param is just user ID, or starts with ref-456)
+        else {
+          const refMatch = startParam.match(/^(?:ref-)?(\d+)$/);
+          if (refMatch) {
+            const referrerId = refMatch[1];
+            localStorage.setItem('pending_referrer_id', referrerId);
+          }
+        }
+      }
+    };
+
+    // Check immediately
+    checkAndRedirect();
+
+    // Check again after a short delay to account for asynchronous SDK initialization
+    const timer = setTimeout(checkAndRedirect, 1000);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return <>{children}</>;
 };

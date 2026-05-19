@@ -13,6 +13,14 @@ const AUTH_FREE_PATHS = [
 
 function isAuthFreePath(url?: string): boolean {
   if (!url) return false;
+  // These specific endpoints under /api/posts require authentication
+  if (
+    url.includes('/api/posts/publish') ||
+    url.includes('/api/posts/like') ||
+    url.includes('/api/posts/comment')
+  ) {
+    return false;
+  }
   return AUTH_FREE_PATHS.some((p) => url.includes(p));
 }
 
