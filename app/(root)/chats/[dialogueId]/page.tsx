@@ -432,40 +432,26 @@ export default function ChatPage() {
     }
   };
 
-  const handleDownload = async (url: string) => {
+  const handleDownload = (url: string) => {
     haptic.selection();
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Response status ' + response.status);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      
-      // Determine file name from URL path
-      const filename = url.split('/').pop()?.split('?')[0] || 'download';
-      
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-    } catch (err) {
-      console.warn('[handleDownload] Direct blob download failed, using fallback:', err);
-      if ((window as any).Telegram?.WebApp?.openLink) {
-        (window as any).Telegram.WebApp.openLink(url);
-      } else {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'download';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+
+    // Create the secure proxy download URL
+    const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
+
+    // For Telegram Mini Apps, use openLink with the proxy URL to trigger native browser's download manager immediately
+    const isTelegram = typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
+    if (isTelegram && (window as any).Telegram?.WebApp?.openLink) {
+      try {
+        const absoluteProxyUrl = new URL(proxyUrl, window.location.origin).toString();
+        (window as any).Telegram.WebApp.openLink(absoluteProxyUrl);
+        return;
+      } catch (err) {
+        console.warn('[handleDownload] Telegram openLink with proxy failed, trying standard download:', err);
       }
     }
+
+    // On standard website, set window.location.href to trigger direct immediate download without navigating away
+    window.location.href = proxyUrl;
   };
 
   const acceptTypes = 'image/*,.heic,video/*,audio/*';
@@ -602,10 +588,10 @@ export default function ChatPage() {
                         {userMedia.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
                             {userMedia.map((m, i) => (
-                              <button
+                              <div
                                 key={i}
                                 onClick={() => setViewerSrc(m)}
-                                className="relative rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all"
+                                className="relative group rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all cursor-pointer"
                               >
                                 {m.type === 'image' ? (
                                   <img
@@ -614,10 +600,21 @@ export default function ChatPage() {
                                   />
                                 ) : (
                                   <div className="w-32 h-32 flex items-center justify-center bg-zinc-800 text-xl">
-                                    🎬
+                                    {m.type === 'video' ? '🎬' : '🎵'}
                                   </div>
                                 )}
-                              </button>
+                                <div className="absolute top-2 right-2 flex gap-2 z-10">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownload(m.url);
+                                    }}
+                                    className="p-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white/90 hover:text-white hover:bg-black/80 transition-colors shadow-lg"
+                                  >
+                                    <Download size={12} />
+                                  </button>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -711,13 +708,13 @@ export default function ChatPage() {
                                           }
                                         />
                                       )}
-                                      <div className="absolute top-3 right-3 flex gap-2 sm:translate-y-[-10px] sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 transition-all duration-300">
+                                      <div className="absolute top-3 right-3 flex gap-2 z-10">
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleDownload(m.url);
                                           }}
-                                          className="p-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white hover:bg-white hover:text-black transition-colors"
+                                          className="p-2 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white/90 hover:text-white hover:bg-black/80 transition-colors shadow-lg"
                                         >
                                           <Download size={16} />
                                         </button>
