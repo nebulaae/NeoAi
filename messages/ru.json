@@ -30,7 +30,9 @@
     "maxFiles": "Максимум {limit} файл(ов) типа {fileType}",
     "dialogue": "Диалог",
     "error": "Ошибка",
-    "publishToTrends": "В Тренды"
+    "publishToTrends": "В Тренды",
+    "close": "Закрыть",
+    "download": "Скачать"
   },
   "Chats": {
     "title": "Чаты",
@@ -297,7 +299,12 @@
     "generate": "Создать похожее",
     "insufficientCredits": "Недостаточно токенов",
     "untitled": "Без названия",
-    "noPrompt": "Без описания"
+    "noPrompt": "Без описания",
+    "shareTrend": "Поделиться трендом",
+    "tgAppLink": "Telegram Ссылка",
+    "tgAppLinkDesc": "Запуск бота с вашей рефкой",
+    "webBrowserLink": "Браузерная Ссылка",
+    "webBrowserLinkDesc": "Открыть в любом браузере"
   },
   "Publish": {
     "title": "Опубликовать в Тренды",

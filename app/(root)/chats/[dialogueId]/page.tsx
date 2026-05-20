@@ -432,26 +432,30 @@ export default function ChatPage() {
     }
   };
 
-  const handleDownload = (url: string) => {
+  const handleDownload = async (url: string) => {
     haptic.selection();
-
-    // Create the secure proxy download URL
     const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
 
-    // For Telegram Mini Apps, use openLink with the proxy URL to trigger native browser's download manager immediately
-    const isTelegram = typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
-    if (isTelegram && (window as any).Telegram?.WebApp?.openLink) {
-      try {
-        const absoluteProxyUrl = new URL(proxyUrl, window.location.origin).toString();
-        (window as any).Telegram.WebApp.openLink(absoluteProxyUrl);
-        return;
-      } catch (err) {
-        console.warn('[handleDownload] Telegram openLink with proxy failed, trying standard download:', err);
-      }
-    }
+    try {
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
 
-    // On standard website, set window.location.href to trigger direct immediate download without navigating away
-    window.location.href = proxyUrl;
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const filename = url.split('/').pop()?.split('?')[0] || 'download';
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.warn('[handleDownload] Blob download failed, falling back to window.location.href:', err);
+      window.location.href = proxyUrl;
+    }
   };
 
   const acceptTypes = 'image/*,.heic,video/*,audio/*';
@@ -596,7 +600,7 @@ export default function ChatPage() {
                                 {m.type === 'image' ? (
                                   <img
                                     src={m.url}
-                                    className="w-32 h-32 object-cover"
+                                    className="w-32 h-full object-cover"
                                   />
                                 ) : (
                                   <div className="w-32 h-32 flex items-center justify-center bg-zinc-800 text-xl">
@@ -801,7 +805,7 @@ export default function ChatPage() {
                 onClick={() => setViewerSrc(null)}
                 className="px-8 py-3 rounded-full bg-white/10 border border-white/10 font-bold text-white transition-all active:scale-95"
               >
-                Close
+                {t('close')}
               </button>
               <button
                 onClick={(e) => {
@@ -810,7 +814,7 @@ export default function ChatPage() {
                 }}
                 className="px-8 py-3 rounded-full bg-[#007AFF] font-black text-black transition-all active:scale-95"
               >
-                Download
+                {t('download')}
               </button>
             </div>
           </div>

@@ -42,6 +42,13 @@ import { useUser } from '@/hooks/useUser';
 import { useAIModels } from '@/hooks/useModels';
 import { useBot } from '@/app/providers/BotProvider';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 const ACCENT_BLUE = '#007AFF';
 
@@ -579,14 +586,14 @@ export const TrendDetail = ({
                             size={24}
                             className="text-white/40 relative z-10"
                           />
-                          <p className="text-[11px] font-black text-white/40 uppercase tracking-widest relative z-10">
+                          <p className="text-[11px] font-black text-white/40 uppercase tracking-widest relative z-10 text-center px-4">
                             {t('uploadMediaDesc')}
                           </p>
                         </>
                       ) : (
                         <>
                           <Camera size={28} className="text-white/20" />
-                          <p className="text-[11px] font-black text-white/20 uppercase tracking-widest">
+                          <p className="text-[11px] font-black text-white/20 uppercase tracking-widest text-center px-4">
                             {t('uploadMediaDesc')}
                           </p>
                         </>
@@ -663,105 +670,78 @@ export const TrendDetail = ({
         className="hidden"
       />
 
-      {/* ── Share Drawer Overlay ── */}
-      <AnimatePresence>
-        {isShareOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsShareOpen(false)}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md"
-            />
-            {/* Drawer */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-w-2xl mx-auto rounded-t-[40px] bg-zinc-950/90 border-t border-white/10 p-8 pb-[calc(24px+max(16px,env(safe-area-inset-bottom)))] backdrop-blur-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.8)]"
+      {/* ── Share Modal Dialog ── */}
+      <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <DialogContent className="bg-zinc-950/90 border-white/10 text-white max-w-md p-6 rounded-[32px] backdrop-blur-2xl shadow-2xl">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-[20px] font-black tracking-tight text-white flex items-center justify-between">
+              <span>{t('shareTrend')}</span>
+            </DialogTitle>
+            <DialogDescription className="hidden" />
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            {/* Telegram App Link */}
+            <button
+              onClick={() => {
+                const botUsername = bot?.bot_username || 'bot';
+                const link = `https://t.me/${botUsername}?startapp=post-${post.id}${userId ? `_ref-${userId}` : ''}`;
+                navigator.clipboard.writeText(link).then(() => {
+                  haptic.success();
+                  setCopiedType('tg');
+                  toast.success(t('refLinkCopied') || 'Ссылка скопирована!');
+                  setTimeout(() => setCopiedType(null), 2000);
+                });
+              }}
+              className="w-full flex items-center gap-4 p-5 rounded-3xl bg-[#007AFF]/10 hover:bg-[#007AFF]/20 border border-[#007AFF]/20 transition-all text-left group active:scale-[0.98]"
             >
-              {/* Handle */}
-              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6 cursor-pointer" onClick={() => setIsShareOpen(false)} />
-              
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-[20px] font-black tracking-tight text-white">
-                  {t('shareTrend') || 'Поделиться трендом'}
-                </h3>
-                <button
-                  onClick={() => setIsShareOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white"
-                >
-                  <X size={16} />
-                </button>
+              <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/20 border border-[#007AFF]/30 flex items-center justify-center text-[#007AFF] group-hover:scale-105 transition-transform shrink-0">
+                <Send size={22} className="ml-[-2px] mt-[1px]" />
               </div>
-
-              <div className="flex flex-col gap-4">
-                {/* Telegram App Link */}
-                <button
-                  onClick={() => {
-                    const botUsername = bot?.bot_username || 'bot';
-                    const link = `https://t.me/${botUsername}?startapp=post-${post.id}${userId ? `_ref-${userId}` : ''}`;
-                    navigator.clipboard.writeText(link).then(() => {
-                      haptic.success();
-                      setCopiedType('tg');
-                      toast.success(t('refLinkCopied') || 'Ссылка скопирована!');
-                      setTimeout(() => setCopiedType(null), 2000);
-                    });
-                  }}
-                  className="w-full flex items-center gap-4 p-5 rounded-3xl bg-[#007AFF]/10 hover:bg-[#007AFF]/20 border border-[#007AFF]/20 transition-all text-left group active:scale-[0.98]"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/20 border border-[#007AFF]/30 flex items-center justify-center text-[#007AFF] group-hover:scale-105 transition-transform shrink-0">
-                    <Send size={22} className="ml-[-2px] mt-[1px]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-black text-white leading-tight">
-                      {t('tgAppLink') || 'Telegram Ссылка'}
-                    </p>
-                    <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider line-clamp-1">
-                      {t('tgAppLinkDesc') || 'Запуск бота с вашей рефкой'}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/45 group-hover:text-[#007AFF] transition-colors shrink-0">
-                    {copiedType === 'tg' ? <CheckCircle2 size={18} className="text-[#007AFF]" /> : <Copy size={16} />}
-                  </div>
-                </button>
-
-                {/* Direct Web Link */}
-                <button
-                  onClick={() => {
-                    const link = `${window.location.origin}/trend/${post.id}${userId ? `?ref=${userId}` : ''}`;
-                    navigator.clipboard.writeText(link).then(() => {
-                      haptic.success();
-                      setCopiedType('web');
-                      toast.success(t('linkCopied') || 'Ссылка скопирована!');
-                      setTimeout(() => setCopiedType(null), 2000);
-                    });
-                  }}
-                  className="w-full flex items-center gap-4 p-5 rounded-3xl bg-zinc-900/40 hover:bg-zinc-900/60 border border-white/5 transition-all text-left group active:scale-[0.98]"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 group-hover:scale-105 transition-transform shrink-0">
-                    <Globe size={22} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-black text-white leading-tight">
-                      {t('webBrowserLink') || 'Браузерная Ссылка'}
-                    </p>
-                    <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider line-clamp-1">
-                      {t('webBrowserLinkDesc') || 'Открыть в любом браузере'}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/45 group-hover:text-[#007AFF] transition-colors shrink-0">
-                    {copiedType === 'web' ? <CheckCircle2 size={18} className="text-[#007AFF]" /> : <Copy size={16} />}
-                  </div>
-                </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-black text-white leading-tight">
+                  {t('tgAppLink')}
+                </p>
+                <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider line-clamp-1">
+                  {t('tgAppLinkDesc')}
+                </p>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/45 group-hover:text-[#007AFF] transition-colors shrink-0">
+                {copiedType === 'tg' ? <CheckCircle2 size={18} className="text-[#007AFF]" /> : <Copy size={16} />}
+              </div>
+            </button>
+
+            {/* Direct Web Link */}
+            <button
+              onClick={() => {
+                const link = `${window.location.origin}/trend/${post.id}${userId ? `?ref=${userId}` : ''}`;
+                navigator.clipboard.writeText(link).then(() => {
+                  haptic.success();
+                  setCopiedType('web');
+                  toast.success(t('linkCopied') || 'Ссылка скопирована!');
+                  setTimeout(() => setCopiedType(null), 2000);
+                });
+              }}
+              className="w-full flex items-center gap-4 p-5 rounded-3xl bg-zinc-900/40 hover:bg-zinc-900/60 border border-white/5 transition-all text-left group active:scale-[0.98]"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 group-hover:scale-105 transition-transform shrink-0">
+                <Globe size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-black text-white leading-tight">
+                  {t('webBrowserLink')}
+                </p>
+                <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider line-clamp-1">
+                  {t('webBrowserLinkDesc')}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/45 group-hover:text-[#007AFF] transition-colors shrink-0">
+                {copiedType === 'web' ? <CheckCircle2 size={18} className="text-[#007AFF]" /> : <Copy size={16} />}
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

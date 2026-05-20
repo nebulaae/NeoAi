@@ -29,7 +29,9 @@
     "modelNotAccept": "Model does not accept {fileType}",
     "maxFiles": "Maximum {limit} file(s) of type {fileType}",
     "dialogue": "Dialogue",
-    "error": "Error"
+    "error": "Error",
+    "close": "Close",
+    "download": "Download"
   },
   "Chats": {
     "title": "Chats",
@@ -280,6 +282,28 @@
     "language": "Language",
     "securityAndApi": "Security & API",
     "information": "Information"
+  },
+  "Trends": {
+    "title": "Trending",
+    "subtitle": "Discover the community's best creations and create your own based on them",
+    "error": "Loading error",
+    "errorDesc": "Failed to load trending feed. Please try again later.",
+    "new": "New",
+    "prompt": "Prompt",
+    "promptHidden": "Prompt hidden by author",
+    "uploadMedia": "Your media",
+    "uploadMediaDesc": "Tap to replace",
+    "done": "Done",
+    "model": "Model",
+    "generate": "Create similar",
+    "insufficientCredits": "Insufficient credits",
+    "untitled": "Untitled",
+    "noPrompt": "No prompt",
+    "shareTrend": "Share Trend",
+    "tgAppLink": "Telegram Link",
+    "tgAppLinkDesc": "Launch bot with your referral",
+    "webBrowserLink": "Browser Link",
+    "webBrowserLinkDesc": "Open in any browser"
   },
   "Referrals": {
     "title": "Referrals",
