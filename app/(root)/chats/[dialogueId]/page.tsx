@@ -1,5 +1,3 @@
-// NEOAI - ЭТО РЕФЕРЕНС. ДЕЛАТЬ ТОЧНО КАК ЗДЕСЬ!!!!!!!!!!!!! ПРОСТО С ДРУГИМ АКЦЕНТНЫМ ЦВЕТОМ И СО СВОЕЙ СТИЛИСТИКОЙ. ФУНКЦИОНАЛ КОПИРОВАТЬ ТОЧНЫЙ
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -78,7 +76,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -93,7 +91,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch {}
+  } catch { }
 }
 
 function getDialogueModel(
@@ -434,30 +432,26 @@ export default function ChatPage() {
     }
   };
 
-  const handleDownload = async (url: string) => {
+  const handleDownload = (url: string) => {
     haptic.selection();
+
+    // Create the secure proxy download URL
     const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
 
-    try {
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      const filename = url.split('/').pop()?.split('?')[0] || 'download';
-      link.download = filename;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      console.warn('[handleDownload] Blob download failed, falling back to window.location.href:', err);
-      window.location.href = proxyUrl;
+    // For Telegram Mini Apps, use openLink with the proxy URL to trigger native browser's download manager immediately
+    const isTelegram = typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
+    if (isTelegram && (window as any).Telegram?.WebApp?.openLink) {
+      try {
+        const absoluteProxyUrl = new URL(proxyUrl, window.location.origin).toString();
+        (window as any).Telegram.WebApp.openLink(absoluteProxyUrl);
+        return;
+      } catch (err) {
+        console.warn('[handleDownload] Telegram openLink with proxy failed, trying standard download:', err);
+      }
     }
+
+    // On standard website, set window.location.href to trigger direct immediate download without navigating away
+    window.location.href = proxyUrl;
   };
 
   const acceptTypes = 'image/*,.heic,video/*,audio/*';

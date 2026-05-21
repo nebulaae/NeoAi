@@ -25,8 +25,6 @@ import { toast as chatsToast } from 'sonner';
 import { useHaptic as useChatsHaptic } from '@/hooks/useHaptic';
 import { useTranslations } from 'next-intl';
 
-const ACCENT_BLUE = '#007AFF';
-
 function cacheDialogueModel(
   dialogueId: string,
   model: string,
