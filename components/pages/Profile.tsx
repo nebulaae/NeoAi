@@ -10,6 +10,7 @@ import {
   useGenerateApiToken,
   useRecurrentStatus,
   useCancelRecurrent,
+  usePaymentLink,
 } from '@/hooks/useApiExtras';
 import { useBot } from '@/app/providers/BotProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -67,6 +68,8 @@ export const Profile = () => {
   const [copiedRef, setCopiedRef] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+
+  const { data: paymentUrlLink } = usePaymentLink();
 
   const tokens = userData?.user?.tokens ?? 0;
   const isPremium = userData?.user?.premium ?? false;
@@ -222,7 +225,7 @@ export const Profile = () => {
 
             {/* Balance Card - FULL WIDTH FIX */}
             <button
-              onClick={handleTopUp}
+              onClick={() => router.push(paymentUrlLink!)}
               className="group relative w-full p-8 rounded-[32px] bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/10 overflow-hidden shadow-2xl active:scale-[0.98] transition-all text-left"
             >
               <div className="relative z-10 w-full">
@@ -528,12 +531,6 @@ export const Profile = () => {
           </div>
         )}
       </div>
-
-      <PaymentDialog
-        url={paymentUrl}
-        open={isPaymentOpen}
-        onOpenChange={setIsPaymentOpen}
-      />
     </div>
   );
 };

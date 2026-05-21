@@ -98,10 +98,7 @@ export const Home = () => {
         </div>
 
         <button
-          onClick={() => {
-            if (paymentUrl)
-              setIsPaymentOpen(true);
-          }}
+          onClick={() => router.push(paymentUrl!)}
           className="flex items-center gap-1 px-4 py-2 rounded-full bg-[#007AFF]/10 border border-[#007AFF]/30 text-[#007AFF] text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,122,255,0.3)]"
         >
           <span className="ml-1 opacity-60 font-medium">
@@ -286,13 +283,13 @@ export const Home = () => {
           )}
       </section>
 
-      {paymentUrl && (
+      {/* {paymentUrl && (
         <PaymentDialog
           url={paymentUrl}
           open={isPaymentOpen}
           onOpenChange={setIsPaymentOpen}
         />
-      )}
+      )} */}
     </div>
   );
 };
