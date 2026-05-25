@@ -136,7 +136,7 @@ export const Trends = () => {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] p-8 text-center bg-black">
+      <div className="flex flex-col items-center justify-center min-h-[80vh] p-8 text-center">
         <div className="w-20 h-20 rounded-[32px] bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6">
           <AlertCircle className="size-10 text-red-500" />
         </div>
@@ -153,7 +153,7 @@ export const Trends = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-32 max-w-2xl mx-auto w-full bg-black">
+    <div className="flex flex-col min-h-screen pb-32 max-w-2xl mx-auto w-full">
       <AnimatePresence mode="wait">
         {!selectedPost ? (
           <motion.div

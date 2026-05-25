@@ -191,7 +191,7 @@ export const Generate = () => {
   if (isWaiting && pendingId) {
     const status = lastMessage?.status;
     return (
-      <div className="flex flex-col items-center justify-center min-h-svh gap-8 px-6 text-center bg-black">
+      <div className="flex flex-col items-center justify-center min-h-svh gap-8 px-6 text-center">
         <div className="w-24 h-24 rounded-[40px] flex items-center justify-center bg-zinc-900 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
           {status === 'completed' ? (
             <CheckCircle2 size={36} className="text-[#007AFF]" />
@@ -245,8 +245,8 @@ export const Generate = () => {
     );
 
     return (
-      <div className="flex flex-col min-h-svh pb-32 bg-black">
-        <header className="sticky top-0 z-50 px-6 py-5 bg-black/60 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between">
+      <div className="flex flex-col min-h-svh pb-32">
+        <header className="sticky top-0 z-50 px-6 py-5 flex items-center justify-between">
           <button
             onClick={() => {
               haptic.light();
@@ -426,8 +426,8 @@ export const Generate = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-svh pb-32 bg-black">
-      <header className="sticky top-0 z-50 px-8 py-8 bg-black/60 backdrop-blur-3xl border-b border-white/5">
+    <div className="flex flex-col min-h-svh pb-32">
+      <header className="sticky top-0 z-50 px-8 py-8">
         <h1 className="text-[34px] font-black tracking-tighter leading-none mb-2 text-[#007AFF]">
           {t('title')}
         </h1>
@@ -476,7 +476,7 @@ export const Generate = () => {
                           }}
                           className="flex items-center gap-4 p-5 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-white/15 transition-all group active:scale-[0.98]"
                         >
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 group-hover:border-[#007AFF]/30 transition-colors">
+                          <div className="w-14 h-14 overflow-hidden rounded-full transition-colors">
                             <Avatar className="size-full">
                               <AvatarImage src={m.avatar} />
                               <AvatarFallback>{m.model_name[0]}</AvatarFallback>

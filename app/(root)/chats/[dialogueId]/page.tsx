@@ -464,7 +464,7 @@ export default function ChatPage() {
     msgsFromHistory.length === 0 && !isHistoryLoading && !!roles;
 
   return (
-    <div className="flex flex-col h-dvh max-w-2xl mx-auto w-full bg-black text-white overflow-hidden -mb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] relative z-40">
+    <div className="flex flex-col h-dvh max-w-2xl mx-auto w-full text-white overflow-hidden -mb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] relative z-40">
       {/* ── Header ── */}
       <header className="sticky top-0 z-50 px-6 py-4 flex items-center gap-4">
         <button
@@ -684,7 +684,7 @@ export default function ChatPage() {
                                 ) : (
                                   <>
                                     <div
-                                      className="relative aspect-square sm:aspect-video cursor-pointer overflow-hidden"
+                                      className="relative  cursor-pointer overflow-hidden"
                                       onClick={() => setViewerSrc(m)}
                                     >
                                       {m.type === 'image' ? (

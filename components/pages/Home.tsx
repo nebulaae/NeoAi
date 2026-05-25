@@ -73,9 +73,9 @@ export const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen">
       {/* NAV */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-black/60 backdrop-blur-2xl border-b border-white/5">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.05)]">
             <Image
@@ -215,7 +215,7 @@ export const Home = () => {
                       </div>
                     )}
 
-                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
 
                     <div className="absolute inset-x-0 bottom-0 p-5 transform transition-transform duration-500">
                       <div className="flex items-center gap-2 mb-2">
@@ -241,7 +241,7 @@ export const Home = () => {
                     </div>
 
                     <div className="absolute top-4 right-4">
-                      <div className="bg-black/60 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[12px] font-bold text-white shadow-lg">
+                      <div className="/60 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[12px] font-bold text-white shadow-lg">
                         ◈{' '}
                         {post.cost || 15}
                       </div>

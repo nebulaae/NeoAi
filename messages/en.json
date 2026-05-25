@@ -44,7 +44,8 @@
     "error": "Error",
     "errorLoadChats": "Failed to load chats.",
     "loadMore": "Load more",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "retry": "Retry"
   },
   "Home": {
     "models": "Models",

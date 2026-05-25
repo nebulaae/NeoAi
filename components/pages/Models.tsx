@@ -80,9 +80,9 @@ export const Models = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-svh pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] bg-black">
+    <div className="flex flex-col min-h-svh pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
       {/* Header */}
-      <header className="sticky top-0 z-40 px-6 py-5 bg-black/60 backdrop-blur-2xl border-b border-white/5">
+      <header className="sticky top-0 z-40 px-6 py-5">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-[34px] font-black tracking-tighter leading-none text-[#007AFF]">
             {t('title')}
@@ -91,7 +91,7 @@ export const Models = () => {
       </header>
 
       {/* Tabs */}
-      <div className="sticky top-[73px] z-30 bg-black/60 backdrop-blur-xl border-b border-white/5">
+      <div className="sticky top-[73px] z-30">
         <div
           className="max-w-2xl mx-auto flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar"
           style={{ scrollbarWidth: 'none' }}
@@ -138,7 +138,7 @@ export const Models = () => {
                   >
                     <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shadow-lg transition-transform group-hover:scale-105">
                       <Avatar className="size-full rounded-none">
-                        <AvatarImage src={role.image || ''} />
+                        <AvatarImage src={role.image || ''} className='object-cover' />
                         <AvatarFallback className="text-xl bg-zinc-800">
                           {localize(role.label).slice(0, 1)}
                         </AvatarFallback>
@@ -187,7 +187,7 @@ export const Models = () => {
                     onClick={() => handleModelClick(m.tech_name)}
                     className="flex items-center gap-4 p-4 rounded-3xl bg-zinc-900/40 border border-white/5 hover:border-white/15 transition-all group active:scale-[0.985]"
                   >
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-colors">
+                    <div className="w-14 h-14 overflow-hidden transition-colors">
                       <Avatar className="size-full">
                         <AvatarImage src={avatarUrl} />
                         <AvatarFallback className="text-lg font-bold bg-zinc-800">

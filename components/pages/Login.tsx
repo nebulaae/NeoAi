@@ -359,9 +359,6 @@ export const Login = () => {
                       accentColor="bg-violet-500/15"
                     />
                   )}
-
-                  <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-1" />
-
                   <MessengerCard
                     onClick={() => { haptic.light(); setView('email-login'); }}
                     icon={<Mail size={22} className="text-white" />}
@@ -369,6 +366,55 @@ export const Login = () => {
                     sublabel={t('emailLoginSubtitle')}
                     accentColor="bg-white/10"
                   />
+                  {bot?.bot_username ? (
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          window.open(
+                            `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${window.location.origin}&request_access=write`,
+                            'telegram-auth',
+                            'width=550,height=670'
+                          );
+                        }}
+                        className={cn(
+                          'group relative overflow-hidden',
+                          'w-full py-5 rounded-xl',
+                          'bg-[#229ED9]',
+                          'hover:bg-[#1d8ec5]',
+                          'transition-all duration-300',
+                          'active:scale-[0.98]',
+                          'shadow-[0_20px_50px_rgba(34,158,217,0.35)]',
+                          'border border-white/10'
+                        )}
+                      >
+                        {/* liquid highlight */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-70" />
+
+                        {/* glow */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                          <div className="absolute inset-0 bg-white/10 blur-2xl" />
+                        </div>
+
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                          <Image
+                            src="/telegram.png"
+                            width={22}
+                            height={22}
+                            alt="Telegram"
+                            className="drop-shadow"
+                          />
+
+                          <span className="font-black text-[16px] tracking-tight text-white">
+                            {t('continueWithTelegram')}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center py-1.5">
+                      <Loader2 size={18} className="animate-spin text-white/25" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Legal */}
@@ -454,55 +500,6 @@ export const Login = () => {
                     </span>
                   </button>
                 </div>
-              </div>
-            )}
-            {bot?.bot_username ? (
-              <div className="flex justify-center mt-2.5">
-                <button
-                  onClick={() => {
-                    window.open(
-                      `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${window.location.origin}&request_access=write`,
-                      'telegram-auth',
-                      'width=550,height=670'
-                    );
-                  }}
-                  className={cn(
-                    'group relative overflow-hidden',
-                    'w-full py-5 rounded-xl',
-                    'bg-[#229ED9]',
-                    'hover:bg-[#1d8ec5]',
-                    'transition-all duration-300',
-                    'active:scale-[0.98]',
-                    'shadow-[0_20px_50px_rgba(34,158,217,0.35)]',
-                    'border border-white/10'
-                  )}
-                >
-                  {/* liquid highlight */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-70" />
-
-                  {/* glow */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 bg-white/10 blur-2xl" />
-                  </div>
-
-                  <div className="relative z-10 flex items-center justify-center gap-3">
-                    <Image
-                      src="/telegram.png"
-                      width={22}
-                      height={22}
-                      alt="Telegram"
-                      className="drop-shadow"
-                    />
-
-                    <span className="font-black text-[16px] tracking-tight text-white">
-                      {t('continueWithTelegram')}
-                    </span>
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <div className="flex justify-center py-1.5">
-                <Loader2 size={18} className="animate-spin text-white/25" />
               </div>
             )}
           </div>

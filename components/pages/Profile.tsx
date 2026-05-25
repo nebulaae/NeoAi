@@ -155,9 +155,9 @@ export const Profile = () => {
   ];
 
   return (
-    <div className="bg-black min-h-screen text-white font-sans overflow-x-hidden">
+    <div className="min-h-screen text-white font-sans overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 px-6 py-6 bg-black/60 backdrop-blur-3xl border-b border-white/5">
+      <header className="sticky top-0 z-50 px-6 py-6">
         <h1 className="text-[28px] font-black tracking-tight text-[#007AFF] leading-none mb-6">
           {t('title')}
         </h1>
@@ -515,7 +515,7 @@ export const Profile = () => {
                 {t('partnershipLink')}
               </h3>
               <div className="flex items-center gap-3 p-2 bg-zinc-900/40 border border-white/5 rounded-[24px]">
-                <div className="flex-1 px-4 py-3 bg-black/40 rounded-2xl border border-white/5 overflow-hidden">
+                <div className="flex-1 px-4 py-3 overflow-hidden">
                   <p className="text-[14px] font-medium text-white/60 truncate">
                     {referralLink || '...'}
                   </p>

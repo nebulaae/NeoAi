@@ -10,11 +10,7 @@ import {
   AvatarFallback as ChatsFallback,
   AvatarImage as ChatsImage,
 } from '@/components/ui/avatar';
-import { ChatsLoader } from '@/components/states/Loading';
-import { ChatsEmpty } from '@/components/states/Empty';
-import { ErrorComponent as ChatsError } from '@/components/states/Error';
 import {
-  MessageSquarePlus,
   Loader2,
   ChevronRight,
   MessageSquare,
@@ -109,7 +105,7 @@ export const Chats = () => {
 
   if (isError)
     return (
-      <div className="flex items-center justify-center min-h-svh p-8 bg-black text-center">
+      <div className="flex items-center justify-center min-h-svh p-8 text-center">
         <div className="max-w-xs flex flex-col items-center gap-6">
           <div className="w-20 h-20 rounded-[32px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
             <MessageSquare size={32} />
@@ -134,7 +130,7 @@ export const Chats = () => {
 
   if ((modelParam || roleParam) && !startedRef.current && (models || roles))
     return (
-      <div className="flex flex-col items-center justify-center min-h-svh gap-6 bg-black">
+      <div className="flex flex-col items-center justify-center min-h-svh gap-6">
         <div className="w-16 h-16 rounded-[24px] bg-zinc-900 border border-white/5 flex items-center justify-center shadow-2xl">
           <Loader2 className="size-8 animate-spin text-[#007AFF]" />
         </div>
@@ -145,9 +141,9 @@ export const Chats = () => {
     );
 
   return (
-    <div className="flex flex-col min-h-svh pb-32 w-full max-w-2xl mx-auto bg-black">
+    <div className="flex flex-col min-h-svh pb-32 w-full max-w-2xl mx-auto">
       {/* Header */}
-      <header className="sticky top-0 z-50 px-8 py-8 bg-black/60 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between">
+      <header className="sticky top-0 z-50 px-8 py-8 flex items-center justify-between">
         <h1 className="text-[34px] font-black tracking-tighter leading-none text-[#007AFF]">
           {t('title')}
         </h1>
@@ -213,12 +209,13 @@ export const Chats = () => {
                   }}
                   className="flex items-center gap-4 p-5 rounded-[32px] bg-zinc-900/30 border border-white/5 hover:border-white/15 transition-all group active:scale-[0.985]"
                 >
-                  <ChatsAvatar className="size-14 rounded-[22px] border border-white/10 group-hover:border-[#007AFF]/30 transition-colors shadow-lg">
+                  <ChatsAvatar className="size-14 transition-colors shadow-lg">
                     <ChatsImage
                       src={
                         (chat as any).avatar ||
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=18181b&color=ffffff`
                       }
+                      className='object-cover'
                     />
                     <ChatsFallback className="bg-zinc-800 text-[14px] font-black text-white/40">
                       {displayName.slice(0, 2).toUpperCase()}
