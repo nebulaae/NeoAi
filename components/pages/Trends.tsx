@@ -28,7 +28,6 @@ import {
   Zap,
   Share2,
   Copy,
-  X,
   Send,
   Globe,
 } from 'lucide-react';
@@ -257,7 +256,7 @@ const TrendCard = memo(
 
       try {
         sessionStorage.setItem(`trend_post_${post.id}`, JSON.stringify(post));
-      } catch {}
+      } catch { }
 
       router.push(
         `/trend/${post.id}`
@@ -366,7 +365,6 @@ const TrendCard = memo(
 TrendCard.displayName = 'TrendCard';
 
 
-// TrendDetail остаётся без изменений
 export const TrendDetail = ({
   post,
   onBack,
@@ -374,7 +372,6 @@ export const TrendDetail = ({
   post: Post;
   onBack: () => void;
 }) => {
-  // ... (весь код TrendDetail без изменений)
   const t = useTranslations('Trends');
   const haptic = useHaptic();
   const generate = useGenerateAI();
@@ -387,7 +384,6 @@ export const TrendDetail = ({
   const userId = userData?.user?.user_id ?? (userData?.user as any)?.id ?? authUser?.id;
 
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [copiedType, setCopiedType] = useState<'tg' | 'web' | null>(null);
 
   const [userMedia, setUserMedia] = useState<
     Record<number, { url: string; file?: File }>
@@ -456,6 +452,41 @@ export const TrendDetail = ({
         },
       }
     );
+  };
+
+  // Нативный шаринг в Telegram — открывает диалог выбора чата
+  const handleShareTelegram = () => {
+    haptic.light();
+    const botUsername = bot?.bot_username || 'bot';
+    const appLink = `https://t.me/${botUsername}?startapp=post-${post.id}${userId ? `_ref-${userId}` : ''}`;
+    const text = post.inputs?.text || '';
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(text)}`;
+    window.open(shareUrl, '_blank');
+    setIsShareOpen(false);
+  };
+
+  // Web Share API для браузера — нативный шит на мобиле, fallback копирование на десктопе
+  const handleShareWeb = () => {
+    haptic.light();
+    const webLink = `${window.location.origin}/trend/${post.id}${userId ? `?ref=${userId}` : ''}`;
+    if (typeof navigator.share === 'function') {
+      navigator
+        .share({
+          title: post.inputs?.text || 'AI Generation',
+          url: webLink,
+        })
+        .catch(() => {
+          // пользователь отменил — ничего не делаем
+        });
+      setIsShareOpen(false);
+    } else {
+      // fallback для десктопа
+      navigator.clipboard.writeText(webLink).then(() => {
+        haptic.success();
+        toast.success(t('linkCopied') || 'Ссылка скопирована!');
+        setIsShareOpen(false);
+      });
+    }
   };
 
   const mediaUrl = post.result?.url || post.result?.media?.[0]?.input;
@@ -670,29 +701,20 @@ export const TrendDetail = ({
         className="hidden"
       />
 
-      {/* ── Share Modal Dialog ── */}
+      {/* Share Modal */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
         <DialogContent className="bg-zinc-950/90 border-white/10 text-white max-w-md p-6 rounded-[32px] backdrop-blur-2xl shadow-2xl">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-[20px] font-black tracking-tight text-white flex items-center justify-between">
-              <span>{t('shareTrend')}</span>
+            <DialogTitle className="text-[20px] font-black tracking-tight text-white">
+              {t('shareTrend')}
             </DialogTitle>
             <DialogDescription className="hidden" />
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
-            {/* Telegram App Link */}
+            {/* Telegram — нативный шаринг с выбором чата */}
             <button
-              onClick={() => {
-                const botUsername = bot?.bot_username || 'bot';
-                const link = `https://t.me/${botUsername}?startapp=post-${post.id}${userId ? `_ref-${userId}` : ''}`;
-                navigator.clipboard.writeText(link).then(() => {
-                  haptic.success();
-                  setCopiedType('tg');
-                  toast.success(t('refLinkCopied') || 'Ссылка скопирована!');
-                  setTimeout(() => setCopiedType(null), 2000);
-                });
-              }}
+              onClick={handleShareTelegram}
               className="w-full flex items-center gap-4 p-5 rounded-3xl bg-[#007AFF]/10 hover:bg-[#007AFF]/20 border border-[#007AFF]/20 transition-all text-left group active:scale-[0.98]"
             >
               <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/20 border border-[#007AFF]/30 flex items-center justify-center text-[#007AFF] group-hover:scale-105 transition-transform shrink-0">
@@ -702,26 +724,18 @@ export const TrendDetail = ({
                 <p className="text-[15px] font-black text-white leading-tight">
                   {t('tgAppLink')}
                 </p>
-                <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider line-clamp-1">
+                <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider">
                   {t('tgAppLinkDesc')}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/45 group-hover:text-[#007AFF] transition-colors shrink-0">
-                {copiedType === 'tg' ? <CheckCircle2 size={18} className="text-[#007AFF]" /> : <Copy size={16} />}
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#007AFF] shrink-0">
+                <Send size={16} className="ml-[-1px] mt-[1px]" />
               </div>
             </button>
 
-            {/* Direct Web Link */}
+            {/* Web Share API / fallback копирование */}
             <button
-              onClick={() => {
-                const link = `${window.location.origin}/trend/${post.id}${userId ? `?ref=${userId}` : ''}`;
-                navigator.clipboard.writeText(link).then(() => {
-                  haptic.success();
-                  setCopiedType('web');
-                  toast.success(t('linkCopied') || 'Ссылка скопирована!');
-                  setTimeout(() => setCopiedType(null), 2000);
-                });
-              }}
+              onClick={handleShareWeb}
               className="w-full flex items-center gap-4 p-5 rounded-3xl bg-zinc-900/40 hover:bg-zinc-900/60 border border-white/5 transition-all text-left group active:scale-[0.98]"
             >
               <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 group-hover:scale-105 transition-transform shrink-0">
@@ -731,12 +745,12 @@ export const TrendDetail = ({
                 <p className="text-[15px] font-black text-white leading-tight">
                   {t('webBrowserLink')}
                 </p>
-                <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider line-clamp-1">
+                <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider">
                   {t('webBrowserLinkDesc')}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/45 group-hover:text-[#007AFF] transition-colors shrink-0">
-                {copiedType === 'web' ? <CheckCircle2 size={18} className="text-[#007AFF]" /> : <Copy size={16} />}
+                <Copy size={16} />
               </div>
             </button>
           </div>

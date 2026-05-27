@@ -350,7 +350,8 @@
     "tgAppLink": "Telegram Ссылка",
     "tgAppLinkDesc": "Запуск бота с вашей рефкой",
     "webBrowserLink": "Браузерная Ссылка",
-    "webBrowserLinkDesc": "Открыть в любом браузере"
+    "webBrowserLinkDesc": "Открыть в любом браузере",
+    "refLinkCopied": "Ссылка на тренд скопирована"
   },
   "Publish": {
     "title": "Опубликовать в Тренды",
