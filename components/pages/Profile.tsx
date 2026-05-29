@@ -269,7 +269,10 @@ export const Profile = () => {
 
             {/* Balance Card - FULL WIDTH FIX */}
             <button
-              onClick={() => router.push(paymentUrlLink!)}
+              onClick={() => {
+                haptic.medium();
+                router.push('/pay');
+              }}
               className="group relative w-full p-8 rounded-[32px] bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/10 overflow-hidden shadow-2xl active:scale-[0.98] transition-all text-left"
             >
               <div className="relative z-10 w-full">
@@ -765,7 +768,7 @@ export const Profile = () => {
                     </div>
 
                     {/* USDT exchange rate spark card */}
-                    <div className="p-6 rounded-[32px] bg-linear-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-center justify-between">
+                    {/* <div className="p-6 rounded-[32px] bg-linear-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                           <Coins size={22} />
@@ -780,7 +783,7 @@ export const Profile = () => {
                           <Sparkles size={10} /> Active
                         </span>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 )}
 

@@ -261,12 +261,21 @@ export const Login = () => {
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      if (!event.data?.id) return;
+      let eventData = event.data;
+      if (typeof eventData === 'string') {
+        try {
+          eventData = JSON.parse(eventData);
+        } catch {
+          // ignore parsing error
+        }
+      }
+
+      if (!eventData || !eventData.id) return;
 
       try {
         const referrerId = localStorage.getItem('pending_referrer_id');
         const { data } = await api.post('/api/auth/telegram', {
-          ...event.data,
+          ...eventData,
           bot_id: bot?.bot_id,
           ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
         });
@@ -371,7 +380,7 @@ export const Login = () => {
                       <button
                         onClick={() => {
                           window.open(
-                            `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${window.location.origin}&request_access=write`,
+                            `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${encodeURIComponent(window.location.origin)}&embed=1&request_access=write`,
                             'telegram-auth',
                             'width=550,height=670'
                           );

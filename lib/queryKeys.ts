@@ -16,4 +16,6 @@ export const queryKeys = {
   posts: (params?: object) => ['posts', params] as const,
   postLikes: (postId: number) => ['post-likes', postId] as const,
   apiTokens: ['api-tokens'] as const,
+  packages: ['packages'] as const,
 };
+
