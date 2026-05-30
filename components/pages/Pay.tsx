@@ -133,8 +133,12 @@ export const Pay = () => {
           toast.dismiss();
           haptic.success();
           setPayingKey(null);
-          if (data?.link) window.location.href = data.link;
-          else toast.error(t('paymentError'));
+
+          if (data?.link) {
+            window.open(data.link, '_blank', 'noopener,noreferrer');
+          } else {
+            toast.error(t('paymentError'));
+          }
         },
         onError: () => {
           toast.dismiss();
