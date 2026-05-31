@@ -328,7 +328,8 @@
     "audienceLanguages": "Языки аудитории",
     "requestsCount": "запросов",
     "totalRevenue": "Всего",
-    "paymentsCount": "{count} оплат"
+    "paymentsCount": "{count} оплат",
+    "viewInChat": "Открыть в чате"
   },
   "Trends": {
     "title": "Тренды",
@@ -431,6 +432,12 @@
     "credits": "кредитов",
     "detailsBtn": "Подробнее",
     "selectBtn": "Выбрать",
-    "back": "Назад"
+    "back": "Назад",
+    "promoPlaceholder": "Промокод",
+    "promoApplyBtn": "Применить",
+    "promoApplied": "Промокод применён!",
+    "promoInvalid": "Неверный или просроченный промокод",
+    "promoError": "Не удалось применить промокод. Попробуйте снова.",
+    "promoDiscountActive": "Скидка {discount}% активна"
   }
 }

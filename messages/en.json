@@ -327,7 +327,8 @@
     "audienceLanguages": "Audience Languages",
     "requestsCount": "requests",
     "totalRevenue": "Total",
-    "paymentsCount": "{count} payments"
+    "paymentsCount": "{count} payments",
+    "viewInChat": "View in chat"
   },
   "Trends": {
     "title": "Trending",
@@ -417,6 +418,12 @@
     "credits": "credits",
     "detailsBtn": "Details",
     "selectBtn": "Select",
-    "back": "Back"
+    "back": "Back",
+    "promoPlaceholder": "Promo code",
+    "promoApplyBtn": "Apply",
+    "promoApplied": "Promo code applied!",
+    "promoInvalid": "Invalid or expired promo code",
+    "promoError": "Failed to apply promo code. Try again.",
+    "promoDiscountActive": "{discount}% discount active"
   }
 }

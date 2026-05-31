@@ -1,5 +1,3 @@
-// neo ai/ориентир
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -53,19 +51,178 @@ import {
   Bot,
   Calendar,
   Percent,
+  ImageIcon,
 } from 'lucide-react';
-import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { useHaptic } from '@/hooks/useHaptic';
-import { cn } from '@/lib/utils';
+import { cn, normalise, timeAgo } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/layout/LocaleSwitcher';
 import { PaymentDialog } from '@/components/dialogs/PaymentDialog';
 
 type TabType = 'profile' | 'account' | 'partnership';
 
-const ACCENT_BLUE = '#007AFF';
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+/** Shape coming from the backend /requests endpoint */
+export interface GenerationRequest {
+  id: number;
+  /** dialogue_id may be missing in older records — handle gracefully */
+  dialogue_id?: number;
+  model?: string;
+  version: string;
+  cost: number;
+  status: 'completed' | 'error' | 'pending' | string;
+  inputs?: {
+    text?: string | null;
+    media?: unknown[] | null;
+  } | null;
+  result?: null | Record<string, unknown>;
+  created_at: string;
+}
+
+/** Internal normalised shape used by this component */
+export interface RequestItem {
+  id: number;
+  dialogue_id: number;
+  model: string;
+  version: string;
+  cost: number;
+  status: 'completed' | 'error' | 'pending' | string;
+  text: string | null;
+  hasMedia: boolean;
+  previewUrl: string | null;
+  created_at: string;
+}
+
+// ─── Single card ──────────────────────────────────────────────────────────────
+
+interface RequestCardProps {
+  req: RequestItem;
+  onClick: () => void;
+}
+
+function RequestCard({ req, onClick }: RequestCardProps) {
+  const t = useTranslations('Profile');
+  const { previewUrl, hasMedia } = req;
+
+  const statusConfig = {
+    completed: {
+      icon: <CheckCircle2 size={16} className="text-[#007AFF]" />,
+      label: 'statusCompleted',
+      pill: 'text-[#007AFF] bg-[#007AFF]/10 border-[#007AFF]/20',
+    },
+    error: {
+      icon: <XCircle size={16} className="text-red-400" />,
+      label: 'statusError',
+      pill: 'text-red-400 bg-red-400/10 border-red-400/20',
+    },
+    pending: {
+      icon: <Clock size={16} className="text-amber-400 animate-pulse" />,
+      label: 'statusPending',
+      pill: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+    },
+  };
+
+  const cfg =
+    statusConfig[req.status as keyof typeof statusConfig] ?? statusConfig.pending;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full h-full text-left group rounded-3xl bg-zinc-900/40 border border-white/[0.06] hover:border-white/[0.12] hover:bg-zinc-900/60 active:scale-[0.99] transition-all duration-200 overflow-hidden"
+    >
+      {/* Media preview strip — only shown if result has a URL */}
+      {previewUrl && (
+        <div className="relative w-full h-full overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt={req.version}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            loading="lazy"
+          />
+          {/* Frosted bottom overlay */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-950/80 to-transparent" />
+          {/* Status badge on top of image */}
+          <span
+            className={cn(
+              'absolute top-3 right-3 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest border backdrop-blur-sm',
+              cfg.pill
+            )}
+          >
+            {t(cfg.label as any)}
+          </span>
+        </div>
+      )}
+
+      <div className="p-4">
+        {/* Top row: icon + name + status (when no preview) */}
+        <div className="flex items-start gap-3">
+          {/* Thumbnail placeholder — shown when no preview URL */}
+          {!previewUrl && (
+            <div
+              className={cn(
+                'w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0',
+                req.status === 'completed'
+                  ? 'bg-[#007AFF]/10 border-[#007AFF]/20'
+                  : req.status === 'error'
+                    ? 'bg-red-400/10 border-red-400/20'
+                    : 'bg-amber-400/10 border-amber-400/20'
+              )}
+            >
+              {hasMedia ? (
+                <ImageIcon size={16} className="text-white/30" />
+              ) : (
+                cfg.icon
+              )}
+            </div>
+          )}
+
+          <div className="flex-1 flex-col min-w-0">
+            <div className="flex flex-col justify-center items-start gap-1">
+              <p className="text-[15px] font-black truncate leading-tight text-white">
+                {req.version}
+              </p>
+              {req?.text && (
+                <p className="text-[12px] break-all text-white/35 font-medium leading-snug">
+                  {req.text.slice(0, 128) + '...'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Divider + View in chat link */}
+        <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center justify-between">
+          <p className="text-[11px] text-white/25 font-bold mt-1.5 uppercase tracking-wider">
+            {timeAgo(req.created_at)} · {req.cost} ◈
+          </p>
+          <span className="flex items-center gap-1 text-[12px] font-black text-[#007AFF]/70 group-hover:text-[#007AFF] transition-colors">
+            {t('viewInChat')}
+            <ArrowUpRight size={12} />
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+export function RequestCardSkeleton() {
+  return (
+    <div className="h-[88px] rounded-3xl bg-white/[0.04] animate-pulse" />
+  );
+}
+
+// ─── History section ──────────────────────────────────────────────────────────
+
+interface GenerationHistoryProps {
+  requests: GenerationRequest[];
+  reqLoading: boolean;
+}
 
 export const Profile = () => {
   const t = useTranslations('Profile');
@@ -109,7 +266,7 @@ export const Profile = () => {
   const reqsStats = stats.reqs || {};
   const paysStats = stats.pays || {};
   const conversions = stats.conversionStats || {};
-  
+
   const topModels = stats.topModels || [];
   const langStats = stats.langStats || [];
   const payLangs = stats.payLangs || [];
@@ -320,58 +477,25 @@ export const Profile = () => {
               <h3 className="text-[13px] font-black uppercase tracking-[0.15em] text-white/30 px-2 mb-6">
                 {t('generationHistory')}
               </h3>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 {reqLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-20 rounded-3xl bg-white/5 animate-pulse"
-                    />
+                    <RequestCardSkeleton key={i} />
                   ))
                 ) : requests.length > 0 ? (
-                  requests.map((req) => (
-                    <div
-                      key={req.id}
-                      className="flex items-center gap-5 p-4 rounded-3xl bg-zinc-900/30 border border-white/5 hover:border-white/10 transition-all"
-                    >
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center shadow-xl">
-                        {req.status === 'completed' ? (
-                          <CheckCircle2 className="text-[#007AFF]" />
-                        ) : req.status === 'error' ? (
-                          <XCircle className="text-red-500" />
-                        ) : (
-                          <Clock className="text-amber-400 animate-pulse" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[16px] font-black truncate leading-tight">
-                          {req.version}
-                        </p>
-                        <p className="text-[12px] text-white/30 font-bold mt-1 uppercase tracking-wider">
-                          {timeAgo(req.created_at)} • {req.cost} ◈
-                        </p>
-                      </div>
-                      <div
-                        className={cn(
-                          'text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm',
-                          req.status === 'completed'
-                            ? 'text-[#007AFF] bg-[#007AFF]/10 border border-[#007AFF]/20'
-                            : req.status === 'error'
-                              ? 'text-red-400 bg-red-400/10 border border-red-400/20'
-                              : 'text-amber-400 bg-amber-400/10 border border-amber-400/20'
-                        )}
-                      >
-                        {t(
-                          `status${req.status.charAt(0).toUpperCase() + req.status.slice(1)}` as any
-                        )}
-                      </div>
-                    </div>
-                  ))
+                  requests.map(raw => {
+                    const req = normalise(raw);
+                    return (
+                      <RequestCard
+                        key={req.id}
+                        req={req}
+                        onClick={() => req.dialogue_id ? router.push(`/chats/${req.dialogue_id}`) : undefined}
+                      />
+                    );
+                  })
                 ) : (
                   <div className="py-12 text-center opacity-20">
-                    <p className="text-[14px] font-bold">
-                      {t('noGenerations')}
-                    </p>
+                    <p className="text-[14px] font-bold">{t('noGenerations')}</p>
                   </div>
                 )}
               </div>
@@ -702,7 +826,7 @@ export const Profile = () => {
                           </span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-amber-400 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.3)] transition-all duration-500"
                             style={{ width: `${usersStats.total > 0 ? (usersStats.premium / usersStats.total) * 100 : 0}%` }}
                           />
@@ -721,7 +845,7 @@ export const Profile = () => {
                           </span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-sky-400 rounded-full shadow-[0_0_10px_rgba(56,189,248,0.3)] transition-all duration-500"
                             style={{ width: `${usersStats.total > 0 ? (usersStats.tg / usersStats.total) * 100 : 0}%` }}
                           />
@@ -740,7 +864,7 @@ export const Profile = () => {
                           </span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.3)] transition-all duration-500"
                             style={{ width: `${paysStats.successCount > 0 ? ((repeatPayments.repeatPayersCount || 0) / paysStats.successCount) * 100 : 0}%` }}
                           />
@@ -759,7 +883,7 @@ export const Profile = () => {
                           </span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-indigo-400 rounded-full shadow-[0_0_10px_rgba(129,140,248,0.3)] transition-all duration-500"
                             style={{ width: `${trialToPaid.rate ?? 0}%` }}
                           />
@@ -821,8 +945,8 @@ export const Profile = () => {
                                     <p className="font-bold text-white/80">{t('totalRevenue')}: <span className="text-white font-black">{d.revenue} ◈</span></p>
                                     <p className="font-semibold text-white/50">{d.count} {t('metricSuccessfulPays', { count: d.count }).split(' ')[1] || 'pays'}</p>
                                   </div>
-                                  <div 
-                                    style={{ height: `${Math.max(percentage, 6)}%` }} 
+                                  <div
+                                    style={{ height: `${Math.max(percentage, 6)}%` }}
                                     className="w-full rounded-t-lg bg-linear-to-t from-[#007AFF] to-[#00C7FF] shadow-[0_0_15px_rgba(0,122,255,0.15)] group-hover/bar:brightness-125 transition-all duration-300"
                                   />
                                   <span className="text-[9px] font-black text-white/20 uppercase tracking-widest truncate max-w-full">
@@ -859,7 +983,7 @@ export const Profile = () => {
                                   <div key={i} className="p-4 bg-zinc-900/50 border border-white/5 rounded-2xl flex flex-col gap-2.5 relative overflow-hidden">
                                     <div className="flex items-center justify-between text-[13px] z-10 relative">
                                       <div className="flex items-center gap-2">
-                                        <div className={cn("size-2.5 rounded-full shadow-sm", 
+                                        <div className={cn("size-2.5 rounded-full shadow-sm",
                                           isSuccessful ? "bg-green-400" : st.status === 'refunded' ? "bg-amber-400" : "bg-red-400"
                                         )} />
                                         <span className="font-black capitalize">
@@ -872,8 +996,8 @@ export const Profile = () => {
                                       </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
-                                      <div 
-                                        className={cn("h-full rounded-full transition-all duration-500", 
+                                      <div
+                                        className={cn("h-full rounded-full transition-all duration-500",
                                           isSuccessful ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.2)]" : st.status === 'refunded' ? "bg-amber-400" : "bg-red-400"
                                         )}
                                         style={{ width: `${Math.max(fillPercentage, 3)}%` }}
@@ -909,7 +1033,7 @@ export const Profile = () => {
                                   </span>
                                 </div>
                                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                  <div 
+                                  <div
                                     className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
                                     style={{ width: `${percentage}%` }}
                                   />
@@ -958,8 +1082,8 @@ export const Profile = () => {
                                     <p className="font-bold text-white/80">{t('chartUnique')}: <span className="text-white font-black">{d.unique_users}</span></p>
                                     <p className="font-semibold text-white/50">{d.events} {t('requestsCount')}</p>
                                   </div>
-                                  <div 
-                                    style={{ height: `${Math.max(percentage, 6)}%` }} 
+                                  <div
+                                    style={{ height: `${Math.max(percentage, 6)}%` }}
                                     className="w-full rounded-t-lg bg-linear-to-t from-amber-400 to-yellow-300 shadow-[0_0_15px_rgba(251,191,36,0.15)] group-hover/bar:brightness-125 transition-all duration-300"
                                   />
                                   <span className="text-[9px] font-black text-white/20 uppercase tracking-widest truncate max-w-full">
@@ -998,7 +1122,7 @@ export const Profile = () => {
                                       <span className="font-bold text-white/60">{b.count} {t('metricUsers').toLowerCase()}</span>
                                     </div>
                                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                      <div 
+                                      <div
                                         className="h-full bg-linear-to-r from-sky-400 to-[#007AFF] rounded-full transition-all duration-500"
                                         style={{ width: `${percentage}%` }}
                                       />
@@ -1033,7 +1157,7 @@ export const Profile = () => {
                                     <span className="text-white/40">{m.count} {t('requestsCount')}</span>
                                   </div>
                                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                       className="h-full bg-linear-to-r from-amber-400 to-[#007AFF] rounded-full"
                                       style={{ width: `${percentage}%` }}
                                     />
@@ -1064,7 +1188,7 @@ export const Profile = () => {
                                     <span className="text-white/40">{l.count} {t('metricUsers').toLowerCase()}</span>
                                   </div>
                                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                       className="h-full bg-linear-to-r from-purple-500 to-pink-500 rounded-full"
                                       style={{ width: `${percentage}%` }}
                                     />
@@ -1134,14 +1258,14 @@ export const Profile = () => {
                               <div key={i} className="flex items-center justify-between p-4 bg-zinc-900/30 border border-white/5 rounded-[24px] hover:bg-zinc-900/50 transition-colors">
                                 <div className="flex items-center gap-4">
                                   <div className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center shadow-inner", 
-                                    isSuccessful 
-                                      ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
+                                    "w-10 h-10 rounded-xl flex items-center justify-center shadow-inner",
+                                    isSuccessful
+                                      ? 'bg-green-500/10 text-green-500 border border-green-500/20'
                                       : pay.status === 'refunded'
                                         ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                                         : 'bg-white/5 text-white/40 border border-white/10'
                                   )}>
-                                    {isSuccessful ? <CheckCircle2 size={18}/> : <Clock size={18}/>}
+                                    {isSuccessful ? <CheckCircle2 size={18} /> : <Clock size={18} />}
                                   </div>
                                   <div className="flex flex-col">
                                     <p className="text-[15px] font-black text-white/90">

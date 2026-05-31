@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useUser } from '@/hooks/useUser';
@@ -18,10 +18,20 @@ import {
   Mail,
   Loader2,
   Info,
+  Tag,
+  Check,
+  Clock,
+  X,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { getAppSource } from '@/lib/source';
 
 type PayMethod = 'rub' | 'xtr' | 'usdt';
+
+interface PromoData {
+  end_time: number;
+  discount: number;
+}
 
 export const Pay = () => {
   const t = useTranslations('Pay');
@@ -29,12 +39,9 @@ export const Pay = () => {
   const locale = useLocale();
   const haptic = useHaptic();
   const queryClient = useQueryClient();
-  
+
   const { data: userData } = useUser();
-  
-  // Подключаем автоматический перезапрос при возвращении в миниаппку (focus)
   const { data: packagesData, isLoading, error, refetch } = usePackages();
-  
   const createPaymentSession = useCreatePaymentSession();
 
   const [selectedMethod, setSelectedMethod] = useState<PayMethod>('rub');
@@ -42,9 +49,51 @@ export const Pay = () => {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [payingKey, setPayingKey] = useState<string | null>(null);
 
-  const tokens = userData?.user?.tokens ?? 0;
+  // Promo state
+  const [promoInput, setPromoInput] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoSuccess, setPromoSuccess] = useState(false);
 
-  // Автоматический сброс состояния мутации при монтировании экрана оплаты
+  // Countdown timer for active promo
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const tokens = userData?.user?.tokens ?? 0;
+  const activePromo = packagesData?.promo as PromoData | null;
+
+  // Countdown for active promo
+  useEffect(() => {
+    if (!activePromo?.end_time) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setTimeLeft('');
+      return;
+    }
+
+    const tick = () => {
+      const diff = activePromo.end_time * 1000 - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        if (timerRef.current) clearInterval(timerRef.current);
+        refetch();
+        return;
+      }
+      const h = Math.floor(diff / 3_600_000);
+      const m = Math.floor((diff % 3_600_000) / 60_000);
+      const s = Math.floor((diff % 60_000) / 1000);
+      setTimeLeft(
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      );
+    };
+
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [activePromo?.end_time]);
+
+  // Reset mutation on mount/unmount
   useEffect(() => {
     createPaymentSession.reset();
     return () => {
@@ -52,7 +101,7 @@ export const Pay = () => {
     };
   }, []);
 
-  // Слушатель возвращения пользователя в приложение (Visibility API) для Fast Refresh
+  // Visibility / focus listener
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -63,7 +112,7 @@ export const Pay = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
@@ -90,10 +139,39 @@ export const Pay = () => {
     }
   }, [availableMethods, selectedMethod]);
 
-  const getPrice = (plan: Plan, method: PayMethod): string | null => {
-    if (method === 'rub' && plan.amount != null) return `${plan.amount} ₽`;
-    if (method === 'xtr' && plan.amount_xtr != null) return `${plan.amount_xtr} ⭐`;
-    if (method === 'usdt' && plan.amount_usdt != null) return `$${plan.amount_usdt}`;
+  const applyDiscount = (value: number, discount: number) =>
+    Math.round(value * (1 - discount / 100));
+
+  const getPrice = (plan: Plan, method: PayMethod): { display: string; original?: string } | null => {
+    const discount = activePromo?.discount ?? 0;
+
+    if (method === 'rub' && plan.amount != null) {
+      if (discount > 0) {
+        return {
+          display: `${applyDiscount(plan.amount, discount)} ₽`,
+          original: `${plan.amount} ₽`,
+        };
+      }
+      return { display: `${plan.amount} ₽` };
+    }
+    if (method === 'xtr' && plan.amount_xtr != null) {
+      if (discount > 0) {
+        return {
+          display: `${applyDiscount(plan.amount_xtr, discount)} ⭐`,
+          original: `${plan.amount_xtr} ⭐`,
+        };
+      }
+      return { display: `${plan.amount_xtr} ⭐` };
+    }
+    if (method === 'usdt' && plan.amount_usdt != null) {
+      if (discount > 0) {
+        return {
+          display: `$${(plan.amount_usdt * (1 - discount / 100)).toFixed(2)}`,
+          original: `$${plan.amount_usdt}`,
+        };
+      }
+      return { display: `$${plan.amount_usdt}` };
+    }
     return null;
   };
 
@@ -137,8 +215,45 @@ export const Pay = () => {
       if (!openedWindow) {
         window.location.href = url;
       }
-    } catch (err) {
+    } catch {
       window.location.href = url;
+    }
+  };
+
+  // Apply promo code
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code || !packagesData?.promo_check_url || !packagesData?.pay_id) return;
+
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoSuccess(false);
+    haptic.medium();
+
+    try {
+      const res = await fetch(packagesData.promo_check_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pay_id: packagesData.pay_id, promo: code }),
+      });
+
+      const data = await res.json();
+
+      if (data?.ok) {
+        setPromoSuccess(true);
+        haptic.success();
+        toast.success(t('promoApplied'));
+        await refetch();
+        setPromoInput('');
+      } else {
+        setPromoError(t('promoInvalid'));
+        haptic.error();
+      }
+    } catch {
+      setPromoError(t('promoError'));
+      haptic.error();
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -161,7 +276,6 @@ export const Pay = () => {
       setEmailError(null);
     }
 
-    // Принудительно сбрасываем состояние мутации перед отправкой нового запроса
     createPaymentSession.reset();
 
     const key = `${pkgIdx}-${planIdx}`;
@@ -190,7 +304,7 @@ export const Pay = () => {
 
           if (data && typeof data === 'object') {
             const obj = data as Record<string, any>;
-            
+
             if ('link' in obj && typeof obj.link === 'string' && obj.link.trim() !== '') {
               targetLink = obj.link;
             } else if ('url' in obj && typeof obj.url === 'string' && obj.url.trim() !== '') {
@@ -205,24 +319,17 @@ export const Pay = () => {
 
           if (targetLink && typeof targetLink === 'string' && !targetLink.includes('native code')) {
             handleOpenLink(targetLink);
-            
-            // Сразу после открытия ссылки инвалидируем кэш пакетов, 
-            // чтобы к моменту возврата пользователя всё было чисто
             setTimeout(() => {
               refetch();
               createPaymentSession.reset();
             }, 1000);
           } else {
-            console.error('Некорректная ссылка в ответе API, выполняем аварийный refetch пакетов:', data);
-            
-            // Если ссылка пустая (баг кэша или сессии бека), делаем быстрый сброс и перезапрос
             refetch();
             createPaymentSession.reset();
             toast.error(t('paymentError'));
           }
         },
         onError: error => {
-          console.error('Ошибка создания платежной сессии:', error);
           toast.dismiss();
           haptic.error();
           setPayingKey(null);
@@ -262,9 +369,7 @@ export const Pay = () => {
           <h1 className="flex-1 text-center text-[24px] font-black tracking-tight text-[#007AFF]">
             {t('title')}
           </h1>
-          <div
-            className="flex items-center gap-1 px-4 py-2 rounded-full bg-[#007AFF]/10 border border-[#007AFF]/30 text-[#007AFF] text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,122,255,0.3)]"
-          >
+          <div className="flex items-center gap-1 px-4 py-2 rounded-full bg-[#007AFF]/10 border border-[#007AFF]/30 text-[#007AFF] text-[13px] font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(0,122,255,0.3)]">
             <span className="text-[16px]">◈</span>
             <span>{Math.trunc(tokens)}</span>
           </div>
@@ -275,7 +380,10 @@ export const Pay = () => {
               {availableMethods.map(m => (
                 <button
                   key={m}
-                  onClick={() => { haptic.light(); setSelectedMethod(m); }}
+                  onClick={() => {
+                    haptic.light();
+                    setSelectedMethod(m);
+                  }}
                   className={cn(
                     'flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap shrink-0 transition-all duration-200',
                     selectedMethod === m
@@ -307,6 +415,7 @@ export const Pay = () => {
           </div>
         )}
 
+        {/* Email field */}
         <AnimatePresence>
           {packagesData?.email_required && (
             <motion.div
@@ -316,11 +425,17 @@ export const Pay = () => {
               className="mb-4 overflow-hidden"
             >
               <div className="relative">
-                <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                <Mail
+                  size={15}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none"
+                />
                 <input
                   type="email"
                   value={email}
-                  onChange={e => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError(null);
+                  }}
                   placeholder={t('emailPlaceholder')}
                   className={cn(
                     'w-full pl-10 pr-4 py-4 rounded-2xl bg-zinc-900/60 border text-[14px] font-semibold text-white/90 placeholder-white/20 outline-none transition-all',
@@ -337,6 +452,100 @@ export const Pay = () => {
           )}
         </AnimatePresence>
 
+        {/* Promo block — shown only when packages loaded */}
+        <AnimatePresence>
+          {packagesData && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="mb-5"
+            >
+              {activePromo ? (
+                /* Active discount banner */
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/8 border border-emerald-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+                    <Tag size={14} className="text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-black text-emerald-400">
+                      {t('promoDiscountActive', { discount: activePromo.discount })}
+                    </p>
+                    {timeLeft && (
+                      <p className="text-[11px] font-bold text-white/30 flex items-center gap-1 mt-0.5">
+                        <Clock size={10} />
+                        {timeLeft}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-[20px] font-black text-emerald-400 shrink-0">
+                    -{activePromo.discount}%
+                  </span>
+                </div>
+              ) : (
+                /* Promo code input */
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag
+                        size={14}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none"
+                      />
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={e => {
+                          setPromoInput(e.target.value.toUpperCase());
+                          if (promoError) setPromoError(null);
+                          if (promoSuccess) setPromoSuccess(false);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleApplyPromo();
+                        }}
+                        placeholder={t('promoPlaceholder')}
+                        maxLength={32}
+                        className={cn(
+                          'w-full pl-9 pr-4 py-3 rounded-2xl bg-zinc-900/50 border text-[13px] font-black tracking-widest text-white/90 placeholder-white/20 placeholder:font-normal placeholder:tracking-normal outline-none transition-all',
+                          promoError
+                            ? 'border-red-500/40 focus:border-red-500/60'
+                            : promoSuccess
+                              ? 'border-emerald-500/40'
+                              : 'border-white/8 focus:border-[#007AFF]/40'
+                        )}
+                      />
+                    </div>
+                    <button
+                      onClick={handleApplyPromo}
+                      disabled={!promoInput.trim() || promoLoading}
+                      className={cn(
+                        'px-4 py-3 rounded-2xl text-[13px] font-black shrink-0 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
+                        promoSuccess
+                          ? 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-400'
+                          : 'bg-[#007AFF]/15 border border-[#007AFF]/25 text-[#007AFF]'
+                      )}
+                    >
+                      {promoLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : promoSuccess ? (
+                        <Check size={14} />
+                      ) : (
+                        t('promoApplyBtn')
+                      )}
+                    </button>
+                  </div>
+                  {promoError && (
+                    <p className="ml-1 text-[12px] font-bold text-red-400 flex items-center gap-1">
+                      <X size={10} />
+                      {promoError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Package cards */}
         {packagesData?.packages && (
           <div className="flex flex-col gap-4">
             {packagesData.packages.map((pkg, pkgIdx) =>
@@ -385,7 +594,14 @@ export const Pay = () => {
                         </h2>
                         {price && (
                           <div className="text-right shrink-0">
-                            <div className="text-[20px] font-black text-[#007AFF] leading-tight">{price}</div>
+                            <div className="text-[20px] font-black text-[#007AFF] leading-tight">
+                              {price.display}
+                            </div>
+                            {price.original && (
+                              <div className="text-[13px] font-bold text-white/30 line-through leading-tight">
+                                {price.original}
+                              </div>
+                            )}
                             <div className="text-[11px] text-white/30 font-bold mt-0.5">
                               / {formatDuration(plan.duration)}
                             </div>
