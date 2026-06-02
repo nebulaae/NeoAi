@@ -278,10 +278,23 @@ export const Profile = () => {
   const paymentsList = trackingPaymentsData?.rows || [];
   const payStatsAgg = trackingPaymentsStatsData || {};
 
+  const decodeCyrillic = (str: string | null | undefined): string => {
+    if (!str) return '';
+    try {
+      return decodeURIComponent(escape(str));
+    } catch {
+      return str;
+    }
+  };
+
   const rawName = tgUser
-    ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim()
+    ? `${decodeCyrillic(tgUser.first_name)} ${decodeCyrillic(tgUser.last_name || '')}`.trim()
     : t('user');
+
   const name = rawName;
+  const displayName = userData?.user?.name
+    ? decodeCyrillic(userData.user.name)
+    : name;
   const username = tgUser?.username || '';
   const userId = tgUser?.id;
   const referralLink =

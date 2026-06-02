@@ -13,7 +13,6 @@ const AUTH_FREE_PATHS = [
 
 function isAuthFreePath(url?: string): boolean {
   if (!url) return false;
-  // These specific endpoints under /api/posts require authentication
   if (
     url.includes('/api/posts/publish') ||
     url.includes('/api/posts/like') ||
@@ -79,7 +78,6 @@ api.interceptors.request.use((config) => {
   const url = config.url || '';
   const isFree = isAuthFreePath(url);
 
-  // auth header
   if (!isFree) {
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -87,7 +85,6 @@ api.interceptors.request.use((config) => {
     }
   }
 
-  // init data
   const token = localStorage.getItem('auth_token');
   if (!token) {
     const initData = getPlatformInitData();
@@ -102,7 +99,6 @@ api.interceptors.request.use((config) => {
 
   config.params = config.params || {};
 
-  // 👇 NEW: bypass flag
   const skipUserId = config.params.skipUserId;
 
   if (botId && !config.params.bot_id) {
@@ -117,7 +113,6 @@ api.interceptors.request.use((config) => {
     config.params.source = source;
   }
 
-  // cleanup (не отправляем на backend)
   if (config.params.skipUserId) {
     delete config.params.skipUserId;
   }

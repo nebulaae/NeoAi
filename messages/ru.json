@@ -65,9 +65,9 @@
   "Login": {
     "tagline": "AI-платформа нового поколения",
     "openInApp": "Открыть в мессенджере",
-    "openInTelegram": "Войти через Telegram",
+    "openInTelegram": "Продолить в Telegram",
     "openInTelegramSub": "Нажмите, чтобы открыть мини-приложение",
-    "openInMax": "Войти через Max",
+    "openInMax": "Продолить в Max",
     "openInMaxSub": "Нажмите, чтобы открыть мини-приложение",
     "orContinueWith": "или",
     "telegramSection": "Telegram",
