@@ -13,6 +13,14 @@ import { useRoles } from '@/hooks/useRoles';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Copy } from 'lucide-react';
+import {
   ChevronLeft,
   Send,
   ImagePlus,
@@ -382,8 +390,9 @@ export default function ChatPage() {
       id: -Date.now(),
       model: techName,
       version: version || '',
+      role_id: selectedRoleId,   // ← ФИКС РОЛЕЙ
       inputs: {
-        text: sentText,
+        text: sentText || undefined,
         media: uploadedFiles.map((f) => ({ type: f.type, url: f.url })),
       },
       status: 'pending',
@@ -503,319 +512,328 @@ export default function ChatPage() {
       </header>
 
       {/* ── Messages ── */}
-      <div
-        className="flex-1 overflow-y-auto no-scrollbar px-5 py-6 flex flex-col gap-6"
-        style={{ scrollbarWidth: 'none' }}
-      >
-        {isHistoryLoading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
-            <Loader2 size={32} className="animate-spin" />
-            <p className="text-sm font-medium">{t('loadingPlaceholder')}</p>
-          </div>
-        ) : msgs.length === 0 && optimisticMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-10">
-            <div className="w-20 h-20 rounded-[32px] bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl">
-              <span className="text-3xl">💬</span>
-            </div>
-            <p className="text-[16px] font-medium text-white/40 leading-relaxed">
-              {t('startDialogue')}
-            </p>
-            {showRoles && (
-              <div className="w-full max-w-sm mt-4">
-                <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/25 mb-4">
-                  {t('chooseAssistant')}
-                </h3>
-                <div className="grid grid-cols-1 gap-2">
-                  {roles!.slice(0, 4).map((role) => (
-                    <button
-                      key={role.id}
-                      onClick={() => {
-                        haptic.light();
-                        setSelectedRoleId(role.id);
-                      }}
-                      className={cn(
-                        'flex items-center gap-3 p-3.5 rounded-2xl border transition-all active:scale-[0.98]',
-                        selectedRoleId === role.id
-                          ? 'bg-[#007AFF]/10 border-[#007AFF]/30 shadow-[0_0_20px_rgba(170,255,0,0.1)]'
-                          : 'bg-zinc-900/40 border-white/5 hover:border-white/10'
-                      )}
-                    >
-                      <Avatar className="w-10 h-10 rounded-xl">
-                        <AvatarImage src={role.image || ''} />
-                        <AvatarFallback className="bg-zinc-800 text-sm">
-                          {localize(role.label)[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 text-left">
-                        <p
+      <div className="flex-1 overflow-hidden px-5 py-6">
+        <ScrollArea className="h-full pr-4" onContextMenu={(e) => e.preventDefault()}>
+          <div className="flex flex-col gap-6 pb-6">
+            {isHistoryLoading ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
+                <Loader2 size={32} className="animate-spin" />
+                <p className="text-sm font-medium">{t('loadingPlaceholder')}</p>
+              </div>
+            ) : msgs.length === 0 && optimisticMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-10">
+                <div className="w-20 h-20 rounded-[32px] bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl">
+                  <span className="text-3xl">💬</span>
+                </div>
+                <p className="text-[16px] font-medium text-white/40 leading-relaxed">
+                  {t('startDialogue')}
+                </p>
+                {showRoles && (
+                  <div className="w-full max-w-sm mt-4">
+                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/25 mb-4">
+                      {t('chooseAssistant')}
+                    </h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      {roles!.slice(0, 4).map((role) => (
+                        <button
+                          key={role.id}
+                          onClick={() => {
+                            haptic.light();
+                            setSelectedRoleId(role.id);
+                          }}
                           className={cn(
-                            'text-[14px] font-bold',
+                            'flex items-center gap-3 p-3.5 rounded-2xl border transition-all active:scale-[0.98]',
                             selectedRoleId === role.id
-                              ? 'text-[#007AFF]'
-                              : 'text-white'
+                              ? 'bg-[#007AFF]/10 border-[#007AFF]/30 shadow-[0_0_20px_rgba(170,255,0,0.1)]'
+                              : 'bg-zinc-900/40 border-white/5 hover:border-white/10'
                           )}
                         >
-                          {localize(role.label)}
-                        </p>
-                        <p className="text-[11px] text-white/30 line-clamp-1">
-                          {localize(role.description)}
-                        </p>
-                      </div>
-                      {selectedRoleId === role.id && (
-                        <div className="w-2 h-2 rounded-full bg-[#007AFF] shadow-[0_0_8px_#007AFF]" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          [...msgs, ...optimisticMessages].map((msg, idx) => {
-            const userMedia = extractDisplayMedia(msg.inputs);
-            const resultMedia = extractResultMedia(msg.result);
-            return (
-              <div key={msg.id || idx} className="flex flex-col gap-3">
-                {(msg.inputs?.text || userMedia.length > 0) && (
-                  <div className="flex justify-end pl-12">
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="px-5 py-3.5 rounded-[24px_24px_4px_24px] bg-zinc-900/60 border border-white/10 shadow-xl text-[15px] leading-relaxed">
-                        {msg.inputs?.text && (
-                          <p className="whitespace-pre-wrap">
-                            {msg.inputs.text}
-                          </p>
-                        )}
-                        {userMedia.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {userMedia.map((m, i) => (
-                              <div
-                                key={i}
-                                onClick={() => setViewerSrc(m)}
-                                className="relative group rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all cursor-pointer"
-                              >
-                                {m.type === 'image' ? (
-                                  <img
-                                    src={m.url}
-                                    className="w-32 h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-32 h-32 flex items-center justify-center bg-zinc-800 text-xl">
-                                    {m.type === 'video' ? '🎬' : '🎵'}
-                                  </div>
-                                )}
-                                <div className="absolute top-2 right-2 flex gap-2 z-10">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDownload(m.url);
-                                    }}
-                                    className="p-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white/90 hover:text-white hover:bg-black/80 transition-colors shadow-lg"
-                                  >
-                                    <Download size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                          <Avatar className="w-10 h-10 rounded-xl">
+                            <AvatarImage src={role.image || ''} />
+                            <AvatarFallback className="bg-zinc-800 text-sm">
+                              {localize(role.label)[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 text-left">
+                            <p
+                              className={cn(
+                                'text-[14px] font-bold',
+                                selectedRoleId === role.id
+                                  ? 'text-[#007AFF]'
+                                  : 'text-white'
+                              )}
+                            >
+                              {localize(role.label)}
+                            </p>
+                            <p className="text-[11px] text-white/30 line-clamp-1">
+                              {localize(role.description)}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 px-2">
-                        {msg.status === 'pending' ? (
-                          <Clock size={10} className="text-white/20" />
-                        ) : (
-                          <CheckCheck size={12} className="text-[#007AFF]" />
-                        )}
-                      </div>
+                          {selectedRoleId === role.id && (
+                            <div className="w-2 h-2 rounded-full bg-[#007AFF] shadow-[0_0_8px_#007AFF]" />
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
-                <div className="flex justify-start pr-12">
-                  <div className="flex flex-col items-start gap-2 w-full">
-                    {msg.status === 'processing' || msg.status === 'pending' ? (
-                      <div className="px-6 py-4 rounded-[24px_24px_24px_4px] bg-[#007AFF]/5 border border-[#007AFF]/10 flex gap-1.5">
-                        {[0, 1, 2].map((i) => (
-                          <div
-                            key={i}
-                            className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-bounce"
-                            style={{ animationDelay: `${i * 0.2}s` }}
-                          />
-                        ))}
-                      </div>
-                    ) : msg.status === 'error' ? (
-                      <div className="px-5 py-3.5 rounded-[24px_24px_24px_4px] bg-red-500/10 border border-red-500/20 text-red-400 text-[14px] font-medium">
-                        {msg.error || t('error')}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3 w-full">
-                        {msg.result?.text && (
-                          <div className="px-5 py-3.5 rounded-[24px_24px_24px_4px] bg-white/5 border border-white/5 shadow-inner text-[15px] leading-relaxed wrap-break-word prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-white/10 prose-pre:p-4 prose-pre:rounded-2xl">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm, remarkMath]}
-                              rehypePlugins={[rehypeKatex]}
-                            >
-                              {msg.result.text
-                                .replace(/\\\[/g, () => '\n$$\n')
-                                .replace(/\\\]/g, () => '\n$$\n')
-                                .replace(/\\\(/g, () => '$')
-                                .replace(/\\\)/g, () => '$')}
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                        {resultMedia.length > 0 && (
-                          <div className="flex flex-wrap gap-3">
-                            {resultMedia.map((m, i) => (
-                              <div
-                                key={i}
-                                className="relative group w-full max-w-[320px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900/50"
-                              >
-                                {m.type === 'audio' ? (
-                                  <div className="p-4 flex flex-col gap-4">
-                                    <AudioPlayer src={m.url} />
-                                    <button
-                                      onClick={() => handleDownload(m.url)}
-                                      className="self-end p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-90"
-                                    >
-                                      <Download
-                                        size={18}
-                                        className="text-[#007AFF]"
-                                      />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div
-                                      className="relative  cursor-pointer overflow-hidden"
-                                      onClick={() => setViewerSrc(m)}
-                                    >
-                                      {m.type === 'image' ? (
-                                        <img
-                                          src={m.url}
-                                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
-                                      ) : (
-                                        <video
-                                          src={m.url}
-                                          className="w-full h-full object-cover"
-                                          controls={false}
-                                          muted
-                                          loop
-                                          playsInline
-                                          onMouseEnter={(e) =>
-                                            e.currentTarget.play()
-                                          }
-                                          onMouseLeave={(e) =>
-                                            e.currentTarget.pause()
-                                          }
-                                        />
-                                      )}
-                                      <div className="absolute top-3 right-3 flex gap-2 z-10">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDownload(m.url);
-                                          }}
-                                          className="p-2 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white/90 hover:text-white hover:bg-black/80 transition-colors shadow-lg"
-                                        >
-                                          <Download size={16} />
-                                        </button>
-                                      </div>
-                                      {m.type === 'video' && (
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
-                                          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                                            <Play
-                                              size={24}
-                                              fill="white"
-                                              className="ml-1"
-                                            />
+              </div>
+            ) : (
+              [...msgs, ...optimisticMessages].map((msg, idx) => {
+                const userMedia = extractDisplayMedia(msg.inputs);
+                const resultMedia = extractResultMedia(msg.result);
+                const content = msg.inputs?.text || msg.result?.text || '';
+
+                return (
+                  <ContextMenu key={msg.id || idx}>
+                    <ContextMenuTrigger asChild>
+                      <div className="flex flex-col gap-3">
+                        {/* User Message */}
+                        {(msg.inputs?.text || userMedia.length > 0) && (
+                          <div className="flex justify-end pl-12">
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="px-5 py-3.5 rounded-[24px_24px_4px_24px] bg-zinc-900/60 border border-white/10 shadow-xl text-[15px] leading-relaxed">
+                                {msg.inputs?.text && (
+                                  <p className="whitespace-pre-wrap">
+                                    {msg.inputs.text}
+                                  </p>
+                                )}
+                                {userMedia.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {userMedia.map((m, i) => (
+                                      <div
+                                        key={i}
+                                        onClick={() => setViewerSrc(m)}
+                                        className="relative group rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all cursor-pointer"
+                                      >
+                                        {m.type === 'image' ? (
+                                          <img
+                                            src={m.url}
+                                            className="w-32 h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-32 h-32 flex items-center justify-center bg-zinc-800 text-xl">
+                                            {m.type === 'video' ? '🎬' : '🎵'}
                                           </div>
+                                        )}
+                                        <div className="absolute top-2 right-2 flex gap-2 z-10">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDownload(m.url);
+                                            }}
+                                            className="p-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white/90 hover:text-white hover:bg-black/80 transition-colors shadow-lg"
+                                          >
+                                            <Download size={12} />
+                                          </button>
                                         </div>
-                                      )}
-                                    </div>
-                                    {!msg.post_id && (
-                                      <div className="p-3">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setPublishingMessage(msg);
-                                          }}
-                                          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[14px] font-black transition-all active:scale-95 shadow-2xl"
-                                          style={{
-                                            background:
-                                              'rgba(0, 122, 255, 0.15)',
-                                            backdropFilter:
-                                              'blur(40px) saturate(210%) brightness(1.2)',
-                                            WebkitBackdropFilter:
-                                              'blur(40px) saturate(210%) brightness(1.2)',
-                                            border:
-                                              '0.5px solid rgba(0, 122, 255, 0.3)',
-                                            boxShadow:
-                                              'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 122, 255, 0.2)',
-                                            color: '#007AFF',
-                                          }}
-                                        >
-                                          <Share2 size={16} />
-                                          {t('publishToTrends') ||
-                                            'Publish to Trends'}
-                                        </button>
                                       </div>
-                                    )}
-                                  </>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
-                            ))}
+                              <div className="flex items-center gap-1.5 px-2">
+                                {msg.status === 'pending' ? (
+                                  <Clock size={10} className="text-white/20" />
+                                ) : (
+                                  <CheckCheck size={12} className="text-[#007AFF]" />
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
+
+                        {/* AI Message */}
+                        <div className="flex justify-start pr-12">
+                          <div className="flex flex-col items-start gap-2 w-full">
+                            {msg.status === 'processing' || msg.status === 'pending' ? (
+                              <div className="px-6 py-4 rounded-[24px_24px_24px_4px] bg-[#007AFF]/5 border border-[#007AFF]/10 flex gap-1.5">
+                                {[0, 1, 2].map((i) => (
+                                  <div
+                                    key={i}
+                                    className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-bounce"
+                                    style={{ animationDelay: `${i * 0.2}s` }}
+                                  />
+                                ))}
+                              </div>
+                            ) : msg.status === 'error' ? (
+                              <div className="px-5 py-3.5 rounded-[24px_24px_24px_4px] bg-red-500/10 border border-red-500/20 text-red-400 text-[14px] font-medium">
+                                {msg.error || t('error')}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-3 w-full">
+                                {msg.result?.text && (
+                                  <div className="px-5 py-3.5 rounded-[24px_24px_24px_4px] bg-white/5 border border-white/5 shadow-inner text-[15px] leading-relaxed wrap-break-word prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-white/10 prose-pre:p-4 prose-pre:rounded-2xl">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm, remarkMath]}
+                                      rehypePlugins={[rehypeKatex]}
+                                    >
+                                      {msg.result.text
+                                        .replace(/\\\[/g, () => '\n$$\n')
+                                        .replace(/\\\]/g, () => '\n$$\n')
+                                        .replace(/\\\(/g, () => '$')
+                                        .replace(/\\\)/g, () => '$')}
+                                    </ReactMarkdown>
+                                  </div>
+                                )}
+                                {resultMedia.length > 0 && (
+                                  <div className="flex flex-wrap gap-3">
+                                    {resultMedia.map((m, i) => (
+                                      <div
+                                        key={i}
+                                        className="relative group w-full max-w-[320px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900/50"
+                                      >
+                                        {m.type === 'audio' ? (
+                                          <div className="p-4 flex flex-col gap-4">
+                                            <AudioPlayer src={m.url} />
+                                            <button
+                                              onClick={() => handleDownload(m.url)}
+                                              className="self-end p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-90"
+                                            >
+                                              <Download size={18} className="text-[#007AFF]" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <div
+                                              className="relative cursor-pointer overflow-hidden"
+                                              onClick={() => setViewerSrc(m)}
+                                            >
+                                              {m.type === 'image' ? (
+                                                <img
+                                                  src={m.url}
+                                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                />
+                                              ) : (
+                                                <video
+                                                  src={m.url}
+                                                  className="w-full h-full object-cover"
+                                                  controls={false}
+                                                  muted
+                                                  loop
+                                                  playsInline
+                                                  onMouseEnter={(e) => e.currentTarget.play()}
+                                                  onMouseLeave={(e) => e.currentTarget.pause()}
+                                                />
+                                              )}
+                                              <div className="absolute top-3 right-3 flex gap-2 z-10">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownload(m.url);
+                                                  }}
+                                                  className="p-2 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white/90 hover:text-white hover:bg-black/80 transition-colors shadow-lg"
+                                                >
+                                                  <Download size={16} />
+                                                </button>
+                                              </div>
+                                              {m.type === 'video' && (
+                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
+                                                  <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
+                                                    <Play size={24} fill="white" className="ml-1" />
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+
+                                            {!msg.post_id && (
+                                              <div className="p-3">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPublishingMessage(msg);
+                                                  }}
+                                                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[14px] font-black transition-all active:scale-95 shadow-2xl"
+                                                  style={{
+                                                    background: 'rgba(0, 122, 255, 0.15)',
+                                                    backdropFilter: 'blur(40px) saturate(210%) brightness(1.2)',
+                                                    WebkitBackdropFilter: 'blur(40px) saturate(210%) brightness(1.2)',
+                                                    border: '0.5px solid rgba(0, 122, 255, 0.3)',
+                                                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 122, 255, 0.2)',
+                                                    color: '#007AFF',
+                                                  }}
+                                                >
+                                                  <Share2 size={16} />
+                                                  {t('publishToTrends') || 'Publish to Trends'}
+                                                </button>
+                                              </div>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} className="h-4" />
+                    </ContextMenuTrigger>
+
+                    <ContextMenuContent className="bg-neutral-900 border-white/10">
+                      <ContextMenuItem
+                        onClick={() => {
+                          navigator.clipboard.writeText(content);
+                          toast.success('Скопировано');
+                        }}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <Copy size={16} />
+                        Копировать сообщение
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} className="h-4" />
+          </div>
+        </ScrollArea>
       </div>
 
       {/* ── Media Viewer ── */}
-      {viewerSrc && (
-        <div
-          onClick={() => setViewerSrc(null)}
-          className="fixed inset-0 z-100 bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 transition-all animate-in fade-in zoom-in duration-300"
-        >
-          <div className="relative w-full max-w-4xl h-full flex flex-col items-center justify-center">
-            {viewerSrc.type === 'image' ? (
-              <img
-                src={viewerSrc.url}
-                className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-              />
-            ) : (
-              <video
-                src={viewerSrc.url}
-                controls
-                autoPlay
-                className="max-w-full max-h-[80vh] rounded-2xl"
-              />
-            )}
-            <div className="flex gap-4 mt-8">
-              <button
-                onClick={() => setViewerSrc(null)}
-                className="px-8 py-3 rounded-full bg-white/10 border border-white/10 font-bold text-white transition-all active:scale-95"
-              >
-                {t('close')}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload(viewerSrc.url);
-                }}
-                className="px-8 py-3 rounded-full bg-[#007AFF] font-black text-black transition-all active:scale-95"
-              >
-                {t('download')}
-              </button>
+      {
+        viewerSrc && (
+          <div
+            onClick={() => setViewerSrc(null)}
+            className="fixed inset-0 z-100 bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 transition-all animate-in fade-in zoom-in duration-300"
+          >
+            <div className="relative w-full max-w-4xl h-full flex flex-col items-center justify-center">
+              {viewerSrc.type === 'image' ? (
+                <img
+                  src={viewerSrc.url}
+                  className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                />
+              ) : (
+                <video
+                  src={viewerSrc.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[80vh] rounded-2xl"
+                />
+              )}
+              <div className="flex gap-4 mt-8">
+                <button
+                  onClick={() => setViewerSrc(null)}
+                  className="px-8 py-3 rounded-full bg-white/10 border border-white/10 font-bold text-white transition-all active:scale-95"
+                >
+                  {t('close')}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(viewerSrc.url);
+                  }}
+                  className="px-8 py-3 rounded-full bg-[#007AFF] font-black text-black transition-all active:scale-95"
+                >
+                  {t('download')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* ── Input Bar ── */}
       <div className="px-4 pt-4 pb-[calc(16px+max(12px,env(safe-area-inset-bottom)))] lg:pb-4 lg:mb-6 lg:rounded-full bg-zinc-950/80 lg:bg-zinc-950/80 lg:backdrop-blur-none backdrop-blur-3xl border-t border-white/5 lg:border-transparent z-50">
@@ -901,13 +919,15 @@ export default function ChatPage() {
         </div>
       </div>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
-      {publishingMessage && (
-        <PublishDialog
-          isOpen={!!publishingMessage}
-          onClose={() => setPublishingMessage(null)}
-          message={publishingMessage}
-        />
-      )}
+      {
+        publishingMessage && (
+          <PublishDialog
+            isOpen={!!publishingMessage}
+            onClose={() => setPublishingMessage(null)}
+            message={publishingMessage}
+          />
+        )
+      }
     </div>
   );
 }

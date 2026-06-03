@@ -52,6 +52,7 @@ import {
   Calendar,
   Percent,
   ImageIcon,
+  Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
@@ -60,6 +61,7 @@ import { cn, normalise, timeAgo } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/layout/LocaleSwitcher';
 import { PaymentDialog } from '@/components/dialogs/PaymentDialog';
+import { AlbumsTab } from '../shared/profile/AlbumsTab';
 
 type TabType = 'profile' | 'account' | 'partnership';
 
@@ -252,6 +254,7 @@ export const Profile = () => {
   const [copiedRef, setCopiedRef] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState<'generations' | 'albums'>('generations');
 
   const { data: paymentUrlLink } = usePaymentLink();
 
@@ -486,32 +489,62 @@ export const Profile = () => {
             </button>
 
             {/* History Section */}
-            <div>
-              <h3 className="text-[13px] font-black uppercase tracking-[0.15em] text-white/30 px-2 mb-6">
-                {t('generationHistory')}
-              </h3>
-              <div className="flex flex-col gap-3">
-                {reqLoading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <RequestCardSkeleton key={i} />
-                  ))
-                ) : requests.length > 0 ? (
-                  requests.map(raw => {
-                    const req = normalise(raw);
-                    return (
-                      <RequestCard
-                        key={req.id}
-                        req={req}
-                        onClick={() => req.dialogue_id ? router.push(`/chats/${req.dialogue_id}`) : undefined}
-                      />
-                    );
-                  })
-                ) : (
-                  <div className="py-12 text-center opacity-20">
-                    <p className="text-[14px] font-bold">{t('noGenerations')}</p>
-                  </div>
-                )}
+            <div className="flex flex-col gap-5">
+              {/* Sub-tab switcher: Generations / Albums */}
+              <div className="flex p-1 bg-zinc-900/60 rounded-2xl border border-white/5">
+                <button
+                  onClick={() => { haptic.light(); setHistoryTab('generations'); }}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all relative z-10',
+                    historyTab === 'generations' ? 'text-white' : 'text-white/40 hover:text-white/60'
+                  )}
+                >
+                  {t('generationHistory')}
+                  {historyTab === 'generations' && (
+                    <div className="absolute inset-0 bg-[#007AFF] rounded-xl z-[-1] animate-in fade-in zoom-in duration-300" />
+                  )}
+                </button>
+                <button
+                  onClick={() => { haptic.light(); setHistoryTab('albums'); }}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all relative z-10',
+                    historyTab === 'albums' ? 'text-white' : 'text-white/40 hover:text-white/60'
+                  )}
+                >
+                  {t('albumsTabLabel')}
+                  {historyTab === 'albums' && (
+                    <div className="absolute inset-0 bg-[#007AFF] rounded-xl z-[-1] animate-in fade-in zoom-in duration-300" />
+                  )}
+                </button>
               </div>
+
+              {/* Tab content */}
+              {historyTab === 'generations' ? (
+                <div className="flex flex-col gap-3">
+                  {reqLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <RequestCardSkeleton key={i} />
+                    ))
+                  ) : requests.length > 0 ? (
+                    requests.map(raw => {
+                      const req = normalise(raw);
+                      return (
+                        <RequestCard
+                          key={req.id}
+                          req={req}
+                          onClick={() => req.dialogue_id ? router.push(`/chats/${req.dialogue_id}`) : undefined}
+                        />
+                      );
+                    })
+                  ) : (
+                    <div className="py-12 text-center opacity-20">
+                      <p className="text-[14px] font-bold">{t('noGenerations')}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <AlbumsTab />
+              )}
             </div>
           </div>
         )}
@@ -691,6 +724,33 @@ export const Profile = () => {
                 </div>
               </div>
             </div>
+
+            <div className="flex items-center justify-between p-5 rounded-[28px] bg-zinc-900/40 border border-white/[0.06]">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-black uppercase tracking-[0.15em] text-white/30">
+                  {t('partnerBalance')}
+                </p>
+                <div className="flex items-baseline mt-2">
+                  <span className="text-[28px] font-black leading-none">
+                    {userData?.user?.balance ?? 0} ₽
+                  </span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/10 border border-[#007AFF]/20 flex items-center justify-center">
+                <Coins size={22} className="text-[#007AFF]" />
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                haptic.medium();
+                toast.info(t('withdrawComingSoon'));
+              }}
+              className="w-full flex items-center justify-center gap-3 py-5 rounded-[28px] bg-linear-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 text-emerald-400 font-black text-[15px] hover:from-emerald-500/20 hover:to-teal-500/20 transition-all active:scale-[0.98] shadow-[0_0_30px_rgba(52,211,153,0.05)]"
+            >
+              <Banknote size={20} />
+              {t('withdrawFunds')}
+            </button>
 
             {/* Control Strip */}
             <div className="flex flex-col gap-4">

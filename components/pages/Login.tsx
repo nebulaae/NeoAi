@@ -37,6 +37,15 @@ const MARQUEE_IMAGES = [
 const col = (offset: number, count = 5) =>
   Array.from({ length: count }, (_, i) => MARQUEE_IMAGES[(offset + i) % MARQUEE_IMAGES.length]);
 
+const getTelegramOAuthOrigin = () => {
+  if (typeof window === 'undefined') return '';
+  if (window.location.hostname === 'neoaipro.com') {
+    return `${window.location.protocol}//www.neoaipro.com`;
+  }
+
+  return window.location.origin;
+};
+
 const MarqueeColumn = ({
   images,
   direction = 'up',
@@ -157,7 +166,6 @@ export const Login = () => {
   // Капча Яндекс стейты
   const captchaWidgetId = useRef<any>(null);
   const captchaContainerRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     try {
@@ -344,56 +352,6 @@ export const Login = () => {
     }
   };
 
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-
-      let eventData = event.data;
-      if (eventData?.type === 'TELEGRAM_AUTH_SUCCESS') {
-        eventData = eventData.data;
-      } else {
-        if (typeof eventData === 'string') {
-          try {
-            eventData = JSON.parse(eventData);
-          } catch {
-            return;
-          }
-        }
-      }
-
-      if (!eventData || !eventData.id) return;
-
-      try {
-        const referrerId = localStorage.getItem('pending_referrer_id');
-        const { data } = await api.post('/api/auth/telegram', {
-          ...eventData,
-          bot_id: bot?.bot_id,
-          ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
-        });
-
-        localStorage.setItem('auth_token', data.token);
-
-        if (data.user?.id) {
-          localStorage.setItem(
-            'auth_user_id',
-            String(data.user.id)
-          );
-        }
-
-        localStorage.removeItem('pending_referrer_id');
-        login(data.user);
-        haptic.success();
-        router.replace('/');
-      } catch {
-        haptic.error();
-        toast.error(t('loginError'));
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [bot, login, router, haptic, t]);
-
   /* ── Auto-login screen ── */
   if (autoLogging) {
     return (
@@ -474,8 +432,9 @@ export const Login = () => {
                           const height = 670;
                           const left = window.screen.width / 2 - width / 2;
                           const top = window.screen.height / 2 - height / 2;
+                          const origin = getTelegramOAuthOrigin();
                           window.open(
-                            `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${encodeURIComponent(window.location.origin)}&embed=1&request_access=write`,
+                            `https://oauth.telegram.org/auth?bot_id=${bot?.bot_id}&origin=${encodeURIComponent(origin)}&request_access=write`,
                             'telegram-auth',
                             `width=${width},height=${height},left=${left},top=${top}`
                           );
