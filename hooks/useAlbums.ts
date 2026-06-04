@@ -3,6 +3,12 @@ import api from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface PublicAlbumResponse {
+    success: boolean;
+    album: Album;
+    items: AlbumPost[];
+}
+
 export interface Album {
     id: number;
     name: string;
@@ -209,6 +215,33 @@ export const useRemovePostFromAlbum = () => {
         },
         onSuccess: (_data, { albumId }) => {
             queryClient.invalidateQueries({ queryKey: albumQueryKeys.posts(albumId) });
+        },
+    });
+};
+
+
+// ─── GET /albums/public/:public_id ────────────────────────────────────────────
+// Не требует авторизации (без bot_id / user_id)
+
+export const usePublicAlbum = (publicId: string | null) => {
+    return useQuery({
+        queryKey: albumQueryKeys.public(publicId!),
+        queryFn: async () => {
+            // Используем axios instance напрямую — без bot_id/user_id в params
+            const { data } = await api.get(`/api/albums/public/${publicId}`);
+            if (!data.success) {
+                const err = new Error(data.error ?? 'not_found');
+                (err as any).status = 404;
+                throw err;
+            }
+            return data as PublicAlbumResponse;
+        },
+        enabled: !!publicId,
+        staleTime: 1000 * 60 * 5, // 5 min — публичная страница меняется редко
+        retry: (failureCount, error: any) => {
+            // Не ретраить 404
+            if (error?.status === 404 || error?.message === 'not_found') return false;
+            return failureCount < 2;
         },
     });
 };

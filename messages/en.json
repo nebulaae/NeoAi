@@ -98,7 +98,11 @@
     "registerSuccess": "Account created! Please sign in.",
     "autoLoginLoading": "Logging in...",
     "back": "Back",
-    "continueWithTelegram": "Continue with Telegram"
+    "continueWithTelegram": "Continue with Telegram",
+    "telegramLoginError": "Telegram login error",
+    "telegramWidgetSubtitle": "Via official widget",
+    "telegramLoginDescription": "Click the button below to sign in via Telegram",
+    "botIdNotConfigured": "Bot id is not configured"
   },
   "Models": {
     "title": "Models",

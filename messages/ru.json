@@ -65,9 +65,9 @@
   "Login": {
     "tagline": "AI-платформа нового поколения",
     "openInApp": "Открыть в мессенджере",
-    "openInTelegram": "Продолить в Telegram",
+    "openInTelegram": "Продолжить в Telegram",
     "openInTelegramSub": "Нажмите, чтобы открыть мини-приложение",
-    "openInMax": "Продолить в Max",
+    "openInMax": "Продолжить в Max",
     "openInMaxSub": "Нажмите, чтобы открыть мини-приложение",
     "orContinueWith": "или",
     "telegramSection": "Telegram",
@@ -94,12 +94,16 @@
     "loginSuccess": "Вход выполнен успешно!",
     "loginError": "Ошибка входа через Telegram",
     "emailRequired": "Введите email и пароль",
-    "emailEmpty": "Заполните все поля",
+    "emailEmpty": "Заполнитель все поля",
     "emailExists": "Пользователь с таким email уже существует",
     "registerSuccess": "Аккаунт создан! Войдите в систему.",
     "autoLoginLoading": "Выполняется вход...",
     "back": "Назад",
-    "continueWithTelegram": "Продолжить с Telegram"
+    "continueWithTelegram": "Войти через Telegram",
+    "telegramLoginError": "Ошибка входа через Telegram",
+    "telegramWidgetSubtitle": "Через официальный виджет",
+    "telegramLoginDescription": "Нажмите кнопку ниже для входа через Telegram",
+    "botIdNotConfigured": "Bot id не настроен"
   },
   "Models": {
     "title": "Модели",

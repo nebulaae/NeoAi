@@ -32,8 +32,10 @@ import {
   Share2,
   Clock,
   CheckCheck,
+  BookMarked,
 } from 'lucide-react';
 import { PublishDialog } from '@/components/dialogs/PublishDialog';
+import { PromptsManagerDialog } from '@/components/dialogs/PromptsManagerDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -44,6 +46,7 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { useDraftPrompt } from '@/hooks/useSavedPrompts';
 
 /* ── Types ── */
 interface MediaItem {
@@ -254,7 +257,31 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const dialogueId = params?.dialogueId as string | undefined;
   const haptic = useHaptic();
-  const [text, setText] = useState('');
+
+  // ── Draft persistence ──────────────────────────────────────────────────────
+  const draft = useDraftPrompt(dialogueId);
+
+  const [text, setText] = useState<string>(() => draft.load());
+
+  // Сохраняем черновик при каждом изменении
+  useEffect(() => {
+    draft.save(text);
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Prompts manager ────────────────────────────────────────────────────────
+  const [isPromptsOpen, setIsPromptsOpen] = useState(false);
+
+  const handleInsertPrompt = useCallback((promptText: string) => {
+    setText((prev) => {
+      const newText = prev ? `${prev}\n${promptText}` : promptText;
+      return newText;
+    });
+    haptic.light();
+    // Фокус на textarea после вставки
+    setTimeout(() => textareaRef.current?.focus(), 80);
+  }, [haptic]);
+
+  // ── Rest of state ──────────────────────────────────────────────────────────
   const [uploadedFiles, setUploadedFiles] = useState<
     { url: string; type: string; file: File }[]
   >([]);
@@ -334,12 +361,6 @@ export default function ChatPage() {
     const files = e.target.files;
     if (!files?.length) return;
     const file = files[0];
-    const fileType = file.type.startsWith('image/')
-      ? 'image'
-      : file.type.startsWith('video/')
-        ? 'video'
-        : 'audio';
-
     try {
       const res = await upload.mutateAsync(file);
       setUploadedFiles((prev) => [
@@ -390,7 +411,7 @@ export default function ChatPage() {
       id: -Date.now(),
       model: techName,
       version: version || '',
-      role_id: selectedRoleId,   // ← ФИКС РОЛЕЙ
+      role_id: selectedRoleId,
       inputs: {
         text: sentText || undefined,
         media: uploadedFiles.map((f) => ({ type: f.type, url: f.url })),
@@ -401,6 +422,7 @@ export default function ChatPage() {
 
     setOptimisticMessages((prev) => [...prev, optimisticMsg]);
     setText('');
+    draft.clear(); // Очищаем черновик после отправки
     setUploadedFiles([]);
 
     generate.mutate(
@@ -443,11 +465,7 @@ export default function ChatPage() {
 
   const handleDownload = (url: string) => {
     haptic.selection();
-
-    // Create the secure proxy download URL
     const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
-
-    // For Telegram Mini Apps, use openLink with the proxy URL to trigger native browser's download manager immediately
     const isTelegram = typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
     if (isTelegram && (window as any).Telegram?.WebApp?.openLink) {
       try {
@@ -458,8 +476,6 @@ export default function ChatPage() {
         console.warn('[handleDownload] Telegram openLink with proxy failed, trying standard download:', err);
       }
     }
-
-    // On standard website, set window.location.href to trigger direct immediate download without navigating away
     window.location.href = proxyUrl;
   };
 
@@ -793,47 +809,45 @@ export default function ChatPage() {
       </div>
 
       {/* ── Media Viewer ── */}
-      {
-        viewerSrc && (
-          <div
-            onClick={() => setViewerSrc(null)}
-            className="fixed inset-0 z-100 bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 transition-all animate-in fade-in zoom-in duration-300"
-          >
-            <div className="relative w-full max-w-4xl h-full flex flex-col items-center justify-center">
-              {viewerSrc.type === 'image' ? (
-                <img
-                  src={viewerSrc.url}
-                  className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-                />
-              ) : (
-                <video
-                  src={viewerSrc.url}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-[80vh] rounded-2xl"
-                />
-              )}
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => setViewerSrc(null)}
-                  className="px-8 py-3 rounded-full bg-white/10 border border-white/10 font-bold text-white transition-all active:scale-95"
-                >
-                  {t('close')}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownload(viewerSrc.url);
-                  }}
-                  className="px-8 py-3 rounded-full bg-[#007AFF] font-black text-black transition-all active:scale-95"
-                >
-                  {t('download')}
-                </button>
-              </div>
+      {viewerSrc && (
+        <div
+          onClick={() => setViewerSrc(null)}
+          className="fixed inset-0 z-100 bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 transition-all animate-in fade-in zoom-in duration-300"
+        >
+          <div className="relative w-full max-w-4xl h-full flex flex-col items-center justify-center">
+            {viewerSrc.type === 'image' ? (
+              <img
+                src={viewerSrc.url}
+                className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+              />
+            ) : (
+              <video
+                src={viewerSrc.url}
+                controls
+                autoPlay
+                className="max-w-full max-h-[80vh] rounded-2xl"
+              />
+            )}
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={() => setViewerSrc(null)}
+                className="px-8 py-3 rounded-full bg-white/10 border border-white/10 font-bold text-white transition-all active:scale-95"
+              >
+                {t('close')}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(viewerSrc.url);
+                }}
+                className="px-8 py-3 rounded-full bg-[#007AFF] font-black text-black transition-all active:scale-95"
+              >
+                {t('download')}
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* ── Input Bar ── */}
       <div className="px-4 pt-4 pb-[calc(16px+max(12px,env(safe-area-inset-bottom)))] lg:pb-4 lg:mb-6 lg:rounded-full bg-zinc-950/80 lg:bg-zinc-950/80 lg:backdrop-blur-none backdrop-blur-3xl border-t border-white/5 lg:border-transparent z-50">
@@ -863,6 +877,7 @@ export default function ChatPage() {
             </div>
           )}
           <div className="flex items-end gap-3">
+            {/* Attach photo */}
             {canAttachMedia && (
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -876,6 +891,19 @@ export default function ChatPage() {
                 )}
               </button>
             )}
+
+            {/* ── Prompts manager button ── */}
+            <button
+              onClick={() => {
+                haptic.light();
+                setIsPromptsOpen(true);
+              }}
+              className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center transition-all hover:bg-[#007AFF]/10 hover:border-[#007AFF]/20 active:scale-90 group"
+              title="Сохранённые промпты"
+            >
+              <BookMarked size={20} className="text-white/40 group-hover:text-[#007AFF] transition-colors" />
+            </button>
+
             <input
               type="file"
               ref={fileInputRef}
@@ -919,15 +947,21 @@ export default function ChatPage() {
         </div>
       </div>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
-      {
-        publishingMessage && (
-          <PublishDialog
-            isOpen={!!publishingMessage}
-            onClose={() => setPublishingMessage(null)}
-            message={publishingMessage}
-          />
-        )
-      }
+
+      {publishingMessage && (
+        <PublishDialog
+          isOpen={!!publishingMessage}
+          onClose={() => setPublishingMessage(null)}
+          message={publishingMessage}
+        />
+      )}
+
+      {/* ── Prompts Manager Dialog ── */}
+      <PromptsManagerDialog
+        open={isPromptsOpen}
+        onClose={() => setIsPromptsOpen(false)}
+        onInsert={handleInsertPrompt}
+      />
     </div>
   );
 }
