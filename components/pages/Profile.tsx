@@ -128,7 +128,8 @@ function RequestCard({ req, onClick }: RequestCardProps) {
   };
 
   const cfg =
-    statusConfig[req.status as keyof typeof statusConfig] ?? statusConfig.pending;
+    statusConfig[req.status as keyof typeof statusConfig] ??
+    statusConfig.pending;
 
   return (
     <button
@@ -214,9 +215,7 @@ function RequestCard({ req, onClick }: RequestCardProps) {
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 export function RequestCardSkeleton() {
-  return (
-    <div className="h-[88px] rounded-3xl bg-white/[0.04] animate-pulse" />
-  );
+  return <div className="h-[88px] rounded-3xl bg-white/[0.04] animate-pulse" />;
 }
 
 // ─── History section ──────────────────────────────────────────────────────────
@@ -236,13 +235,19 @@ export const Profile = () => {
   const { data: userData } = useUser();
   const { data: refData } = useReferrals();
 
-  const [partnershipPeriod, setPartnershipPeriod] = useState<'day' | 'week' | 'month' | 'all'>('all');
-  const [partnershipTab, setPartnershipTab] = useState<'overview' | 'finance' | 'audience' | 'lists'>('overview');
+  const [partnershipPeriod, setPartnershipPeriod] = useState<
+    'day' | 'week' | 'month' | 'all'
+  >('all');
+  const [partnershipTab, setPartnershipTab] = useState<
+    'overview' | 'finance' | 'audience' | 'lists'
+  >('overview');
 
-  const { data: trackingStatsData, isLoading: trackingStatsLoading } = useTrackingStats(partnershipPeriod);
+  const { data: trackingStatsData, isLoading: trackingStatsLoading } =
+    useTrackingStats(partnershipPeriod);
   const { data: trackingReferralsData } = useTrackingReferrals(50, 0);
   const { data: trackingPaymentsData } = useTrackingPayments(partnershipPeriod);
-  const { data: trackingPaymentsStatsData } = useTrackingPaymentsStats(partnershipPeriod);
+  const { data: trackingPaymentsStatsData } =
+    useTrackingPaymentsStats(partnershipPeriod);
   const { data: apiTokens } = useApiTokens();
   const { data: recurrentData } = useRecurrentStatus();
   const cancelRecurrent = useCancelRecurrent();
@@ -254,9 +259,9 @@ export const Profile = () => {
   const [copiedRef, setCopiedRef] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [historyTab, setHistoryTab] = useState<'generations' | 'albums'>('generations');
-
-  const { data: paymentUrlLink } = usePaymentLink();
+  const [historyTab, setHistoryTab] = useState<'generations' | 'albums'>(
+    'generations'
+  );
 
   const tokens = userData?.user?.tokens ?? 0;
   const isPremium = userData?.user?.premium ?? false;
@@ -493,10 +498,15 @@ export const Profile = () => {
               {/* Sub-tab switcher: Generations / Albums */}
               <div className="flex p-1 bg-zinc-900/60 rounded-2xl border border-white/5">
                 <button
-                  onClick={() => { haptic.light(); setHistoryTab('generations'); }}
+                  onClick={() => {
+                    haptic.light();
+                    setHistoryTab('generations');
+                  }}
                   className={cn(
                     'flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all relative z-10',
-                    historyTab === 'generations' ? 'text-white' : 'text-white/40 hover:text-white/60'
+                    historyTab === 'generations'
+                      ? 'text-white'
+                      : 'text-white/40 hover:text-white/60'
                   )}
                 >
                   {t('generationHistory')}
@@ -505,10 +515,15 @@ export const Profile = () => {
                   )}
                 </button>
                 <button
-                  onClick={() => { haptic.light(); setHistoryTab('albums'); }}
+                  onClick={() => {
+                    haptic.light();
+                    setHistoryTab('albums');
+                  }}
                   className={cn(
                     'flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all relative z-10',
-                    historyTab === 'albums' ? 'text-white' : 'text-white/40 hover:text-white/60'
+                    historyTab === 'albums'
+                      ? 'text-white'
+                      : 'text-white/40 hover:text-white/60'
                   )}
                 >
                   {t('albumsTabLabel')}
@@ -526,19 +541,25 @@ export const Profile = () => {
                       <RequestCardSkeleton key={i} />
                     ))
                   ) : requests.length > 0 ? (
-                    requests.map(raw => {
+                    requests.map((raw) => {
                       const req = normalise(raw);
                       return (
                         <RequestCard
                           key={req.id}
                           req={req}
-                          onClick={() => req.dialogue_id ? router.push(`/chats/${req.dialogue_id}`) : undefined}
+                          onClick={() =>
+                            req.dialogue_id
+                              ? router.push(`/chats/${req.dialogue_id}`)
+                              : undefined
+                          }
                         />
                       );
                     })
                   ) : (
                     <div className="py-12 text-center opacity-20">
-                      <p className="text-[14px] font-bold">{t('noGenerations')}</p>
+                      <p className="text-[14px] font-bold">
+                        {t('noGenerations')}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -774,7 +795,9 @@ export const Profile = () => {
                           : 'text-white/40 hover:text-white/60 hover:bg-white/5'
                       )}
                     >
-                      {t(`period${p.charAt(0).toUpperCase() + p.slice(1)}` as any)}
+                      {t(
+                        `period${p.charAt(0).toUpperCase() + p.slice(1)}` as any
+                      )}
                     </button>
                   ))}
                 </div>
@@ -782,30 +805,36 @@ export const Profile = () => {
 
               {/* Sub-tab Switcher */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none border-b border-white/5">
-                {(['overview', 'finance', 'audience', 'lists'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      haptic.light();
-                      setPartnershipTab(tab);
-                    }}
-                    className={cn(
-                      'px-5 py-2.5 rounded-2xl text-[13px] font-bold transition-all shrink-0 border relative',
-                      partnershipTab === tab
-                        ? 'bg-[#007AFF] text-white border-transparent shadow-[0_0_15px_rgba(0,122,255,0.3)]'
-                        : 'bg-zinc-900/30 border-white/5 text-white/40 hover:text-white/60 hover:bg-zinc-900/50'
-                    )}
-                  >
-                    {t(`subTab${tab.charAt(0).toUpperCase() + tab.slice(1)}` as any)}
-                  </button>
-                ))}
+                {(['overview', 'finance', 'audience', 'lists'] as const).map(
+                  (tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => {
+                        haptic.light();
+                        setPartnershipTab(tab);
+                      }}
+                      className={cn(
+                        'px-5 py-2.5 rounded-2xl text-[13px] font-bold transition-all shrink-0 border relative',
+                        partnershipTab === tab
+                          ? 'bg-[#007AFF] text-white border-transparent shadow-[0_0_15px_rgba(0,122,255,0.3)]'
+                          : 'bg-zinc-900/30 border-white/5 text-white/40 hover:text-white/60 hover:bg-zinc-900/50'
+                      )}
+                    >
+                      {t(
+                        `subTab${tab.charAt(0).toUpperCase() + tab.slice(1)}` as any
+                      )}
+                    </button>
+                  )
+                )}
               </div>
             </div>
 
             {trackingStatsLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
                 <Loader2 size={32} className="animate-spin text-[#007AFF]" />
-                <p className="text-[13px] font-bold text-white/40 uppercase tracking-widest">{t('loading')}</p>
+                <p className="text-[13px] font-bold text-white/40 uppercase tracking-widest">
+                  {t('loading')}
+                </p>
               </div>
             ) : (
               <div className="flex flex-col gap-6 animate-in fade-in duration-300">
@@ -820,12 +849,19 @@ export const Profile = () => {
                           <p className="text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5">
                             <Users size={12} /> {t('metricUsers')}
                           </p>
-                          <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ArrowUpRight
+                            size={14}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
                         </div>
                         <div>
-                          <p className="text-[32px] font-black leading-none tracking-tight">{usersStats.total ?? 0}</p>
+                          <p className="text-[32px] font-black leading-none tracking-tight">
+                            {usersStats.total ?? 0}
+                          </p>
                           <p className="text-[12px] text-green-400 font-bold mt-2 flex items-center gap-1">
-                            {t('metricNewUsers', { count: usersStats.new ?? 0 })}
+                            {t('metricNewUsers', {
+                              count: usersStats.new ?? 0,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -836,14 +872,20 @@ export const Profile = () => {
                           <p className="text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5">
                             <Coins size={12} /> {t('metricRevenue')}
                           </p>
-                          <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ArrowUpRight
+                            size={14}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
                         </div>
                         <div>
                           <p className="text-[32px] font-black text-[#007AFF] leading-none tracking-tight">
-                            {paysStats.totalRevenue ?? 0} <span className="text-[18px] text-white/50">◈</span>
+                            {paysStats.totalRevenue ?? 0}{' '}
+                            <span className="text-[18px] text-white/50">◈</span>
                           </p>
                           <p className="text-[12px] text-white/40 font-bold mt-2">
-                            {t('metricSuccessfulPays', { count: paysStats.successCount ?? 0 })}
+                            {t('metricSuccessfulPays', {
+                              count: paysStats.successCount ?? 0,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -854,12 +896,19 @@ export const Profile = () => {
                           <p className="text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5">
                             <Zap size={12} /> {t('metricRequests')}
                           </p>
-                          <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ArrowUpRight
+                            size={14}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
                         </div>
                         <div>
-                          <p className="text-[32px] font-black leading-none tracking-tight">{reqsStats.total ?? 0}</p>
+                          <p className="text-[32px] font-black leading-none tracking-tight">
+                            {reqsStats.total ?? 0}
+                          </p>
                           <p className="text-[12px] text-white/40 font-bold mt-2">
-                            {t('metricActiveUsers', { count: reqsStats.uniqueUsers ?? 0 })}
+                            {t('metricActiveUsers', {
+                              count: reqsStats.uniqueUsers ?? 0,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -870,12 +919,19 @@ export const Profile = () => {
                           <p className="text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5">
                             <TrendingUp size={12} /> {t('metricConversion')}
                           </p>
-                          <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ArrowUpRight
+                            size={14}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
                         </div>
                         <div>
-                          <p className="text-[32px] font-black leading-none tracking-tight">{conversions.rate ?? 0}%</p>
+                          <p className="text-[32px] font-black leading-none tracking-tight">
+                            {conversions.rate ?? 0}%
+                          </p>
                           <p className="text-[12px] text-white/40 font-bold mt-2">
-                            {t('metricBuyers', { count: conversions.uniquePayers ?? 0 })}
+                            {t('metricBuyers', {
+                              count: conversions.uniquePayers ?? 0,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -884,14 +940,20 @@ export const Profile = () => {
                     {/* Secondary Metrics / Performance Meters */}
                     <div className="p-6 rounded-[32px] bg-zinc-900/20 border border-white/5 flex flex-col gap-5">
                       <h3 className="text-[12px] font-black uppercase tracking-[0.15em] text-white/30 mb-1">
-                        {t('securityAndApi') === 'Security & API' ? 'Performance Funnels' : 'Воронки эффективности'}
+                        {t('securityAndApi') === 'Security & API'
+                          ? 'Performance Funnels'
+                          : 'Воронки эффективности'}
                       </h3>
 
                       {/* Premium Users Ratio */}
                       <div>
                         <div className="flex justify-between items-center text-[12px] font-bold mb-2">
                           <span className="text-white/60 flex items-center gap-1.5">
-                            <Star size={12} className="text-amber-400" fill="currentColor" />
+                            <Star
+                              size={12}
+                              className="text-amber-400"
+                              fill="currentColor"
+                            />
                             {t('cardPremium')}
                           </span>
                           <span className="text-white/90">
@@ -901,7 +963,9 @@ export const Profile = () => {
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-amber-400 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.3)] transition-all duration-500"
-                            style={{ width: `${usersStats.total > 0 ? (usersStats.premium / usersStats.total) * 100 : 0}%` }}
+                            style={{
+                              width: `${usersStats.total > 0 ? (usersStats.premium / usersStats.total) * 100 : 0}%`,
+                            }}
                           />
                         </div>
                       </div>
@@ -920,7 +984,9 @@ export const Profile = () => {
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-sky-400 rounded-full shadow-[0_0_10px_rgba(56,189,248,0.3)] transition-all duration-500"
-                            style={{ width: `${usersStats.total > 0 ? (usersStats.tg / usersStats.total) * 100 : 0}%` }}
+                            style={{
+                              width: `${usersStats.total > 0 ? (usersStats.tg / usersStats.total) * 100 : 0}%`,
+                            }}
                           />
                         </div>
                       </div>
@@ -933,13 +999,22 @@ export const Profile = () => {
                             {t('cardRepeatPayments')}
                           </span>
                           <span className="text-white/90">
-                            {t('cardRepeatPayers', { count: repeatPayments.repeatPayersCount ?? 0 })} ({repeatPayments.totalRepeatPayments ?? 0} {t('paymentsCount', { count: repeatPayments.totalRepeatPayments ?? 0 }).split(' ')[1] || 'payments'})
+                            {t('cardRepeatPayers', {
+                              count: repeatPayments.repeatPayersCount ?? 0,
+                            })}{' '}
+                            ({repeatPayments.totalRepeatPayments ?? 0}{' '}
+                            {t('paymentsCount', {
+                              count: repeatPayments.totalRepeatPayments ?? 0,
+                            }).split(' ')[1] || 'payments'}
+                            )
                           </span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.3)] transition-all duration-500"
-                            style={{ width: `${paysStats.successCount > 0 ? ((repeatPayments.repeatPayersCount || 0) / paysStats.successCount) * 100 : 0}%` }}
+                            style={{
+                              width: `${paysStats.successCount > 0 ? ((repeatPayments.repeatPayersCount || 0) / paysStats.successCount) * 100 : 0}%`,
+                            }}
                           />
                         </div>
                       </div>
@@ -952,7 +1027,9 @@ export const Profile = () => {
                             {t('cardTrialToPaid')}
                           </span>
                           <span className="text-white/90">
-                            {trialToPaid.rate ?? 0}% ({trialToPaid.paidUsers ?? 0} / {trialToPaid.newUsers ?? 0})
+                            {trialToPaid.rate ?? 0}% (
+                            {trialToPaid.paidUsers ?? 0} /{' '}
+                            {trialToPaid.newUsers ?? 0})
                           </span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
@@ -994,7 +1071,8 @@ export const Profile = () => {
                       </div>
                       <div className="flex justify-between items-center z-10">
                         <h4 className="text-[12px] font-black uppercase tracking-wider text-white/30 flex items-center gap-1.5">
-                          <Activity size={12} className="text-[#007AFF]" /> {t('financeRevenueTrend')}
+                          <Activity size={12} className="text-[#007AFF]" />{' '}
+                          {t('financeRevenueTrend')}
                         </h4>
                         {paysStats.totalRevenue > 0 && (
                           <span className="text-[11px] font-bold text-white/50 bg-white/5 px-2.5 py-1 rounded-full">
@@ -1004,26 +1082,54 @@ export const Profile = () => {
                       </div>
 
                       {(() => {
-                        const dailyPays = paysStats.daily || payStatsAgg.daily || [];
-                        const maxRev = dailyPays.length > 0 ? Math.max(...dailyPays.map((d: any) => d.revenue || 0)) : 0;
+                        const dailyPays =
+                          paysStats.daily || payStatsAgg.daily || [];
+                        const maxRev =
+                          dailyPays.length > 0
+                            ? Math.max(
+                                ...dailyPays.map((d: any) => d.revenue || 0)
+                              )
+                            : 0;
                         return dailyPays.length > 0 ? (
                           <div className="flex items-end justify-between gap-1.5 h-32 mt-4">
                             {dailyPays.slice(-12).map((d: any, idx: number) => {
-                              const percentage = maxRev > 0 ? ((d.revenue || 0) / maxRev) * 100 : 0;
+                              const percentage =
+                                maxRev > 0
+                                  ? ((d.revenue || 0) / maxRev) * 100
+                                  : 0;
                               return (
-                                <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group/bar relative">
+                                <div
+                                  key={idx}
+                                  className="flex-1 flex flex-col items-center gap-2 h-full justify-end group/bar relative"
+                                >
                                   {/* Tooltip on hover */}
                                   <div className="absolute bottom-full mb-2.5 bg-zinc-950 border border-white/10 text-white text-[10px] font-mono p-2.5 rounded-xl opacity-0 group-hover/bar:opacity-100 transition-all pointer-events-none whitespace-nowrap z-40 shadow-2xl flex flex-col gap-0.5 scale-95 group-hover/bar:scale-100 duration-200">
-                                    <p className="font-black text-[11px] text-[#007AFF]">{d.date}</p>
-                                    <p className="font-bold text-white/80">{t('totalRevenue')}: <span className="text-white font-black">{d.revenue} ◈</span></p>
-                                    <p className="font-semibold text-white/50">{d.count} {t('metricSuccessfulPays', { count: d.count }).split(' ')[1] || 'pays'}</p>
+                                    <p className="font-black text-[11px] text-[#007AFF]">
+                                      {d.date}
+                                    </p>
+                                    <p className="font-bold text-white/80">
+                                      {t('totalRevenue')}:{' '}
+                                      <span className="text-white font-black">
+                                        {d.revenue} ◈
+                                      </span>
+                                    </p>
+                                    <p className="font-semibold text-white/50">
+                                      {d.count}{' '}
+                                      {t('metricSuccessfulPays', {
+                                        count: d.count,
+                                      }).split(' ')[1] || 'pays'}
+                                    </p>
                                   </div>
                                   <div
-                                    style={{ height: `${Math.max(percentage, 6)}%` }}
+                                    style={{
+                                      height: `${Math.max(percentage, 6)}%`,
+                                    }}
                                     className="w-full rounded-t-lg bg-linear-to-t from-[#007AFF] to-[#00C7FF] shadow-[0_0_15px_rgba(0,122,255,0.15)] group-hover/bar:brightness-125 transition-all duration-300"
                                   />
                                   <span className="text-[9px] font-black text-white/20 uppercase tracking-widest truncate max-w-full">
-                                    {d.date ? d.date.split('-').slice(2).join('/') : idx + 1}
+                                    {d.date
+                                      ? d.date.split('-').slice(2).join('/')
+                                      : idx + 1}
                                   </span>
                                 </div>
                               );
@@ -1031,8 +1137,13 @@ export const Profile = () => {
                           </div>
                         ) : (
                           <div className="h-32 flex flex-col items-center justify-center text-white/20 gap-2">
-                            <Activity size={24} className="opacity-50 animate-pulse" />
-                            <p className="text-[12px] font-bold uppercase tracking-widest">{t('noData')}</p>
+                            <Activity
+                              size={24}
+                              className="opacity-50 animate-pulse"
+                            />
+                            <p className="text-[12px] font-bold uppercase tracking-widest">
+                              {t('noData')}
+                            </p>
                           </div>
                         );
                       })()}
@@ -1040,40 +1151,76 @@ export const Profile = () => {
 
                     {/* Payment Status Breakdown */}
                     {(() => {
-                      const allStatuses = paysStats.allStatuses || payStatsAgg.allStatuses || [];
+                      const allStatuses =
+                        paysStats.allStatuses || payStatsAgg.allStatuses || [];
                       return (
                         <div className="p-6 rounded-[32px] bg-zinc-900/30 border border-white/5 flex flex-col gap-4">
                           <h3 className="text-[12px] font-black uppercase tracking-[0.15em] text-white/30 flex items-center gap-1.5 mb-1">
-                            <CreditCard size={12} /> {t('financeStatusBreakdown')}
+                            <CreditCard size={12} />{' '}
+                            {t('financeStatusBreakdown')}
                           </h3>
                           {allStatuses.length > 0 ? (
                             <div className="flex flex-col gap-3">
                               {allStatuses.map((st: any, i: number) => {
-                                const isSuccessful = st.status === 'successful' || st.status === 'success';
-                                const maxRevenue = Math.max(...allStatuses.map((x: any) => x.revenue || 1));
-                                const fillPercentage = maxRevenue > 0 ? ((st.revenue || 0) / maxRevenue) * 100 : 0;
+                                const isSuccessful =
+                                  st.status === 'successful' ||
+                                  st.status === 'success';
+                                const maxRevenue = Math.max(
+                                  ...allStatuses.map((x: any) => x.revenue || 1)
+                                );
+                                const fillPercentage =
+                                  maxRevenue > 0
+                                    ? ((st.revenue || 0) / maxRevenue) * 100
+                                    : 0;
                                 return (
-                                  <div key={i} className="p-4 bg-zinc-900/50 border border-white/5 rounded-2xl flex flex-col gap-2.5 relative overflow-hidden">
+                                  <div
+                                    key={i}
+                                    className="p-4 bg-zinc-900/50 border border-white/5 rounded-2xl flex flex-col gap-2.5 relative overflow-hidden"
+                                  >
                                     <div className="flex items-center justify-between text-[13px] z-10 relative">
                                       <div className="flex items-center gap-2">
-                                        <div className={cn("size-2.5 rounded-full shadow-sm",
-                                          isSuccessful ? "bg-green-400" : st.status === 'refunded' ? "bg-amber-400" : "bg-red-400"
-                                        )} />
+                                        <div
+                                          className={cn(
+                                            'size-2.5 rounded-full shadow-sm',
+                                            isSuccessful
+                                              ? 'bg-green-400'
+                                              : st.status === 'refunded'
+                                                ? 'bg-amber-400'
+                                                : 'bg-red-400'
+                                          )}
+                                        />
                                         <span className="font-black capitalize">
-                                          {t(`status${st.status.charAt(0).toUpperCase() + st.status.slice(1)}` as any)}
+                                          {t(
+                                            `status${st.status.charAt(0).toUpperCase() + st.status.slice(1)}` as any
+                                          )}
                                         </span>
                                       </div>
                                       <div className="text-right">
-                                        <span className="font-black text-white">{st.revenue ?? 0} ◈</span>
-                                        <span className="text-[11px] font-bold text-white/30 ml-2">({st.count} {t('paymentsCount', { count: st.count }).split(' ')[1] || 'pays'})</span>
+                                        <span className="font-black text-white">
+                                          {st.revenue ?? 0} ◈
+                                        </span>
+                                        <span className="text-[11px] font-bold text-white/30 ml-2">
+                                          ({st.count}{' '}
+                                          {t('paymentsCount', {
+                                            count: st.count,
+                                          }).split(' ')[1] || 'pays'}
+                                          )
+                                        </span>
                                       </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
                                       <div
-                                        className={cn("h-full rounded-full transition-all duration-500",
-                                          isSuccessful ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.2)]" : st.status === 'refunded' ? "bg-amber-400" : "bg-red-400"
+                                        className={cn(
+                                          'h-full rounded-full transition-all duration-500',
+                                          isSuccessful
+                                            ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.2)]'
+                                            : st.status === 'refunded'
+                                              ? 'bg-amber-400'
+                                              : 'bg-red-400'
                                         )}
-                                        style={{ width: `${Math.max(fillPercentage, 3)}%` }}
+                                        style={{
+                                          width: `${Math.max(fillPercentage, 3)}%`,
+                                        }}
                                       />
                                     </div>
                                   </div>
@@ -1081,7 +1228,9 @@ export const Profile = () => {
                               })}
                             </div>
                           ) : (
-                            <p className="text-[12px] text-white/20 italic">{t('noData')}</p>
+                            <p className="text-[12px] text-white/20 italic">
+                              {t('noData')}
+                            </p>
                           )}
                         </div>
                       );
@@ -1095,14 +1244,26 @@ export const Profile = () => {
                       {payLangs.length > 0 ? (
                         <div className="flex flex-col gap-4">
                           {payLangs.map((pl: any, i: number) => {
-                            const maxAmount = Math.max(...payLangs.map((x: any) => x.total_amount || 1));
-                            const percentage = maxAmount > 0 ? ((pl.total_amount || 0) / maxAmount) * 100 : 0;
+                            const maxAmount = Math.max(
+                              ...payLangs.map((x: any) => x.total_amount || 1)
+                            );
+                            const percentage =
+                              maxAmount > 0
+                                ? ((pl.total_amount || 0) / maxAmount) * 100
+                                : 0;
                             return (
                               <div key={i}>
                                 <div className="flex justify-between items-center text-[12px] font-bold mb-2">
-                                  <span className="text-white/80 uppercase font-black">{pl.currency || 'USD'}</span>
+                                  <span className="text-white/80 uppercase font-black">
+                                    {pl.currency || 'USD'}
+                                  </span>
                                   <span className="text-white/40 font-mono">
-                                    {pl.total_amount} {pl.currency} <span className="text-white/20">•</span> {pl.count} {t('paymentsCount', { count: pl.count }).split(' ')[1] || 'pays'}
+                                    {pl.total_amount} {pl.currency}{' '}
+                                    <span className="text-white/20">•</span>{' '}
+                                    {pl.count}{' '}
+                                    {t('paymentsCount', {
+                                      count: pl.count,
+                                    }).split(' ')[1] || 'pays'}
                                   </span>
                                 </div>
                                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -1116,7 +1277,9 @@ export const Profile = () => {
                           })}
                         </div>
                       ) : (
-                        <p className="text-[12px] text-white/20 italic">{t('noData')}</p>
+                        <p className="text-[12px] text-white/20 italic">
+                          {t('noData')}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1132,7 +1295,8 @@ export const Profile = () => {
                       </div>
                       <div className="flex justify-between items-center z-10">
                         <h4 className="text-[12px] font-black uppercase tracking-wider text-white/30 flex items-center gap-1.5">
-                          <Activity size={12} className="text-amber-400" /> {t('audienceActivityTrend')}
+                          <Activity size={12} className="text-amber-400" />{' '}
+                          {t('audienceActivityTrend')}
                         </h4>
                         {usersStats.total > 0 && (
                           <span className="text-[11px] font-bold text-white/50 bg-white/5 px-2.5 py-1 rounded-full">
@@ -1143,24 +1307,48 @@ export const Profile = () => {
 
                       {(() => {
                         const dailyAct = stats.activity || [];
-                        const maxAct = dailyAct.length > 0 ? Math.max(...dailyAct.map((d: any) => d.unique_users || 0)) : 0;
+                        const maxAct =
+                          dailyAct.length > 0
+                            ? Math.max(
+                                ...dailyAct.map((d: any) => d.unique_users || 0)
+                              )
+                            : 0;
                         return dailyAct.length > 0 ? (
                           <div className="flex items-end justify-between gap-1.5 h-32 mt-4">
                             {dailyAct.slice(-12).map((d: any, idx: number) => {
-                              const percentage = maxAct > 0 ? ((d.unique_users || 0) / maxAct) * 100 : 0;
+                              const percentage =
+                                maxAct > 0
+                                  ? ((d.unique_users || 0) / maxAct) * 100
+                                  : 0;
                               return (
-                                <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group/bar relative">
+                                <div
+                                  key={idx}
+                                  className="flex-1 flex flex-col items-center gap-2 h-full justify-end group/bar relative"
+                                >
                                   <div className="absolute bottom-full mb-2.5 bg-zinc-950 border border-white/10 text-white text-[10px] font-mono p-2.5 rounded-xl opacity-0 group-hover/bar:opacity-100 transition-all pointer-events-none whitespace-nowrap z-40 shadow-2xl flex flex-col gap-0.5 scale-95 group-hover/bar:scale-100 duration-200">
-                                    <p className="font-black text-[11px] text-amber-400">{d.date}</p>
-                                    <p className="font-bold text-white/80">{t('chartUnique')}: <span className="text-white font-black">{d.unique_users}</span></p>
-                                    <p className="font-semibold text-white/50">{d.events} {t('requestsCount')}</p>
+                                    <p className="font-black text-[11px] text-amber-400">
+                                      {d.date}
+                                    </p>
+                                    <p className="font-bold text-white/80">
+                                      {t('chartUnique')}:{' '}
+                                      <span className="text-white font-black">
+                                        {d.unique_users}
+                                      </span>
+                                    </p>
+                                    <p className="font-semibold text-white/50">
+                                      {d.events} {t('requestsCount')}
+                                    </p>
                                   </div>
                                   <div
-                                    style={{ height: `${Math.max(percentage, 6)}%` }}
+                                    style={{
+                                      height: `${Math.max(percentage, 6)}%`,
+                                    }}
                                     className="w-full rounded-t-lg bg-linear-to-t from-amber-400 to-yellow-300 shadow-[0_0_15px_rgba(251,191,36,0.15)] group-hover/bar:brightness-125 transition-all duration-300"
                                   />
                                   <span className="text-[9px] font-black text-white/20 uppercase tracking-widest truncate max-w-full">
-                                    {d.date ? d.date.split('-').slice(2).join('/') : idx + 1}
+                                    {d.date
+                                      ? d.date.split('-').slice(2).join('/')
+                                      : idx + 1}
                                   </span>
                                 </div>
                               );
@@ -1168,8 +1356,13 @@ export const Profile = () => {
                           </div>
                         ) : (
                           <div className="h-32 flex flex-col items-center justify-center text-white/20 gap-2">
-                            <Activity size={24} className="opacity-50 animate-pulse" />
-                            <p className="text-[12px] font-bold uppercase tracking-widest">{t('noData')}</p>
+                            <Activity
+                              size={24}
+                              className="opacity-50 animate-pulse"
+                            />
+                            <p className="text-[12px] font-bold uppercase tracking-widest">
+                              {t('noData')}
+                            </p>
                           </div>
                         );
                       })()}
@@ -1186,13 +1379,26 @@ export const Profile = () => {
                           {byBot.length > 0 ? (
                             <div className="flex flex-col gap-3">
                               {byBot.map((b: any, i: number) => {
-                                const maxCount = Math.max(...byBot.map((x: any) => x.count || 1));
-                                const percentage = maxCount > 0 ? ((b.count || 0) / maxCount) * 100 : 0;
+                                const maxCount = Math.max(
+                                  ...byBot.map((x: any) => x.count || 1)
+                                );
+                                const percentage =
+                                  maxCount > 0
+                                    ? ((b.count || 0) / maxCount) * 100
+                                    : 0;
                                 return (
-                                  <div key={i} className="p-4 bg-zinc-900/50 border border-white/5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
+                                  <div
+                                    key={i}
+                                    className="p-4 bg-zinc-900/50 border border-white/5 rounded-2xl flex flex-col gap-2 relative overflow-hidden"
+                                  >
                                     <div className="flex items-center justify-between text-[13px] z-10 relative">
-                                      <span className="font-black text-[#007AFF]">@{b.bot_username}</span>
-                                      <span className="font-bold text-white/60">{b.count} {t('metricUsers').toLowerCase()}</span>
+                                      <span className="font-black text-[#007AFF]">
+                                        @{b.bot_username}
+                                      </span>
+                                      <span className="font-bold text-white/60">
+                                        {b.count}{' '}
+                                        {t('metricUsers').toLowerCase()}
+                                      </span>
                                     </div>
                                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                       <div
@@ -1205,7 +1411,9 @@ export const Profile = () => {
                               })}
                             </div>
                           ) : (
-                            <p className="text-[12px] text-white/20 italic">{t('noData')}</p>
+                            <p className="text-[12px] text-white/20 italic">
+                              {t('noData')}
+                            </p>
                           )}
                         </div>
                       );
@@ -1221,13 +1429,22 @@ export const Profile = () => {
                         <div className="flex flex-col gap-3">
                           {topModels.length > 0 ? (
                             topModels.map((m: any, i: number) => {
-                              const maxModelCount = Math.max(...topModels.map((x: any) => x.count || 1));
-                              const percentage = maxModelCount > 0 ? ((m.count || 0) / maxModelCount) * 100 : 0;
+                              const maxModelCount = Math.max(
+                                ...topModels.map((x: any) => x.count || 1)
+                              );
+                              const percentage =
+                                maxModelCount > 0
+                                  ? ((m.count || 0) / maxModelCount) * 100
+                                  : 0;
                               return (
                                 <div key={i} className="flex flex-col gap-1.5">
                                   <div className="flex items-center justify-between text-[13px] font-bold">
-                                    <span className="text-white/80">{m.model}</span>
-                                    <span className="text-white/40">{m.count} {t('requestsCount')}</span>
+                                    <span className="text-white/80">
+                                      {m.model}
+                                    </span>
+                                    <span className="text-white/40">
+                                      {m.count} {t('requestsCount')}
+                                    </span>
                                   </div>
                                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                     <div
@@ -1239,7 +1456,9 @@ export const Profile = () => {
                               );
                             })
                           ) : (
-                            <p className="text-[12px] text-white/20">{t('noData')}</p>
+                            <p className="text-[12px] text-white/20">
+                              {t('noData')}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -1252,13 +1471,22 @@ export const Profile = () => {
                         <div className="flex flex-col gap-3">
                           {langStats.length > 0 ? (
                             langStats.map((l: any, i: number) => {
-                              const maxLangCount = Math.max(...langStats.map((x: any) => x.count || 1));
-                              const percentage = maxLangCount > 0 ? ((l.count || 0) / maxLangCount) * 100 : 0;
+                              const maxLangCount = Math.max(
+                                ...langStats.map((x: any) => x.count || 1)
+                              );
+                              const percentage =
+                                maxLangCount > 0
+                                  ? ((l.count || 0) / maxLangCount) * 100
+                                  : 0;
                               return (
                                 <div key={i} className="flex flex-col gap-1.5">
                                   <div className="flex items-center justify-between text-[13px] font-bold">
-                                    <span className="text-white/80 uppercase">{l.lang}</span>
-                                    <span className="text-white/40">{l.count} {t('metricUsers').toLowerCase()}</span>
+                                    <span className="text-white/80 uppercase">
+                                      {l.lang}
+                                    </span>
+                                    <span className="text-white/40">
+                                      {l.count} {t('metricUsers').toLowerCase()}
+                                    </span>
                                   </div>
                                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                     <div
@@ -1270,7 +1498,9 @@ export const Profile = () => {
                               );
                             })
                           ) : (
-                            <p className="text-[12px] text-white/20">{t('noData')}</p>
+                            <p className="text-[12px] text-white/20">
+                              {t('noData')}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -1289,14 +1519,20 @@ export const Profile = () => {
                       {referralsList.length > 0 ? (
                         <div className="flex flex-col gap-3">
                           {referralsList.map((ref: any, i: number) => (
-                            <div key={i} className="flex items-center justify-between p-4 bg-zinc-900/30 border border-white/5 rounded-[24px] hover:bg-zinc-900/50 transition-colors">
+                            <div
+                              key={i}
+                              className="flex items-center justify-between p-4 bg-zinc-900/30 border border-white/5 rounded-[24px] hover:bg-zinc-900/50 transition-colors"
+                            >
                               <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 text-[16px] font-black shadow-inner">
-                                  {ref.user?.first_name?.[0]?.toUpperCase() || '?'}
+                                  {ref.user?.first_name?.[0]?.toUpperCase() ||
+                                    '?'}
                                 </div>
                                 <div className="flex flex-col">
                                   <p className="text-[15px] font-black leading-tight text-white/90">
-                                    {ref.user?.first_name || t('listNameUnknown')} {ref.user?.last_name || ''}
+                                    {ref.user?.first_name ||
+                                      t('listNameUnknown')}{' '}
+                                    {ref.user?.last_name || ''}
                                   </p>
                                   {ref.user?.username && (
                                     <p className="text-[12px] font-bold text-[#007AFF] mt-0.5">
@@ -1326,43 +1562,66 @@ export const Profile = () => {
                       {paymentsList.length > 0 ? (
                         <div className="flex flex-col gap-3">
                           {paymentsList.map((pay: any, i: number) => {
-                            const isSuccessful = pay.status === 'successful' || pay.status === 'success';
+                            const isSuccessful =
+                              pay.status === 'successful' ||
+                              pay.status === 'success';
                             return (
-                              <div key={i} className="flex items-center justify-between p-4 bg-zinc-900/30 border border-white/5 rounded-[24px] hover:bg-zinc-900/50 transition-colors">
+                              <div
+                                key={i}
+                                className="flex items-center justify-between p-4 bg-zinc-900/30 border border-white/5 rounded-[24px] hover:bg-zinc-900/50 transition-colors"
+                              >
                                 <div className="flex items-center gap-4">
-                                  <div className={cn(
-                                    "w-10 h-10 rounded-xl flex items-center justify-center shadow-inner",
-                                    isSuccessful
-                                      ? 'bg-green-500/10 text-green-500 border border-green-500/20'
-                                      : pay.status === 'refunded'
-                                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                        : 'bg-white/5 text-white/40 border border-white/10'
-                                  )}>
-                                    {isSuccessful ? <CheckCircle2 size={18} /> : <Clock size={18} />}
+                                  <div
+                                    className={cn(
+                                      'w-10 h-10 rounded-xl flex items-center justify-center shadow-inner',
+                                      isSuccessful
+                                        ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                                        : pay.status === 'refunded'
+                                          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                          : 'bg-white/5 text-white/40 border border-white/10'
+                                    )}
+                                  >
+                                    {isSuccessful ? (
+                                      <CheckCircle2 size={18} />
+                                    ) : (
+                                      <Clock size={18} />
+                                    )}
                                   </div>
                                   <div className="flex flex-col">
                                     <p className="text-[15px] font-black text-white/90">
                                       {pay.amount} {pay.currency || '◈'}
                                     </p>
                                     <p className="text-[11px] font-bold text-white/45 mt-0.5 flex items-center gap-1.5">
-                                      <span>{pay.user?.first_name || t('listUser')}</span>
-                                      {pay.bot_username && <span className="text-[10px] text-[#007AFF] bg-[#007AFF]/10 px-1.5 py-0.5 rounded">@{pay.bot_username}</span>}
+                                      <span>
+                                        {pay.user?.first_name || t('listUser')}
+                                      </span>
+                                      {pay.bot_username && (
+                                        <span className="text-[10px] text-[#007AFF] bg-[#007AFF]/10 px-1.5 py-0.5 rounded">
+                                          @{pay.bot_username}
+                                        </span>
+                                      )}
                                     </p>
                                   </div>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                   <span className="text-[11px] font-black text-white/20 tracking-wider">
-                                    {new Date(pay.created_at).toLocaleDateString()}
+                                    {new Date(
+                                      pay.created_at
+                                    ).toLocaleDateString()}
                                   </span>
-                                  <span className={cn(
-                                    "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                                    isSuccessful
-                                      ? "bg-green-500/5 text-green-400 border-green-500/15"
-                                      : pay.status === 'refunded'
-                                        ? "bg-amber-500/5 text-amber-400 border-amber-500/15"
-                                        : "bg-white/5 text-white/30 border-white/10"
-                                  )}>
-                                    {t(`status${pay.status.charAt(0).toUpperCase() + pay.status.slice(1)}` as any)}
+                                  <span
+                                    className={cn(
+                                      'text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border',
+                                      isSuccessful
+                                        ? 'bg-green-500/5 text-green-400 border-green-500/15'
+                                        : pay.status === 'refunded'
+                                          ? 'bg-amber-500/5 text-amber-400 border-amber-500/15'
+                                          : 'bg-white/5 text-white/30 border-white/10'
+                                    )}
+                                  >
+                                    {t(
+                                      `status${pay.status.charAt(0).toUpperCase() + pay.status.slice(1)}` as any
+                                    )}
                                   </span>
                                 </div>
                               </div>

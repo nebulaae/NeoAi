@@ -87,7 +87,7 @@ function readStoredModel(id: string) {
         version: string;
         role_id: number | null;
       };
-  } catch { }
+  } catch {}
   return null;
 }
 
@@ -102,7 +102,7 @@ function writeStoredModel(
       STORAGE_KEY(id),
       JSON.stringify({ model, version, role_id })
     );
-  } catch { }
+  } catch {}
 }
 
 function getDialogueModel(
@@ -271,15 +271,18 @@ export default function ChatPage() {
   // ── Prompts manager ────────────────────────────────────────────────────────
   const [isPromptsOpen, setIsPromptsOpen] = useState(false);
 
-  const handleInsertPrompt = useCallback((promptText: string) => {
-    setText((prev) => {
-      const newText = prev ? `${prev}\n${promptText}` : promptText;
-      return newText;
-    });
-    haptic.light();
-    // Фокус на textarea после вставки
-    setTimeout(() => textareaRef.current?.focus(), 80);
-  }, [haptic]);
+  const handleInsertPrompt = useCallback(
+    (promptText: string) => {
+      setText((prev) => {
+        const newText = prev ? `${prev}\n${promptText}` : promptText;
+        return newText;
+      });
+      haptic.light();
+      // Фокус на textarea после вставки
+      setTimeout(() => textareaRef.current?.focus(), 80);
+    },
+    [haptic]
+  );
 
   // ── Rest of state ──────────────────────────────────────────────────────────
   const [uploadedFiles, setUploadedFiles] = useState<
@@ -466,14 +469,21 @@ export default function ChatPage() {
   const handleDownload = (url: string) => {
     haptic.selection();
     const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
-    const isTelegram = typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
+    const isTelegram =
+      typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
     if (isTelegram && (window as any).Telegram?.WebApp?.openLink) {
       try {
-        const absoluteProxyUrl = new URL(proxyUrl, window.location.origin).toString();
+        const absoluteProxyUrl = new URL(
+          proxyUrl,
+          window.location.origin
+        ).toString();
         (window as any).Telegram.WebApp.openLink(absoluteProxyUrl);
         return;
       } catch (err) {
-        console.warn('[handleDownload] Telegram openLink with proxy failed, trying standard download:', err);
+        console.warn(
+          '[handleDownload] Telegram openLink with proxy failed, trying standard download:',
+          err
+        );
       }
     }
     window.location.href = proxyUrl;
@@ -529,7 +539,10 @@ export default function ChatPage() {
 
       {/* ── Messages ── */}
       <div className="flex-1 overflow-hidden px-5 py-6">
-        <ScrollArea className="h-full pr-4" onContextMenu={(e) => e.preventDefault()}>
+        <ScrollArea
+          className="h-full pr-4"
+          onContextMenu={(e) => e.preventDefault()}
+        >
           <div className="flex flex-col gap-6 pb-6">
             {isHistoryLoading ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
@@ -652,7 +665,10 @@ export default function ChatPage() {
                                 {msg.status === 'pending' ? (
                                   <Clock size={10} className="text-white/20" />
                                 ) : (
-                                  <CheckCheck size={12} className="text-[#007AFF]" />
+                                  <CheckCheck
+                                    size={12}
+                                    className="text-[#007AFF]"
+                                  />
                                 )}
                               </div>
                             </div>
@@ -662,7 +678,8 @@ export default function ChatPage() {
                         {/* AI Message */}
                         <div className="flex justify-start pr-12">
                           <div className="flex flex-col items-start gap-2 w-full">
-                            {msg.status === 'processing' || msg.status === 'pending' ? (
+                            {msg.status === 'processing' ||
+                            msg.status === 'pending' ? (
                               <div className="px-6 py-4 rounded-[24px_24px_24px_4px] bg-[#007AFF]/5 border border-[#007AFF]/10 flex gap-1.5">
                                 {[0, 1, 2].map((i) => (
                                   <div
@@ -703,10 +720,15 @@ export default function ChatPage() {
                                           <div className="p-4 flex flex-col gap-4">
                                             <AudioPlayer src={m.url} />
                                             <button
-                                              onClick={() => handleDownload(m.url)}
+                                              onClick={() =>
+                                                handleDownload(m.url)
+                                              }
                                               className="self-end p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-90"
                                             >
-                                              <Download size={18} className="text-[#007AFF]" />
+                                              <Download
+                                                size={18}
+                                                className="text-[#007AFF]"
+                                              />
                                             </button>
                                           </div>
                                         ) : (
@@ -728,8 +750,12 @@ export default function ChatPage() {
                                                   muted
                                                   loop
                                                   playsInline
-                                                  onMouseEnter={(e) => e.currentTarget.play()}
-                                                  onMouseLeave={(e) => e.currentTarget.pause()}
+                                                  onMouseEnter={(e) =>
+                                                    e.currentTarget.play()
+                                                  }
+                                                  onMouseLeave={(e) =>
+                                                    e.currentTarget.pause()
+                                                  }
                                                 />
                                               )}
                                               <div className="absolute top-3 right-3 flex gap-2 z-10">
@@ -746,7 +772,11 @@ export default function ChatPage() {
                                               {m.type === 'video' && (
                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
                                                   <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                                                    <Play size={24} fill="white" className="ml-1" />
+                                                    <Play
+                                                      size={24}
+                                                      fill="white"
+                                                      className="ml-1"
+                                                    />
                                                   </div>
                                                 </div>
                                               )}
@@ -761,16 +791,22 @@ export default function ChatPage() {
                                                   }}
                                                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[14px] font-black transition-all active:scale-95 shadow-2xl"
                                                   style={{
-                                                    background: 'rgba(0, 122, 255, 0.15)',
-                                                    backdropFilter: 'blur(40px) saturate(210%) brightness(1.2)',
-                                                    WebkitBackdropFilter: 'blur(40px) saturate(210%) brightness(1.2)',
-                                                    border: '0.5px solid rgba(0, 122, 255, 0.3)',
-                                                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 122, 255, 0.2)',
+                                                    background:
+                                                      'rgba(0, 122, 255, 0.15)',
+                                                    backdropFilter:
+                                                      'blur(40px) saturate(210%) brightness(1.2)',
+                                                    WebkitBackdropFilter:
+                                                      'blur(40px) saturate(210%) brightness(1.2)',
+                                                    border:
+                                                      '0.5px solid rgba(0, 122, 255, 0.3)',
+                                                    boxShadow:
+                                                      'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 122, 255, 0.2)',
                                                     color: '#007AFF',
                                                   }}
                                                 >
                                                   <Share2 size={16} />
-                                                  {t('publishToTrends') || 'Publish to Trends'}
+                                                  {t('publishToTrends') ||
+                                                    'Publish to Trends'}
                                                 </button>
                                               </div>
                                             )}
@@ -901,7 +937,10 @@ export default function ChatPage() {
               className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center transition-all hover:bg-[#007AFF]/10 hover:border-[#007AFF]/20 active:scale-90 group"
               title="Сохранённые промпты"
             >
-              <BookMarked size={20} className="text-white/40 group-hover:text-[#007AFF] transition-colors" />
+              <BookMarked
+                size={20}
+                className="text-white/40 group-hover:text-[#007AFF] transition-colors"
+              />
             </button>
 
             <input

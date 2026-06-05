@@ -23,13 +23,16 @@ export function localize(v: any, lang = 'ru'): string {
 
 /** Normalise a raw GenerationRequest into the internal RequestItem */
 export function normalise(req: GenerationRequest): RequestItem {
-  const result = req.result as Record<string, unknown> | null ?? null;
+  const result = (req.result as Record<string, unknown> | null) ?? null;
   let previewUrl: string | null = null;
- 
+
   if (result) {
     // Real backend format: result.media = [{ type: "image", input: "https://...", format: "url" }]
     // Suno returns audio + image — pick first entry where type === "image"
-    const mediaArr = result.media as Array<Record<string, unknown>> | null | undefined;
+    const mediaArr = result.media as
+      | Array<Record<string, unknown>>
+      | null
+      | undefined;
     if (Array.isArray(mediaArr)) {
       for (const m of mediaArr) {
         if (m.type === 'image' && typeof m.input === 'string' && m.input) {
@@ -38,19 +41,25 @@ export function normalise(req: GenerationRequest): RequestItem {
         }
       }
     }
- 
+
     // Fallback: flat keys result.url / result.image / result.output
     if (!previewUrl) {
       for (const key of ['url', 'image', 'output']) {
         const v = result[key];
-        if (typeof v === 'string' && v) { previewUrl = v; break; }
+        if (typeof v === 'string' && v) {
+          previewUrl = v;
+          break;
+        }
       }
     }
   }
- 
+
   // For error status: show input image as preview so the card isn't blank
   let inputPreview: string | null = null;
-  const inputMedia = req.inputs?.media as Array<Record<string, unknown>> | null | undefined;
+  const inputMedia = req.inputs?.media as
+    | Array<Record<string, unknown>>
+    | null
+    | undefined;
   if (!previewUrl && Array.isArray(inputMedia)) {
     for (const m of inputMedia) {
       const inner = m.input as Record<string, unknown> | null | undefined;
@@ -60,7 +69,7 @@ export function normalise(req: GenerationRequest): RequestItem {
       }
     }
   }
- 
+
   return {
     id: req.id,
     dialogue_id: req.dialogue_id ?? 0,
@@ -69,7 +78,8 @@ export function normalise(req: GenerationRequest): RequestItem {
     cost: req.cost,
     status: req.status,
     text: req.inputs?.text ?? null,
-    hasMedia: Array.isArray(req.inputs?.media) && (req.inputs?.media?.length ?? 0) > 0,
+    hasMedia:
+      Array.isArray(req.inputs?.media) && (req.inputs?.media?.length ?? 0) > 0,
     previewUrl: previewUrl ?? inputPreview,
     created_at: req.created_at,
   };

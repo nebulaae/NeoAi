@@ -10,12 +10,7 @@ import {
   AvatarFallback as ChatsFallback,
   AvatarImage as ChatsImage,
 } from '@/components/ui/avatar';
-import {
-  Loader2,
-  ChevronRight,
-  MessageSquare,
-  Plus,
-} from 'lucide-react';
+import { Loader2, ChevronRight, MessageSquare, Plus } from 'lucide-react';
 import { cn, timeAgo } from '@/lib/utils';
 import { toast as chatsToast } from 'sonner';
 import { useHaptic as useChatsHaptic } from '@/hooks/useHaptic';
@@ -215,7 +210,7 @@ export const Chats = () => {
                         (chat as any).avatar ||
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=18181b&color=ffffff`
                       }
-                      className='object-cover'
+                      className="object-cover"
                     />
                     <ChatsFallback className="bg-zinc-800 text-[14px] font-black text-white/40">
                       {displayName.slice(0, 2).toUpperCase()}

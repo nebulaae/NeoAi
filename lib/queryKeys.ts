@@ -18,4 +18,3 @@ export const queryKeys = {
   apiTokens: ['api-tokens'] as const,
   packages: ['packages'] as const,
 };
-

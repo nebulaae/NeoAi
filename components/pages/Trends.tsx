@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  useRef,
-  useEffect,
-  useCallback,
-  useState,
-  memo,
-} from 'react';
+import { useRef, useEffect, useCallback, useState, memo } from 'react';
 
 import { useTranslations } from 'next-intl';
 import { useInfinitePosts, useLikePost, Post } from '@/hooks/usePosts';
@@ -101,7 +95,9 @@ export const Trends = () => {
           <AlertCircle className="size-10 text-red-500" />
         </div>
         <h2 className="text-2xl font-black text-white mb-2">{t('error')}</h2>
-        <p className="text-white/40 font-medium max-w-[240px]">{t('errorDesc')}</p>
+        <p className="text-white/40 font-medium max-w-[240px]">
+          {t('errorDesc')}
+        </p>
       </div>
     );
   }
@@ -134,19 +130,19 @@ export const Trends = () => {
             <div className="grid grid-cols-2 gap-4">
               {isLoading
                 ? Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-3/4 rounded-3xl bg-zinc-900 border border-white/5 animate-pulse"
-                  />
-                ))
+                    <div
+                      key={i}
+                      className="aspect-3/4 rounded-3xl bg-zinc-900 border border-white/5 animate-pulse"
+                    />
+                  ))
                 : posts.map((post, index) => {
-                  const isLast = index === posts.length - 1;
-                  return (
-                    <div key={post.id} ref={isLast ? lastPostRef : null}>
-                      <TrendCard post={post} />
-                    </div>
-                  );
-                })}
+                    const isLast = index === posts.length - 1;
+                    return (
+                      <div key={post.id} ref={isLast ? lastPostRef : null}>
+                        <TrendCard post={post} />
+                      </div>
+                    );
+                  })}
             </div>
 
             {isFetchingNextPage && (
@@ -176,17 +172,14 @@ const TrendCard = memo(({ post }: { post: Post }) => {
 
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
 
-  const userId =
-    userData?.user?.user_id ??
-    (userData?.user as any)?.id ??
-    0;
+  const userId = userData?.user?.user_id ?? (userData?.user as any)?.id ?? 0;
   const botId = (bot as any)?.bot_id ?? 0;
 
   const onClick = useCallback(() => {
     haptic.light();
     try {
       sessionStorage.setItem(`trend_post_${post.id}`, JSON.stringify(post));
-    } catch { }
+    } catch {}
     router.push(`/trend/${post.id}`);
   }, [post.id, post, router, haptic]);
 
@@ -259,7 +252,9 @@ const TrendCard = memo(({ post }: { post: Post }) => {
         {/* Cost badge — top left */}
         <div className="absolute top-3 left-3">
           <div className="bg-black/40 backdrop-blur-xl border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg">
-            <span className="text-[11px] font-black text-white">{post.cost ?? 15}</span>
+            <span className="text-[11px] font-black text-white">
+              {post.cost ?? 15}
+            </span>
             <span className="text-[10px] text-[#007AFF]">◈</span>
           </div>
         </div>
@@ -365,9 +360,7 @@ export const TrendDetail = ({
   const { bot } = useBot();
   const { user: authUser } = useAuth();
   const userId =
-    userData?.user?.user_id ??
-    (userData?.user as any)?.id ??
-    authUser?.id;
+    userData?.user?.user_id ?? (userData?.user as any)?.id ?? authUser?.id;
 
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
@@ -380,8 +373,12 @@ export const TrendDetail = ({
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
 
   const tokens = userData?.user?.tokens ?? 0;
-  const model = allModels?.find((m: any) => m.tech_name === post.model_tech_name);
-  const version = model?.versions?.find((v: any) => v.label === post.version_label);
+  const model = allModels?.find(
+    (m: any) => m.tech_name === post.model_tech_name
+  );
+  const version = model?.versions?.find(
+    (v: any) => v.label === post.version_label
+  );
   const cost = post.cost ?? version?.cost ?? 15;
   const canAfford = tokens >= cost;
 
@@ -451,7 +448,9 @@ export const TrendDetail = ({
     haptic.light();
     const webLink = `${window.location.origin}/trend/${post.id}${userId ? `?ref=${userId}` : ''}`;
     if (typeof navigator.share === 'function') {
-      navigator.share({ title: post.inputs?.text || 'AI Generation', url: webLink }).catch(() => { });
+      navigator
+        .share({ title: post.inputs?.text || 'AI Generation', url: webLink })
+        .catch(() => {});
       setIsShareOpen(false);
     } else {
       navigator.clipboard.writeText(webLink).then(() => {
@@ -489,13 +488,19 @@ export const TrendDetail = ({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { haptic.light(); setAlbumDialogOpen(true); }}
+            onClick={() => {
+              haptic.light();
+              setAlbumDialogOpen(true);
+            }}
             className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center transition-all active:scale-90 shrink-0"
           >
             <FolderPlus size={18} className="text-[#007AFF]" />
           </button>
           <button
-            onClick={() => { haptic.light(); setIsShareOpen(true); }}
+            onClick={() => {
+              haptic.light();
+              setIsShareOpen(true);
+            }}
             className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center transition-all active:scale-90 shrink-0"
           >
             <Share2 size={20} className="text-[#007AFF]" />
@@ -521,11 +526,14 @@ export const TrendDetail = ({
                   {t('model')}
                 </p>
                 <p className="text-[15px] font-black text-white truncate">
-                  {post.model_name || post.model_tech_name.replace(/^sosana\//, '')}
+                  {post.model_name ||
+                    post.model_tech_name.replace(/^sosana\//, '')}
                 </p>
               </div>
               <div className="p-4 bg-[#007AFF]/20 backdrop-blur-2xl border border-[#007AFF]/30 rounded-[24px] text-center min-w-[80px]">
-                <p className="text-[11px] font-black text-[#007AFF] uppercase tracking-widest mb-1">COST</p>
+                <p className="text-[11px] font-black text-[#007AFF] uppercase tracking-widest mb-1">
+                  COST
+                </p>
                 <p className="text-[15px] font-black text-white">{cost} ◈</p>
               </div>
             </div>
@@ -559,22 +567,36 @@ export const TrendDetail = ({
                         replace || hide
                           ? 'cursor-pointer active:scale-95 bg-zinc-900/50 border-white/10 hover:border-white/20'
                           : 'bg-zinc-900 border-transparent',
-                        current && 'border-[#007AFF]/50 bg-[#007AFF]/5 shadow-[0_0_20px_rgba(0,122,255,0.1)]'
+                        current &&
+                          'border-[#007AFF]/50 bg-[#007AFF]/5 shadow-[0_0_20px_rgba(0,122,255,0.1)]'
                       )}
                     >
                       {current ? (
                         <>
                           <img
-                            src={current.file ? URL.createObjectURL(current.file) : current.url}
+                            src={
+                              current.file
+                                ? URL.createObjectURL(current.file)
+                                : current.url
+                            }
                             className="absolute inset-0 w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
-                          <CheckCircle2 size={32} className="text-[#007AFF] relative z-10" />
+                          <CheckCircle2
+                            size={32}
+                            className="text-[#007AFF] relative z-10"
+                          />
                         </>
                       ) : !hide && originalUrl && originalUrl !== 'null' ? (
                         <>
-                          <img src={originalUrl} className="absolute inset-0 w-full h-full object-cover opacity-30" />
-                          <Camera size={24} className="text-white/40 relative z-10" />
+                          <img
+                            src={originalUrl}
+                            className="absolute inset-0 w-full h-full object-cover opacity-30"
+                          />
+                          <Camera
+                            size={24}
+                            className="text-white/40 relative z-10"
+                          />
                           <p className="text-[11px] font-black text-white/40 uppercase tracking-widest relative z-10 text-center px-4">
                             {t('uploadMediaDesc')}
                           </p>
@@ -646,7 +668,13 @@ export const TrendDetail = ({
         </button>
       </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        className="hidden"
+      />
 
       {/* Share Modal */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
@@ -666,7 +694,9 @@ export const TrendDetail = ({
                 <Send size={22} className="ml-[-2px] mt-[1px]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-black text-white leading-tight">{t('tgAppLink')}</p>
+                <p className="text-[15px] font-black text-white leading-tight">
+                  {t('tgAppLink')}
+                </p>
                 <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider">
                   {t('tgAppLinkDesc')}
                 </p>
@@ -683,7 +713,9 @@ export const TrendDetail = ({
                 <Globe size={22} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-black text-white leading-tight">{t('webBrowserLink')}</p>
+                <p className="text-[15px] font-black text-white leading-tight">
+                  {t('webBrowserLink')}
+                </p>
                 <p className="text-[12px] text-white/45 font-medium mt-1.5 uppercase tracking-wider">
                   {t('webBrowserLinkDesc')}
                 </p>

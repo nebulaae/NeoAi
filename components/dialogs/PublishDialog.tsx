@@ -35,8 +35,15 @@ export const PublishDialog = ({
   const publish = usePublishPost();
 
   const [hideText, setHideText] = useState(false);
-  const [mediaSettings, setMediaSettings] = useState<Record<number, { hide: boolean; replace: boolean }>>(
-    Object.fromEntries((message?.inputs?.media || []).map((_: any, i: number) => [i, { hide: false, replace: false }]))
+  const [mediaSettings, setMediaSettings] = useState<
+    Record<number, { hide: boolean; replace: boolean }>
+  >(
+    Object.fromEntries(
+      (message?.inputs?.media || []).map((_: any, i: number) => [
+        i,
+        { hide: false, replace: false },
+      ])
+    )
   );
 
   const handlePublish = async () => {
@@ -45,11 +52,13 @@ export const PublishDialog = ({
         ...message.inputs,
         hide_text: hideText,
         dialogueId,
-        messages: [{
-          role: message.role_id ? 'user' : 'assistant', // или правильно определяй роль
-          content: message.inputs?.text || message.result?.text,
-          inputs: message.inputs,
-        }],
+        messages: [
+          {
+            role: message.role_id ? 'user' : 'assistant', // или правильно определяй роль
+            content: message.inputs?.text || message.result?.text,
+            inputs: message.inputs,
+          },
+        ],
       };
 
       await publish.mutateAsync({
@@ -94,22 +103,39 @@ export const PublishDialog = ({
             {/* Media Settings */}
             {mediaList.length > 0 && (
               <div className="space-y-3">
-                <Label className="uppercase text-xs tracking-widest text-white/40">{t('mediaSettings')}</Label>
+                <Label className="uppercase text-xs tracking-widest text-white/40">
+                  {t('mediaSettings')}
+                </Label>
                 {mediaList.map((m: any, i: number) => (
-                  <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                  <div
+                    key={i}
+                    className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4"
+                  >
                     {/* media preview + switches */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex justify-between">
                         <Label>{t('hide')}</Label>
-                        <Switch checked={mediaSettings[i]?.hide} onCheckedChange={(v) =>
-                          setMediaSettings(p => ({ ...p, [i]: { ...(p[i] || {}), hide: v } }))
-                        } />
+                        <Switch
+                          checked={mediaSettings[i]?.hide}
+                          onCheckedChange={(v) =>
+                            setMediaSettings((p) => ({
+                              ...p,
+                              [i]: { ...(p[i] || {}), hide: v },
+                            }))
+                          }
+                        />
                       </div>
                       <div className="flex justify-between">
                         <Label>{t('replace')}</Label>
-                        <Switch checked={mediaSettings[i]?.replace} onCheckedChange={(v) =>
-                          setMediaSettings(p => ({ ...p, [i]: { ...(p[i] || {}), replace: v } }))
-                        } />
+                        <Switch
+                          checked={mediaSettings[i]?.replace}
+                          onCheckedChange={(v) =>
+                            setMediaSettings((p) => ({
+                              ...p,
+                              [i]: { ...(p[i] || {}), replace: v },
+                            }))
+                          }
+                        />
                       </div>
                     </div>
                   </div>
@@ -120,8 +146,16 @@ export const PublishDialog = ({
         </ScrollArea>
 
         <DialogFooter>
-          <Button onClick={handlePublish} disabled={publish.isPending} className="w-full h-16 rounded-[24px] flex items-center justify-center gap-3 font-black text-[17px] transition-all active:scale-[0.98] shadow-2xl bg-[#007AFF] text-white shadow-[0_0_30px_rgba(0,122,255,0.4)]">
-            {publish.isPending ? <Loader2 className="animate-spin" /> : t('publish')}
+          <Button
+            onClick={handlePublish}
+            disabled={publish.isPending}
+            className="w-full h-16 rounded-[24px] flex items-center justify-center gap-3 font-black text-[17px] transition-all active:scale-[0.98] shadow-2xl bg-[#007AFF] text-white shadow-[0_0_30px_rgba(0,122,255,0.4)]"
+          >
+            {publish.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              t('publish')
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

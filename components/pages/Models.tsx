@@ -138,7 +138,10 @@ export const Models = () => {
                   >
                     <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shadow-lg transition-transform group-hover:scale-105">
                       <Avatar className="size-full rounded-none">
-                        <AvatarImage src={role.image || ''} className='object-cover' />
+                        <AvatarImage
+                          src={role.image || ''}
+                          className="object-cover"
+                        />
                         <AvatarFallback className="text-xl bg-zinc-800">
                           {localize(role.label).slice(0, 1)}
                         </AvatarFallback>

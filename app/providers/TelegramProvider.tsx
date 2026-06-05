@@ -73,7 +73,9 @@ export const TelegramProvider = ({
             initData,
             platform: 'telegram',
             bot_id: botId,
-            ...(referrerId ? { referrer_id: Number(referrerId), ref: Number(referrerId) } : {}),
+            ...(referrerId
+              ? { referrer_id: Number(referrerId), ref: Number(referrerId) }
+              : {}),
           },
           {
             headers: {
@@ -153,7 +155,10 @@ export const TelegramProvider = ({
             startParam = urlParam;
           }
         } catch (e) {
-          console.error('Error reading tgWebAppStartParam from search params:', e);
+          console.error(
+            'Error reading tgWebAppStartParam from search params:',
+            e
+          );
         }
       }
 
@@ -164,17 +169,17 @@ export const TelegramProvider = ({
           if (match) {
             const postId = match[1];
             sessionStorage.setItem('start_param_processed', 'true');
-            
+
             // Also extract referrer if present in post parameter
             const refMatch = startParam.match(/[_-]ref-(\d+)/);
             if (refMatch) {
               const referrerId = refMatch[1];
               localStorage.setItem('pending_referrer_id', referrerId);
             }
-            
+
             router.replace(`/trend/${postId}`);
           }
-        } 
+        }
         // Case 2: Pure referral link (e.g. start_param is just user ID, or starts with ref-456)
         else {
           const refMatch = startParam.match(/^(?:ref-)?(\d+)$/);

@@ -51,8 +51,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const pathWithoutLocale = pathname?.replace(/^\/[a-z]{2}(-[A-Z]{2})?(\/|$)/, '/') || '/';
-  
+  const pathWithoutLocale =
+    pathname?.replace(/^\/[a-z]{2}(-[A-Z]{2})?(\/|$)/, '/') || '/';
+
   const isPublic =
     pathWithoutLocale === '/' ||
     pathWithoutLocale.startsWith('/trends') ||

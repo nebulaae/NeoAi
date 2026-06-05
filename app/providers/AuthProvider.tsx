@@ -84,7 +84,9 @@ function getInitialAuthUser(): TelegramUser | null {
 
     const sessionUser = localStorage.getItem('session_user');
     if (sessionUser) {
-      const authUser = normalizeAuthUser(JSON.parse(sessionUser) as AuthPayload);
+      const authUser = normalizeAuthUser(
+        JSON.parse(sessionUser) as AuthPayload
+      );
       if (authUser) {
         localStorage.setItem('auth_user_id', String(authUser.id));
         return authUser;
