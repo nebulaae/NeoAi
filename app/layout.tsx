@@ -14,6 +14,7 @@ import './globals.css';
 import { ThemeProviders } from './providers/ThemeProviders';
 import { TelegramLoginScript } from './providers/TelegramLoginScript';
 
+// metadata
 export const metadata: Metadata = {
   title: 'NeoAI',
   description: 'AI Platform',
