@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 
+export interface SavedPromptMedia {
+  url: string;
+  type: string;
+}
+
 export interface SavedPrompt {
   id: string;
   title: string;
   text: string;
+  media?: SavedPromptMedia[];
   createdAt: number;
   updatedAt: number;
 }
@@ -26,6 +32,14 @@ function savePrompts(prompts: SavedPrompt[]) {
   } catch {}
 }
 
+/** Генерирует название из первых 12 символов промпта */
+export function makeTitleFromText(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return 'Без названия';
+  const slice = trimmed.slice(0, 12);
+  return trimmed.length > 12 ? `${slice}…` : slice;
+}
+
 export function useSavedPrompts() {
   const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
 
@@ -34,25 +48,34 @@ export function useSavedPrompts() {
     setPrompts(loadPrompts());
   }, []);
 
-  const addPrompt = useCallback((title: string, text: string): SavedPrompt => {
-    const now = Date.now();
-    const newPrompt: SavedPrompt = {
-      id: `prompt_${now}_${Math.random().toString(36).slice(2, 7)}`,
-      title: title.trim(),
-      text: text.trim(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    setPrompts((prev) => {
-      const next = [newPrompt, ...prev];
-      savePrompts(next);
-      return next;
-    });
-    return newPrompt;
-  }, []);
+  const addPrompt = useCallback(
+    (title: string, text: string, media?: SavedPromptMedia[]): SavedPrompt => {
+      const now = Date.now();
+      const newPrompt: SavedPrompt = {
+        id: `prompt_${now}_${Math.random().toString(36).slice(2, 7)}`,
+        title: title.trim(),
+        text: text.trim(),
+        media: media && media.length > 0 ? media : undefined,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setPrompts((prev) => {
+        const next = [newPrompt, ...prev];
+        savePrompts(next);
+        return next;
+      });
+      return newPrompt;
+    },
+    []
+  );
 
   const updatePrompt = useCallback(
-    (id: string, title: string, text: string) => {
+    (
+      id: string,
+      title: string,
+      text: string,
+      media?: SavedPromptMedia[]
+    ) => {
       setPrompts((prev) => {
         const next = prev.map((p) =>
           p.id === id
@@ -60,6 +83,7 @@ export function useSavedPrompts() {
                 ...p,
                 title: title.trim(),
                 text: text.trim(),
+                media: media && media.length > 0 ? media : undefined,
                 updatedAt: Date.now(),
               }
             : p

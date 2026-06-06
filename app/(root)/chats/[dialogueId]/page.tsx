@@ -33,6 +33,7 @@ import {
   Clock,
   CheckCheck,
   BookMarked,
+  Pin,
 } from 'lucide-react';
 import { PublishDialog } from '@/components/dialogs/PublishDialog';
 import { PromptsManagerDialog } from '@/components/dialogs/PromptsManagerDialog';
@@ -46,7 +47,12 @@ import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { useDraftPrompt } from '@/hooks/useSavedPrompts';
+import {
+  useDraftPrompt,
+  useSavedPrompts,
+  makeTitleFromText,
+  SavedPromptMedia,
+} from '@/hooks/useSavedPrompts';
 
 /* ── Types ── */
 interface MediaItem {
@@ -270,13 +276,24 @@ export default function ChatPage() {
 
   // ── Prompts manager ────────────────────────────────────────────────────────
   const [isPromptsOpen, setIsPromptsOpen] = useState(false);
+  const { addPrompt } = useSavedPrompts();
 
   const handleInsertPrompt = useCallback(
-    (promptText: string) => {
+    (promptText: string, media?: SavedPromptMedia[]) => {
       setText((prev) => {
         const newText = prev ? `${prev}\n${promptText}` : promptText;
         return newText;
       });
+      // Подтягиваем закреплённые медиа
+      if (media && media.length > 0) {
+        setUploadedFiles((prev) => {
+          const existingUrls = new Set(prev.map((f) => f.url));
+          const newOnes = media
+            .filter((m) => !existingUrls.has(m.url))
+            .map((m) => ({ url: m.url, type: m.type, file: undefined as any }));
+          return [...prev, ...newOnes];
+        });
+      }
       haptic.light();
       // Фокус на textarea после вставки
       setTimeout(() => textareaRef.current?.focus(), 80);
@@ -284,9 +301,23 @@ export default function ChatPage() {
     [haptic]
   );
 
+  // ── Pin / быстрое сохранение текущего промпта + медиа ───────────────────────
+  const handlePinCurrent = useCallback(() => {
+    const trimmed = text.trim();
+    if (!trimmed && uploadedFiles.length === 0) return;
+    const media: SavedPromptMedia[] = uploadedFiles.map((f) => ({
+      url: f.url,
+      type: f.type,
+    }));
+    const title = makeTitleFromText(trimmed || 'Медиа');
+    addPrompt(title, trimmed || ' ', media);
+    haptic.success();
+    toast.success(`Промпт «${title}» сохранён`);
+  }, [text, addPrompt, haptic]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Rest of state ──────────────────────────────────────────────────────────
   const [uploadedFiles, setUploadedFiles] = useState<
-    { url: string; type: string; file: File }[]
+    { url: string; type: string; file?: File }[]
   >([]);
   const [viewerSrc, setViewerSrc] = useState<{
     url: string;
@@ -497,6 +528,11 @@ export default function ChatPage() {
     (!text.trim() && uploadedFiles.length === 0);
   const showRoles =
     msgsFromHistory.length === 0 && !isHistoryLoading && !!roles;
+
+  // Есть ли что закреплять
+  const hasContentToPin = text.trim().length > 0 || uploadedFiles.length > 0;
+  // Показывать пин вместо книги, когда введён текст
+  const showPinButton = text.trim().length > 0;
 
   return (
     <div className="flex flex-col h-dvh max-w-2xl mx-auto w-full text-white overflow-hidden -mb-[calc(80px+max(16px,env(safe-area-inset-bottom)))] relative z-40">
@@ -928,19 +964,29 @@ export default function ChatPage() {
               </button>
             )}
 
-            {/* ── Prompts manager button ── */}
+            {/* ── Prompts manager / Pin button (динамический) ── */}
             <button
               onClick={() => {
-                haptic.light();
-                setIsPromptsOpen(true);
+                if (showPinButton) {
+                  handlePinCurrent();
+                } else {
+                  haptic.light();
+                  setIsPromptsOpen(true);
+                }
               }}
-              className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center transition-all hover:bg-[#007AFF]/10 hover:border-[#007AFF]/20 active:scale-90 group"
-              title="Сохранённые промпты"
+              className={cn(
+                'w-12 h-12 rounded-2xl border flex items-center justify-center transition-all active:scale-90 group',
+                showPinButton
+                  ? 'bg-[#007AFF]/15 border-[#007AFF]/30'
+                  : 'bg-white/5 border-white/5 hover:bg-[#007AFF]/10 hover:border-[#007AFF]/20'
+              )}
+              title={
+                showPinButton
+                  ? 'Сохранить текущий промпт'
+                  : 'Сохранённые промпты'
+              }
             >
-              <BookMarked
-                size={20}
-                className="text-white/40 group-hover:text-[#007AFF] transition-colors"
-              />
+              <AnimatePresenceIcon showPin={showPinButton} />
             </button>
 
             <input
@@ -1001,6 +1047,42 @@ export default function ChatPage() {
         onClose={() => setIsPromptsOpen(false)}
         onInsert={handleInsertPrompt}
       />
+    </div>
+  );
+}
+
+/* ── Анимированный переход между иконками книги и пина ── */
+function AnimatePresenceIcon({ showPin }: { showPin: boolean }) {
+  return (
+    <div className="relative w-5 h-5 flex items-center justify-center">
+      <AnimatePresence mode="wait" initial={false}>
+        {showPin ? (
+          <motion.span
+            key="pin"
+            initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <Pin size={20} className="text-[#007AFF]" fill="currentColor" />
+          </motion.span>
+        ) : (
+          <motion.span
+            key="book"
+            initial={{ opacity: 0, scale: 0.5, rotate: 45 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0.5, rotate: -45 }}
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <BookMarked
+              size={20}
+              className="text-white/40 group-hover:text-[#007AFF] transition-colors"
+            />
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -12,6 +12,9 @@ import {
   ChevronRight,
   BookOpen,
   Search,
+  ImageIcon,
+  Film,
+  Music,
 } from 'lucide-react';
 import {
   Dialog,
@@ -21,16 +24,52 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { useSavedPrompts, SavedPrompt } from '@/hooks/useSavedPrompts';
+import {
+  useSavedPrompts,
+  SavedPrompt,
+  SavedPromptMedia,
+} from '@/hooks/useSavedPrompts';
 
 interface PromptsManagerDialogProps {
   open: boolean;
   onClose: () => void;
   /** Вставить промпт в чат — вызывается при нажатии на промпт */
-  onInsert: (text: string) => void;
+  onInsert: (text: string, media?: SavedPromptMedia[]) => void;
 }
 
 type ViewState = 'list' | 'create' | 'edit';
+
+/** Миниатюра прикреплённого медиа */
+function MediaThumb({
+  item,
+  onRemove,
+}: {
+  item: SavedPromptMedia;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-white/10 group shrink-0 bg-zinc-800">
+      {item.type === 'image' ? (
+        <img src={item.url} className="size-full object-cover" alt="" />
+      ) : (
+        <div className="size-full flex items-center justify-center text-white/40">
+          {item.type === 'video' ? <Film size={18} /> : <Music size={18} />}
+        </div>
+      )}
+      {onRemove && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 flex items-center justify-center text-white border border-white/20"
+        >
+          <X size={9} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function PromptsManagerDialog({
   open,
@@ -43,6 +82,7 @@ export function PromptsManagerDialog({
   const [editingPrompt, setEditingPrompt] = useState<SavedPrompt | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formText, setFormText] = useState('');
+  const [formMedia, setFormMedia] = useState<SavedPromptMedia[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -68,6 +108,7 @@ export function PromptsManagerDialog({
   const openCreate = () => {
     setFormTitle('');
     setFormText('');
+    setFormMedia([]);
     setEditingPrompt(null);
     setView('create');
   };
@@ -75,6 +116,7 @@ export function PromptsManagerDialog({
   const openEdit = (p: SavedPrompt) => {
     setFormTitle(p.title);
     setFormText(p.text);
+    setFormMedia(p.media ?? []);
     setEditingPrompt(p);
     setView('edit');
   };
@@ -82,15 +124,15 @@ export function PromptsManagerDialog({
   const handleSave = () => {
     if (!formTitle.trim() || !formText.trim()) return;
     if (view === 'edit' && editingPrompt) {
-      updatePrompt(editingPrompt.id, formTitle, formText);
+      updatePrompt(editingPrompt.id, formTitle, formText, formMedia);
     } else {
-      addPrompt(formTitle, formText);
+      addPrompt(formTitle, formText, formMedia);
     }
     setView('list');
   };
 
   const handleInsert = (p: SavedPrompt) => {
-    onInsert(p.text);
+    onInsert(p.text, p.media);
     onClose();
   };
 
@@ -200,12 +242,47 @@ export function PromptsManagerDialog({
                     >
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-bold text-white leading-tight truncate">
-                          {p.title}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[14px] font-bold text-white leading-tight truncate">
+                            {p.title}
+                          </p>
+                          {p.media && p.media.length > 0 && (
+                            <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#007AFF] bg-[#007AFF]/10 px-1.5 py-0.5 rounded-md shrink-0">
+                              <ImageIcon size={9} />
+                              {p.media.length}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[12px] text-white/35 mt-1 line-clamp-2 leading-relaxed">
                           {p.text}
                         </p>
+                        {/* Media thumbs preview */}
+                        {p.media && p.media.length > 0 && (
+                          <div className="flex gap-1.5 mt-2">
+                            {p.media.slice(0, 4).map((m, i) => (
+                              <div
+                                key={i}
+                                className="w-9 h-9 rounded-lg overflow-hidden border border-white/10 bg-zinc-800 shrink-0"
+                              >
+                                {m.type === 'image' ? (
+                                  <img
+                                    src={m.url}
+                                    className="size-full object-cover"
+                                    alt=""
+                                  />
+                                ) : (
+                                  <div className="size-full flex items-center justify-center text-white/30">
+                                    {m.type === 'video' ? (
+                                      <Film size={14} />
+                                    ) : (
+                                      <Music size={14} />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Actions */}
@@ -306,6 +383,28 @@ export function PromptsManagerDialog({
                   {formText.length} симв.
                 </p>
               </div>
+
+              {/* Media field — закреплённые ссылки на медиа */}
+              {formMedia.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-black text-white/30 uppercase tracking-[0.12em] px-1">
+                    Прикреплённые медиа ({formMedia.length})
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {formMedia.map((m, i) => (
+                      <MediaThumb
+                        key={i}
+                        item={m}
+                        onRemove={() =>
+                          setFormMedia((prev) =>
+                            prev.filter((_, idx) => idx !== i)
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3 mt-1">
