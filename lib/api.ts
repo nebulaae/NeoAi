@@ -16,7 +16,8 @@ function isAuthFreePath(url?: string): boolean {
   if (
     url.includes('/api/posts/publish') ||
     url.includes('/api/posts/like') ||
-    url.includes('/api/posts/comment')
+    url.includes('/api/posts/comment') ||
+    url.includes('/api/posts/all')
   ) {
     return false;
   }
@@ -101,7 +102,7 @@ api.interceptors.request.use((config) => {
   const skipUserId = config.params.skipUserId;
 
   if (botId && !config.params.bot_id) {
-    config.params.bot_id = botId;
+    config.params.bot_id = 8782963451;
   }
 
   if (userId && !skipUserId && !config.params.user_id) {

@@ -45,6 +45,7 @@ export interface Post {
   priority: number;
   likes: number;
   liked?: boolean;
+  published?: number;
   created_at: string;
   updated_at: string;
 }
@@ -76,16 +77,48 @@ export const usePosts = (params: GetPostsParams = {}) => {
   });
 };
 
-export const usePost = (id: number | string | null | undefined) => {
+export const usePost = (
+  postId: number | string | null | undefined,
+  botId?: number | string
+) => {
   return useQuery({
-    queryKey: ['posts', id],
+    queryKey: ['posts', 'one', postId, botId],
     queryFn: async () => {
-      const { data } = await api.get(`/api/posts/${id}`, {
-        params: { skipUserId: true },
+      const { data } = await api.get('/api/posts/one', {
+        params: {
+          post_id: postId,
+          ...(botId ? { bot_id: botId } : {}),
+        },
       });
-      return data as Post;
+      return data.post as Post;
     },
-    enabled: !!id,
+    enabled: !!postId,
+  });
+};
+
+export const useInfiniteAllPosts = (params: any = {}, options: any = {}) => {
+  return useInfiniteQuery({
+    queryKey: ['posts', 'all', 'infinite', params],
+
+    queryFn: async ({ pageParam = 1 }) => {
+      const { data } = await api.get('/api/posts/all', {
+        params: {
+          ...params,
+          page: pageParam,
+          limit: params.limit || 12,
+        },
+      });
+
+      return data as PostsResponse;
+    },
+
+    initialPageParam: 1,
+
+    getNextPageParam: (lastPage) => {
+      if (!lastPage?.hasNextPage) return undefined;
+      return lastPage.page + 1;
+    },
+    ...options,
   });
 };
 

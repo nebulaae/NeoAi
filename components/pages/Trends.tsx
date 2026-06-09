@@ -161,7 +161,7 @@ export const Trends = () => {
 
 // ─── TrendCard — Pinterest-style likes bottom-right ───────────────────────────
 
-const TrendCard = memo(({ post }: { post: Post }) => {
+export const TrendCard = memo(({ post }: { post: Post }) => {
   const t = useTranslations('Trends');
   const router = useRouter();
   const haptic = useHaptic();
@@ -249,14 +249,22 @@ const TrendCard = memo(({ post }: { post: Post }) => {
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
 
-        {/* Cost badge — top left */}
-        <div className="absolute top-3 left-3">
-          <div className="bg-black/40 backdrop-blur-xl border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg">
+        {/* Cost & Moderation badges — top left */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+          <div className="bg-black/40 backdrop-blur-xl border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg w-fit">
             <span className="text-[11px] font-black text-white">
               {post.cost ?? 15}
             </span>
             <span className="text-[10px] text-[#007AFF]">◈</span>
           </div>
+
+          {post.published === 0 && (
+            <div className="bg-amber-500/80 backdrop-blur-xl border border-amber-400/30 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-lg w-fit">
+              <span className="text-[9px] font-black text-white uppercase tracking-wider">
+                {t('underModeration') || 'На модерации'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Video play icon */}

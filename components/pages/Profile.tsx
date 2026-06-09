@@ -62,6 +62,7 @@ import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/layout/LocaleSwitcher';
 import { PaymentDialog } from '@/components/dialogs/PaymentDialog';
 import { AlbumsTab } from '../shared/profile/AlbumsTab';
+import { MyPostsTab } from '../shared/profile/MyPostsTab';
 
 type TabType = 'profile' | 'account' | 'partnership';
 
@@ -259,8 +260,8 @@ export const Profile = () => {
   const [copiedRef, setCopiedRef] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [historyTab, setHistoryTab] = useState<'generations' | 'albums'>(
-    'generations'
+  const [historyTab, setHistoryTab] = useState<'my-posts' | 'generations' | 'albums'>(
+    'my-posts'
   );
 
   const tokens = userData?.user?.tokens ?? 0;
@@ -495,8 +496,25 @@ export const Profile = () => {
 
             {/* History Section */}
             <div className="flex flex-col gap-5">
-              {/* Sub-tab switcher: Generations / Albums */}
+              {/* Sub-tab switcher: My Posts / Generations / Albums */}
               <div className="flex p-1 bg-zinc-900/60 rounded-2xl border border-white/5">
+                <button
+                  onClick={() => {
+                    haptic.light();
+                    setHistoryTab('my-posts');
+                  }}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl text-[13px] font-black transition-all relative z-10',
+                    historyTab === 'my-posts'
+                      ? 'text-white'
+                      : 'text-white/40 hover:text-white/60'
+                  )}
+                >
+                  {t('myPostsTabLabel')}
+                  {historyTab === 'my-posts' && (
+                    <div className="absolute inset-0 bg-[#007AFF] rounded-xl z-[-1] animate-in fade-in zoom-in duration-300" />
+                  )}
+                </button>
                 <button
                   onClick={() => {
                     haptic.light();
@@ -534,7 +552,9 @@ export const Profile = () => {
               </div>
 
               {/* Tab content */}
-              {historyTab === 'generations' ? (
+              {historyTab === 'my-posts' ? (
+                <MyPostsTab />
+              ) : historyTab === 'generations' ? (
                 <div className="flex flex-col gap-3">
                   {reqLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (

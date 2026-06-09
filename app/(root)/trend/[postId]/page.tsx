@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { usePosts, Post } from '@/hooks/usePosts';
+import { usePost, Post } from '@/hooks/usePosts';
 import { TrendDetail } from '@/components/pages/Trends';
 import { Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -23,13 +23,9 @@ const TrendDetailPage = () => {
     setCacheChecked(true);
   }, [postId]);
 
-  // 2. Фоллбэк через API с skipUserId чтобы обойти фильтр по user_id
-  const { data: postsData, isLoading } = usePosts({
-    limit: 100,
-    skipUserId: true,
-  } as any);
+  // 2. Фоллбэк через API /posts/one
+  const { data: apiPost, isLoading } = usePost(postId);
 
-  const apiPost = postsData?.items?.find((p: any) => p.id === parseInt(postId));
   const post = cachedPost ?? apiPost;
 
   // Ждём проверки кэша, потом ждём API если нет кэша

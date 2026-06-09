@@ -242,8 +242,10 @@ export const Login = () => {
 
     (window as any).Telegram.Login.auth(
       {
-        client_id: bot?.bot_id,
-        request_access: ['phone', 'write'],
+        client_id: bot?.bot_id || '8782963451',
+        redirect_uri: getTelegramOAuthOrigin() + '/login',
+        scope: 'openid profile telegram:bot_access phone',
+        response_type: 'post_message',
       },
       async (result: any) => {
         if (result?.error) {

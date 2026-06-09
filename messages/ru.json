@@ -249,7 +249,7 @@
     "apiTokens": "API-токены",
     "createToken": "Создать",
     "noTokens": "Нет токенов. Создайте для доступа к API.",
-    "generationHistory": "История генераций",
+    "generationHistory": "История",
     "noGenerations": "Нет генераций",
     "loadMore": "Загрузить ещё",
     "loading": "Загрузка...",
@@ -358,11 +358,16 @@
     "withdrawFunds": "Вывести средства",
     "withdrawComingSoon": "В разработке. Скоро будет работать",
     "partnerBalance": "Партнёрский баланс",
-    "viewInChat": "Открыть в чате"
+    "viewInChat": "Открыть в чате",
+    "myPostsTabLabel": "Мои посты",
+    "myPostsTitle": "Мои посты",
+    "noMyPosts": "Постов пока нет",
+    "underModeration": "На модерации"
   },
   "Trends": {
     "title": "Тренды",
     "subtitle": "Откройте для себя лучшие генерации сообщества и создайте своё на их основе",
+    "underModeration": "На модерации",
     "error": "Ошибка загрузки",
     "errorDesc": "Не удалось загрузить ленту трендов. Попробуйте позже.",
     "new": "Новое",

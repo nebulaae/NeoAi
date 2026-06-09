@@ -248,7 +248,7 @@
     "apiTokens": "API Tokens",
     "createToken": "Create",
     "noTokens": "No tokens. Create one for API access.",
-    "generationHistory": "Generation History",
+    "generationHistory": "History",
     "noGenerations": "No generations",
     "loadMore": "Load more",
     "loading": "Loading...",
@@ -357,11 +357,16 @@
     "albumLinkCopied": "Public link copied",
     "withdrawFunds": "Withdraw Funds",
     "partnerBalance": "Partner Balance",
-    "withdrawComingSoon": "Coming soon. Stay tuned!"
+    "withdrawComingSoon": "Coming soon. Stay tuned!",
+    "myPostsTabLabel": "My Posts",
+    "myPostsTitle": "My Posts",
+    "noMyPosts": "No posts yet",
+    "underModeration": "Moderating"
   },
   "Trends": {
     "title": "Trending",
     "subtitle": "Discover the community's best creations and create your own based on them",
+    "underModeration": "Moderating",
     "error": "Loading error",
     "errorDesc": "Failed to load trending feed. Please try again later.",
     "new": "New",
