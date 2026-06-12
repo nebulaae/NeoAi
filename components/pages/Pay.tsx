@@ -208,7 +208,7 @@ export const Pay = () => {
       const tgWebApp = tgWindow?.Telegram?.WebApp;
 
       if (tgWebApp && typeof tgWebApp.openLink === 'function') {
-        tgWebApp.openLink(url);
+        window.location.href = url;
         return;
       }
 
