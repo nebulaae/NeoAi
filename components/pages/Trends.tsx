@@ -469,7 +469,15 @@ export const TrendDetail = ({
     }
   };
 
-  const mediaUrl = post.result?.url || post.result?.media?.[0]?.input;
+  const resultMedia = (post.result as any)?.media?.[0] || post.result;
+  const mediaUrl =
+    resultMedia?.url ||
+    resultMedia?.input ||
+    post.result?.url ||
+    post.result?.media?.[0]?.input;
+  const isVideo =
+    resultMedia?.type === 'video' ||
+    (typeof mediaUrl === 'string' && /\.(mp4|webm|mov)(\?|$)/i.test(mediaUrl));
 
   return (
     <motion.div
@@ -520,7 +528,23 @@ export const TrendDetail = ({
         {/* Hero Preview */}
         <div className="relative aspect-3/4 rounded-[40px] overflow-hidden border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.6)]">
           {mediaUrl ? (
-            <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+            isVideo ? (
+              <video
+                src={mediaUrl}
+                className="w-full h-full object-cover"
+                controls
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <img
+                src={mediaUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            )
           ) : (
             <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
               <Sparkles className="size-16 text-white/5" />

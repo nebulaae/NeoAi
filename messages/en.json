@@ -134,7 +134,8 @@
     "generating": "Generating...",
     "catImageEmoji": "🖼️ Images",
     "catVideoEmoji": "🎬 Video",
-    "catAudioEmoji": "🎵 Audio"
+    "catAudioEmoji": "🎵 Audio",
+    "selectRole": "Select role"
   },
   "Generate": {
     "title": "Create",

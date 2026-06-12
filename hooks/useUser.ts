@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { getUserAnalyticsParams } from '@/lib/platform';
 
 export interface User {
   user_id: number;
@@ -18,7 +19,11 @@ export const useUser = () => {
   return useQuery({
     queryKey: queryKeys.user,
     queryFn: async (): Promise<{ user: User }> => {
-      const { data } = await api.get('/api/user');
+      // name, username, tg_premium, lang (+ inviter при реферальном переходе)
+      // нужны для аналитики на бэкенде
+      const { data } = await api.get('/api/user', {
+        params: getUserAnalyticsParams(),
+      });
       return data;
     },
     staleTime: 30_000,

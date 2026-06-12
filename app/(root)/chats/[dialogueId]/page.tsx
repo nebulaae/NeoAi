@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { PublishDialog } from '@/components/dialogs/PublishDialog';
 import { PromptsManagerDialog } from '@/components/dialogs/PromptsManagerDialog';
+import { RoleSelectDialog } from '@/components/dialogs/RoleSelectDialog';
+import { Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -258,6 +260,7 @@ function AudioPlayer({ src }: { src: string }) {
 
 export default function ChatPage() {
   const t = useTranslations('ChatPage');
+  const tModels = useTranslations('Models');
   const router = useRouter();
   const queryClient = useQueryClient();
   const params = useParams();
@@ -339,6 +342,7 @@ export default function ChatPage() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(
     urlRole ? parseInt(urlRole) : null
   );
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const { data: messages = [], isLoading: isHistoryLoading } = useChatHistory(
     dialogueId === 'new' ? null : dialogueId || null
   );
@@ -529,6 +533,8 @@ export default function ChatPage() {
     (!text.trim() && uploadedFiles.length === 0);
   const showRoles =
     msgsFromHistory.length === 0 && !isHistoryLoading && !!roles;
+  const selectedRole = roles?.find((r) => r.id === selectedRoleId) ?? null;
+  const hasRoles = !!roles && roles.length > 0;
 
   // Есть ли что закреплять
   const hasContentToPin = text.trim().length > 0 || uploadedFiles.length > 0;
@@ -572,6 +578,46 @@ export default function ChatPage() {
             )}
           </div>
         </div>
+
+        {/* Выбрать роль */}
+        {hasRoles && (
+          <button
+            onClick={() => {
+              haptic.light();
+              setIsRoleDialogOpen(true);
+            }}
+            className={cn(
+              'flex items-center gap-2 h-10 rounded-full border transition-all active:scale-95 shrink-0',
+              selectedRole
+                ? 'pl-1.5 pr-3 bg-[#007AFF]/10 border-[#007AFF]/30'
+                : 'px-3 bg-white/5 border-white/10'
+            )}
+          >
+            {selectedRole ? (
+              <>
+                <Avatar className="w-7 h-7 rounded-full">
+                  <AvatarImage
+                    src={selectedRole.image || ''}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-zinc-800 text-[11px]">
+                    {localize(selectedRole.label)[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[13px] font-bold text-[#007AFF] max-w-[110px] truncate">
+                  {localize(selectedRole.label)}
+                </span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} className="text-white/50" />
+                <span className="text-[13px] font-bold text-white/60">
+                  {tModels('selectRole')}
+                </span>
+              </>
+            )}
+          </button>
+        )}
       </header>
 
       {/* ── Messages ── */}
@@ -594,53 +640,39 @@ export default function ChatPage() {
                 <p className="text-[16px] font-medium text-white/40 leading-relaxed">
                   {t('startDialogue')}
                 </p>
-                {showRoles && (
-                  <div className="w-full max-w-sm mt-4">
-                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/25 mb-4">
-                      {t('chooseAssistant')}
-                    </h3>
-                    <div className="grid grid-cols-1 gap-2">
-                      {roles!.slice(0, 4).map((role) => (
-                        <button
-                          key={role.id}
-                          onClick={() => {
-                            haptic.light();
-                            setSelectedRoleId(role.id);
-                          }}
-                          className={cn(
-                            'flex items-center gap-3 p-3.5 rounded-2xl border transition-all active:scale-[0.98]',
-                            selectedRoleId === role.id
-                              ? 'bg-[#007AFF]/10 border-[#007AFF]/30 shadow-[0_0_20px_rgba(170,255,0,0.1)]'
-                              : 'bg-zinc-900/40 border-white/5 hover:border-white/10'
-                          )}
-                        >
-                          <Avatar className="w-10 h-10 rounded-xl">
-                            <AvatarImage src={role.image || ''} />
-                            <AvatarFallback className="bg-zinc-800 text-sm">
-                              {localize(role.label)[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 text-left">
-                            <p
-                              className={cn(
-                                'text-[14px] font-bold',
-                                selectedRoleId === role.id
-                                  ? 'text-[#007AFF]'
-                                  : 'text-white'
-                              )}
-                            >
-                              {localize(role.label)}
-                            </p>
-                            <p className="text-[11px] text-white/30 line-clamp-1">
-                              {localize(role.description)}
-                            </p>
-                          </div>
-                          {selectedRoleId === role.id && (
-                            <div className="w-2 h-2 rounded-full bg-[#007AFF] shadow-[0_0_8px_#007AFF]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                {showRoles && hasRoles && (
+                  <div className="w-full max-w-sm mt-2 flex flex-col items-center gap-3">
+                    {selectedRole && (
+                      <div className="flex items-center gap-3 p-3 w-full rounded-2xl bg-[#007AFF]/10 border border-[#007AFF]/30">
+                        <Avatar className="w-10 h-10 rounded-xl">
+                          <AvatarImage
+                            src={selectedRole.image || ''}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className="bg-zinc-800 text-sm">
+                            {localize(selectedRole.label)[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-[14px] font-bold text-[#007AFF] truncate">
+                            {localize(selectedRole.label)}
+                          </p>
+                          <p className="text-[11px] text-white/30 line-clamp-1">
+                            {localize(selectedRole.description)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        haptic.light();
+                        setIsRoleDialogOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-zinc-900/60 border border-white/10 text-[15px] font-black text-white hover:border-[#007AFF]/30 transition-all active:scale-[0.98]"
+                    >
+                      <Sparkles size={16} className="text-[#007AFF]" />
+                      {selectedRole ? t('chooseAssistant') : tModels('selectRole')}
+                    </button>
                   </div>
                 )}
               </div>
@@ -1048,6 +1080,17 @@ export default function ChatPage() {
         onClose={() => setIsPromptsOpen(false)}
         onInsert={handleInsertPrompt}
       />
+
+      {/* ── Role Select Dialog ── */}
+      {hasRoles && (
+        <RoleSelectDialog
+          open={isRoleDialogOpen}
+          onOpenChange={setIsRoleDialogOpen}
+          roles={roles!}
+          currentRoleId={selectedRoleId}
+          onSelect={(id) => setSelectedRoleId(id)}
+        />
+      )}
     </div>
   );
 }
