@@ -93,13 +93,22 @@ export const Pay = () => {
     };
   }, [activePromo?.end_time]);
 
-  // Reset mutation on mount/unmount
   useEffect(() => {
-    createPaymentSession.reset();
-    return () => {
-      createPaymentSession.reset();
-    };
+    const tg = (window as any).Telegram?.WebApp;
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
   }, []);
+
+  // Reset mutation on mount/unmount
+  // useEffect(() => {
+  //   createPaymentSession.reset();
+  //   return () => {
+  //     createPaymentSession.reset();
+  //   };
+  // }, []);
 
   // Visibility / focus listener
   useEffect(() => {
@@ -208,7 +217,9 @@ export const Pay = () => {
       const tgWebApp = tgWindow?.Telegram?.WebApp;
 
       if (tgWebApp && typeof tgWebApp.openLink === 'function') {
-        window.location.href = url;
+        tgWebApp.openLink(url, {
+          try_instant_view: false
+        });
         return;
       }
 
@@ -268,6 +279,9 @@ export const Pay = () => {
   };
 
   const handleSelect = (pkgIdx: number, planIdx: number) => {
+    console.log('PACKAGES', packagesData);
+    console.log('PAY_ID', packagesData?.pay_id);
+    console.log('WEBHOOK', packagesData?.webhook_url);
     haptic.medium();
     const plan = packagesData?.packages?.[pkgIdx]?.plans?.[planIdx];
     if (!packagesData || !plan) return;
@@ -306,6 +320,7 @@ export const Pay = () => {
       },
       {
         onSuccess: (data: unknown) => {
+          console.log('PAYMENT RESPONSE', data);
           toast.dismiss();
           haptic.success();
           setPayingKey(null);
@@ -359,6 +374,7 @@ export const Pay = () => {
           }
         },
         onError: (error) => {
+          console.log('PAYMENT ERROR', error);
           toast.dismiss();
           haptic.error();
           setPayingKey(null);
