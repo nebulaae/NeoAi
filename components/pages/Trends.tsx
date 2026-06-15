@@ -805,7 +805,7 @@ export const TrendDetail = ({
           if (!o) closeLinkDialog();
         }}
       >
-        <DialogContent className="bg-zinc-950/90 border-white/10 text-white max-w-md p-6 rounded-[32px] backdrop-blur-2xl shadow-2xl">
+        <DialogContent className="bg-zinc-950/90 border-white/10 text-white max-w-md p-6 rounded-[32px] backdrop-blur-2xl shadow-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader className="mb-3">
             <DialogTitle className="text-[20px] font-black tracking-tight text-white flex items-center gap-2">
               <Link2 size={20} className="text-[#007AFF]" />
@@ -814,8 +814,36 @@ export const TrendDetail = ({
             <DialogDescription className="hidden" />
           </DialogHeader>
 
+          {/* Input — at the top */}
+          <input
+            type="url"
+            inputMode="url"
+            autoFocus
+            value={linkValue}
+            onChange={(e) => setLinkValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleLinkSubmit();
+            }}
+            placeholder={t('linkMediaPlaceholder')}
+            className="w-full h-14 px-5 rounded-[20px] bg-zinc-900/60 border border-white/10 text-[15px] text-white placeholder:text-white/30 outline-none focus:border-[#007AFF]/50 transition-colors mb-3"
+          />
+
+          <button
+            onClick={handleLinkSubmit}
+            disabled={!linkValue.trim()}
+            className={cn(
+              'w-full h-14 rounded-[20px] flex items-center justify-center gap-2 font-black text-[16px] transition-all active:scale-[0.98] mb-5',
+              linkValue.trim()
+                ? 'bg-[#007AFF] text-white shadow-[0_0_24px_rgba(0,122,255,0.35)]'
+                : 'bg-white/5 text-white/20 cursor-not-allowed'
+            )}
+          >
+            <Link2 size={18} />
+            {t('linkMediaSubmit')}
+          </button>
+
           {/* Instruction */}
-          <div className="rounded-[24px] bg-[#007AFF]/5 border border-[#007AFF]/15 p-5 mb-5">
+          <div className="rounded-[24px] bg-[#007AFF]/5 border border-[#007AFF]/15 p-5">
             <p className="text-[12px] font-black uppercase tracking-widest text-[#007AFF]/70 mb-3">
               {t('linkInstrTitle')}
             </p>
@@ -851,35 +879,15 @@ export const TrendDetail = ({
                 <span>{t('linkStep5')}</span>
               </li>
             </ol>
+
+            {/* Visual hint — full image */}
+            <img
+              src="/instruction-image.jpg"
+              alt=""
+              loading="lazy"
+              className="mt-4 w-full h-auto object-contain rounded-2xl border border-white/10"
+            />
           </div>
-
-          {/* Input */}
-          <input
-            type="url"
-            inputMode="url"
-            autoFocus
-            value={linkValue}
-            onChange={(e) => setLinkValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleLinkSubmit();
-            }}
-            placeholder={t('linkMediaPlaceholder')}
-            className="w-full h-14 px-5 rounded-[20px] bg-zinc-900/60 border border-white/10 text-[15px] text-white placeholder:text-white/30 outline-none focus:border-[#007AFF]/50 transition-colors mb-4"
-          />
-
-          <button
-            onClick={handleLinkSubmit}
-            disabled={!linkValue.trim()}
-            className={cn(
-              'w-full h-14 rounded-[20px] flex items-center justify-center gap-2 font-black text-[16px] transition-all active:scale-[0.98]',
-              linkValue.trim()
-                ? 'bg-[#007AFF] text-white shadow-[0_0_24px_rgba(0,122,255,0.35)]'
-                : 'bg-white/5 text-white/20 cursor-not-allowed'
-            )}
-          >
-            <Link2 size={18} />
-            {t('linkMediaSubmit')}
-          </button>
         </DialogContent>
       </Dialog>
 
