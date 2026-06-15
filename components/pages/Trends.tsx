@@ -22,6 +22,7 @@ import {
   Globe,
   Heart,
   FolderPlus,
+  Link2,
 } from 'lucide-react';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
@@ -380,6 +381,26 @@ export const TrendDetail = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
 
+  // Link-to-media dialog
+  const [linkDialogIndex, setLinkDialogIndex] = useState<number | null>(null);
+  const [linkValue, setLinkValue] = useState('');
+  const botLink = `https://t.me/${bot?.bot_username || 'bot'}`;
+
+  const closeLinkDialog = () => {
+    setLinkDialogIndex(null);
+    setLinkValue('');
+  };
+
+  const handleLinkSubmit = () => {
+    if (linkDialogIndex === null) return;
+    const url = linkValue.trim();
+    if (!url) return;
+    haptic.light();
+    setUserMedia((prev) => ({ ...prev, [linkDialogIndex]: { url } }));
+    toast.success(t('done'));
+    closeLinkDialog();
+  };
+
   const tokens = userData?.user?.tokens ?? 0;
   const model = allModels?.find(
     (m: any) => m.tech_name === post.model_tech_name
@@ -403,7 +424,7 @@ export const TrendDetail = ({
       }));
       toast.success(t('done'));
     } catch {
-      toast.error(t('error'));
+      toast.error(t('uploadErrorLink'));
     }
     setActiveMediaIndex(null);
   };
@@ -603,6 +624,23 @@ export const TrendDetail = ({
                           'border-[#007AFF]/50 bg-[#007AFF]/5 shadow-[0_0_20px_rgba(0,122,255,0.1)]'
                       )}
                     >
+                      {/* Link-to-media button — top right */}
+                      {(replace || hide) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            haptic.light();
+                            setLinkValue(current?.url ?? '');
+                            setLinkDialogIndex(index);
+                          }}
+                          title={t('linkMedia')}
+                          className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/15 flex items-center justify-center shadow-lg hover:bg-black/70 transition-colors active:scale-90"
+                        >
+                          <Link2 size={14} className="text-[#007AFF]" />
+                        </button>
+                      )}
+
                       {current ? (
                         <>
                           <img
@@ -757,6 +795,91 @@ export const TrendDetail = ({
               </div>
             </button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link-to-media Dialog */}
+      <Dialog
+        open={linkDialogIndex !== null}
+        onOpenChange={(o) => {
+          if (!o) closeLinkDialog();
+        }}
+      >
+        <DialogContent className="bg-zinc-950/90 border-white/10 text-white max-w-md p-6 rounded-[32px] backdrop-blur-2xl shadow-2xl">
+          <DialogHeader className="mb-3">
+            <DialogTitle className="text-[20px] font-black tracking-tight text-white flex items-center gap-2">
+              <Link2 size={20} className="text-[#007AFF]" />
+              {t('linkMediaTitle')}
+            </DialogTitle>
+            <DialogDescription className="hidden" />
+          </DialogHeader>
+
+          {/* Instruction */}
+          <div className="rounded-[24px] bg-[#007AFF]/5 border border-[#007AFF]/15 p-5 mb-5">
+            <p className="text-[12px] font-black uppercase tracking-widest text-[#007AFF]/70 mb-3">
+              {t('linkInstrTitle')}
+            </p>
+            <ol className="flex flex-col gap-2.5 text-[14px] font-medium text-white/80 leading-snug">
+              <li className="flex gap-2.5">
+                <span className="text-[#007AFF] font-black">1.</span>
+                <span>
+                  {t('linkStepOpen')}{' '}
+                  <a
+                    href={botLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#007AFF] font-bold underline underline-offset-2"
+                  >
+                    {t('linkBot')}
+                  </a>
+                </span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="text-[#007AFF] font-black">2.</span>
+                <span>{t('linkStep2')}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="text-[#007AFF] font-black">3.</span>
+                <span>{t('linkStep3')}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="text-[#007AFF] font-black">4.</span>
+                <span>{t('linkStep4')}</span>
+              </li>
+              <li className="flex gap-2.5">
+                <span className="text-[#007AFF] font-black">5.</span>
+                <span>{t('linkStep5')}</span>
+              </li>
+            </ol>
+          </div>
+
+          {/* Input */}
+          <input
+            type="url"
+            inputMode="url"
+            autoFocus
+            value={linkValue}
+            onChange={(e) => setLinkValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleLinkSubmit();
+            }}
+            placeholder={t('linkMediaPlaceholder')}
+            className="w-full h-14 px-5 rounded-[20px] bg-zinc-900/60 border border-white/10 text-[15px] text-white placeholder:text-white/30 outline-none focus:border-[#007AFF]/50 transition-colors mb-4"
+          />
+
+          <button
+            onClick={handleLinkSubmit}
+            disabled={!linkValue.trim()}
+            className={cn(
+              'w-full h-14 rounded-[20px] flex items-center justify-center gap-2 font-black text-[16px] transition-all active:scale-[0.98]',
+              linkValue.trim()
+                ? 'bg-[#007AFF] text-white shadow-[0_0_24px_rgba(0,122,255,0.35)]'
+                : 'bg-white/5 text-white/20 cursor-not-allowed'
+            )}
+          >
+            <Link2 size={18} />
+            {t('linkMediaSubmit')}
+          </button>
         </DialogContent>
       </Dialog>
 
