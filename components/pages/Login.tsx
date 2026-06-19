@@ -335,13 +335,22 @@ export const Login = () => {
   /* Telegram Widget Success */
   const handleTelegramSuccess = async (tgData: any) => {
     try {
-      // TODO(tg-oauth): убрать после того, как увидим форму payload в консоли
-      console.log('[tg-oauth] payload → /auth/telegram:', tgData);
+      // post_message отдаёт { id_token, user }; иногда — строку id_token.
+      const id_token =
+        typeof tgData === 'string' ? tgData : tgData?.id_token;
 
-      const { data } = await api.post(
-        `/api/auth/telegram?bot_id=${bot?.bot_id}`,
-        tgData
-      );
+      // TODO(tg-oauth): убрать после подтверждения
+      console.log('[tg-oauth] payload → /auth/telegram:', { id_token, tgData });
+
+      if (!id_token) {
+        console.warn('[tg-oauth] нет id_token, запрос в бэк не шлём', tgData);
+        return;
+      }
+
+      const { data } = await api.post('/api/auth/telegram', {
+        id_token,
+        bot_id: bot?.bot_id,
+      });
       localStorage.setItem('auth_token', data.token);
       login(data.user);
       haptic.success();
