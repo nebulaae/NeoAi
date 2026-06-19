@@ -785,7 +785,7 @@ export const Profile = () => {
             <button
               onClick={() => {
                 haptic.medium();
-                toast.info(t('withdrawComingSoon'));
+                router.push('/profile/withdrawal');
               }}
               className="w-full flex items-center justify-center gap-3 py-5 rounded-[28px] bg-linear-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 text-emerald-400 font-black text-[15px] hover:from-emerald-500/20 hover:to-teal-500/20 transition-all active:scale-[0.98] shadow-[0_0_30px_rgba(52,211,153,0.05)]"
             >

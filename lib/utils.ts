@@ -6,6 +6,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Чистит URL медиа от типичных повреждений при копировании/вставке и
+ * переносах строк на бекенде: символы новой строки (`\n`, `\r`, а также
+ * их закодированные формы `%0A`/`%0D`), табуляции и пробелы внутри ссылки
+ * делают URL невалидным — браузер не может загрузить картинку (чёрный/белый
+ * экран). Корректный URL не содержит «сырых» пробелов и переводов строк,
+ * поэтому их безопасно удалить.
+ */
+export function sanitizeMediaUrl(raw?: string | null): string {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw
+    .trim()
+    .replace(/%0A|%0D|%09/gi, '') // закодированные \n \r \t
+    .replace(/\s+/g, ''); // сырые \n \r \t и пробелы внутри URL
+}
+
 export function timeAgo(dateStr?: string): string {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -36,7 +52,7 @@ export function normalise(req: GenerationRequest): RequestItem {
     if (Array.isArray(mediaArr)) {
       for (const m of mediaArr) {
         if (m.type === 'image' && typeof m.input === 'string' && m.input) {
-          previewUrl = m.input;
+          previewUrl = sanitizeMediaUrl(m.input);
           break;
         }
       }
@@ -47,7 +63,7 @@ export function normalise(req: GenerationRequest): RequestItem {
       for (const key of ['url', 'image', 'output']) {
         const v = result[key];
         if (typeof v === 'string' && v) {
-          previewUrl = v;
+          previewUrl = sanitizeMediaUrl(v);
           break;
         }
       }
@@ -64,7 +80,7 @@ export function normalise(req: GenerationRequest): RequestItem {
     for (const m of inputMedia) {
       const inner = m.input as Record<string, unknown> | null | undefined;
       if (inner && typeof inner.input === 'string' && inner.input) {
-        inputPreview = inner.input;
+        inputPreview = sanitizeMediaUrl(inner.input);
         break;
       }
     }

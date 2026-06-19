@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Brain, Sparkles, MessageCircle, UserRound } from 'lucide-react';
+import { Home, Flame, Sparkles, MessageCircle, UserRound } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
@@ -188,9 +188,9 @@ export const BottomBar = () => {
   const midItems = [
     {
       id: 2,
-      href: '/models',
-      label: t('models'),
-      icon: Brain,
+      href: '/trends',
+      label: t('trends'),
+      icon: Flame,
     },
     {
       id: 3,

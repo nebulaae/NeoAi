@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { getAppSource } from '@/lib/source';
 import { waitForPlatformInitData } from '@/lib/platform';
+import { markAuthSettled } from '@/lib/authState';
+import { telemetry } from '@/lib/telemetry';
 
 export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, login } = useAuth();
@@ -37,9 +39,11 @@ export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
       const initData = await waitForPlatformInitData(8000);
 
       if (!initData) {
-        console.warn(
-          `[MaxProvider] initData not available (attempt ${retryCount.current + 1}/${MAX_RETRIES})`
-        );
+        telemetry.authError('tma_initdata_missing', {
+          platform: 'max',
+          attempt: retryCount.current + 1,
+          max: MAX_RETRIES,
+        });
         attempted.current = false;
         retryCount.current++;
 
@@ -47,6 +51,8 @@ export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
           retryTimeout.current = setTimeout(() => {
             doAuth(botId);
           }, 1000);
+        } else {
+          markAuthSettled();
         }
         return;
       }
@@ -61,9 +67,18 @@ export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.user?.id) {
           localStorage.setItem('auth_user_id', String(data.user.id));
         }
+        telemetry.auth('tma_success', { platform: 'max' });
+        markAuthSettled();
         login(data.user);
       } catch (err) {
-        console.error('[MaxProvider] auth/tma error:', err);
+        telemetry.authError('tma_failed', {
+          platform: 'max',
+          attempt: retryCount.current + 1,
+          status:
+            (err as { response?: { status?: number } })?.response?.status ??
+            null,
+          error: (err as { message?: string })?.message,
+        });
         attempted.current = false;
         retryCount.current++;
 
@@ -71,6 +86,8 @@ export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
           retryTimeout.current = setTimeout(() => {
             doAuth(botId);
           }, 1500);
+        } else {
+          markAuthSettled();
         }
       }
     },

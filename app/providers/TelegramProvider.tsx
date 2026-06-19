@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { getAppSource } from '@/lib/source';
 import { waitForPlatformInitData } from '@/lib/platform';
+import { markAuthSettled } from '@/lib/authState';
+import { telemetry } from '@/lib/telemetry';
 
 export const TelegramProvider = ({
   children,
@@ -41,9 +43,11 @@ export const TelegramProvider = ({
       const initData = await waitForPlatformInitData(8000);
 
       if (!initData) {
-        console.warn(
-          `[TelegramProvider] initData not available (attempt ${retryCount.current + 1}/${MAX_RETRIES})`
-        );
+        telemetry.authError('tma_initdata_missing', {
+          platform: 'telegram',
+          attempt: retryCount.current + 1,
+          max: MAX_RETRIES,
+        });
         attempted.current = false;
         retryCount.current++;
 
@@ -52,6 +56,9 @@ export const TelegramProvider = ({
           retryTimeout.current = setTimeout(() => {
             doAuth(botId);
           }, 1000);
+        } else {
+          // Ретраи исчерпаны — снимаем «грейс» в AuthGuard, чтобы не висел лоадер.
+          markAuthSettled();
         }
         return;
       }
@@ -90,9 +97,18 @@ export const TelegramProvider = ({
           localStorage.setItem('auth_user_id', String(data.user.id));
         }
         localStorage.removeItem('pending_referrer_id'); // Clear on successful login
+        telemetry.auth('tma_success', { platform: 'telegram' });
+        markAuthSettled();
         login(data.user);
       } catch (err) {
-        console.error('[TelegramProvider] auth/tma error:', err);
+        telemetry.authError('tma_failed', {
+          platform: 'telegram',
+          attempt: retryCount.current + 1,
+          status:
+            (err as { response?: { status?: number } })?.response?.status ??
+            null,
+          error: (err as { message?: string })?.message,
+        });
         attempted.current = false;
         retryCount.current++;
 
@@ -100,6 +116,8 @@ export const TelegramProvider = ({
           retryTimeout.current = setTimeout(() => {
             doAuth(botId);
           }, 1500);
+        } else {
+          markAuthSettled();
         }
       }
     },

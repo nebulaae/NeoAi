@@ -2,6 +2,7 @@
   "BottomBar": {
     "home": "Reel",
     "models": "Models",
+    "trends": "Trends",
     "create": "Create",
     "chats": "Chats",
     "profile": "Profile"
@@ -367,6 +368,8 @@
   "Trends": {
     "title": "Trending",
     "subtitle": "Discover the community's best creations and create your own based on them",
+    "share": "Share",
+    "repeat": "Repeat",
     "underModeration": "Moderating",
     "error": "Loading error",
     "errorDesc": "Failed to load trending feed. Please try again later.",

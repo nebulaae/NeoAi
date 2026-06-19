@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import api from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { sanitizeMediaUrl } from '@/lib/utils';
 
 export interface GenerateInputs {
   text?: string | null;
@@ -39,7 +40,7 @@ export function normalizeResultMedia(
         type = m.type === 'media' ? 'image' : m.type || 'image';
       }
 
-      return { url, type };
+      return { url: sanitizeMediaUrl(url), type };
     })
     .filter((m) => m.url);
 }

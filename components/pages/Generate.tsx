@@ -20,11 +20,14 @@ import {
   Zap,
   CheckCircle2,
   Lock,
+  Star,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useHaptic } from '@/hooks/useHaptic';
+import { consumePrefillMedia } from '@/lib/telegramMedia';
 import { cn } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
 import { getParamLabel, getParamValueLabel } from '@/lib/paramHelpers';
@@ -64,7 +67,30 @@ export const Generate = () => {
   const [showParams, setShowParams] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [favorites, setFavorites] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Избранные модели — быстрый доступ, хранится локально на устройстве.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('favorite_models');
+      if (raw) setFavorites(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const toggleFavorite = (techName: string) => {
+    haptic.selection();
+    setFavorites((prev) => {
+      const next = prev.includes(techName)
+        ? prev.filter((t) => t !== techName)
+        : [...prev, techName];
+      try {
+        localStorage.setItem('favorite_models', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const { data: allModels, isLoading } = useAIModels();
   const generate = useGenerateAI();
@@ -81,6 +107,18 @@ export const Generate = () => {
   useEffect(() => {
     if (modelParam) setSelectedTech(modelParam);
   }, [modelParam]);
+
+  // Медиа, переданное из Trends/чата/альбома кнопкой «В генерацию» —
+  // нативное переиспользование без скачивания и повторной загрузки.
+  useEffect(() => {
+    const prefill = consumePrefillMedia();
+    if (prefill.length) {
+      setMedia((prev) => [
+        ...prev,
+        ...prefill.map((m) => ({ type: m.type || 'image', url: m.url })),
+      ]);
+    }
+  }, []);
   useEffect(() => {
     if (selected) {
       const def =
@@ -425,26 +463,139 @@ export const Generate = () => {
     );
   }
 
+  const q = search.trim().toLowerCase();
+  const matchesSearch = (m: (typeof models)[number]) =>
+    !q ||
+    m.model_name.toLowerCase().includes(q) ||
+    m.tech_name.toLowerCase().includes(q) ||
+    (m.categories || []).some((c) => c.toLowerCase().includes(q));
+
+  const favoriteModels = models.filter(
+    (m) => favorites.includes(m.tech_name) && matchesSearch(m)
+  );
+
+  const renderCard = (m: (typeof models)[number]) => {
+    const cost =
+      m.versions?.find((v: any) => v.default)?.cost ??
+      m.versions?.[0]?.cost ??
+      1;
+    const isFav = favorites.includes(m.tech_name);
+    return (
+      <div
+        key={m.tech_name}
+        className="flex items-center gap-4 p-5 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-white/15 transition-all group"
+      >
+        <button
+          onClick={() => {
+            haptic.light();
+            setSelectedTech(m.tech_name);
+          }}
+          className="flex items-center gap-4 flex-1 min-w-0 text-left active:scale-[0.98] transition-all"
+        >
+          <div className="w-14 h-14 overflow-hidden rounded-full">
+            <Avatar className="size-full">
+              <AvatarImage src={m.avatar} />
+              <AvatarFallback>{m.model_name[0]}</AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[17px] font-black text-white group-hover:text-[#007AFF] transition-colors truncate">
+              {m.model_name}
+            </p>
+            {/* Поддерживаемые типы ввода — самообъясняющая карточка */}
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              {(m.input || []).map((inp) => (
+                <span
+                  key={inp}
+                  className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40"
+                >
+                  {inp === 'text'
+                    ? 'текст'
+                    : inp === 'image'
+                      ? 'фото'
+                      : inp === 'video'
+                        ? 'видео'
+                        : inp === 'audio'
+                          ? 'аудио'
+                          : inp}
+                </span>
+              ))}
+            </div>
+          </div>
+        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => toggleFavorite(m.tech_name)}
+            className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all"
+            aria-label="favorite"
+          >
+            <Star
+              size={17}
+              className={cn(
+                'transition-colors',
+                isFav ? 'text-amber-400 fill-amber-400' : 'text-white/20'
+              )}
+            />
+          </button>
+          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[13px] font-black text-white/40">
+            ◈ {cost}
+          </div>
+          <ChevronRight size={18} className="text-white/10" />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col min-h-svh pb-32">
-      <header className="sticky top-0 z-50 px-8 py-8">
+      <header className="sticky top-0 z-50 px-6 pt-8 pb-4 bg-zinc-950/70 backdrop-blur-2xl">
         <h1 className="text-[34px] font-black tracking-tighter leading-none mb-2 text-[#007AFF]">
           {t('title')}
         </h1>
-        <p className="text-[16px] font-medium text-white/30">{t('subtitle')}</p>
+        <p className="text-[16px] font-medium text-white/30 mb-4">
+          {t('subtitle')}
+        </p>
+        {/* Поиск по моделям */}
+        <div className="relative">
+          <Search
+            size={17}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
+          />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск модели…"
+            className="w-full h-12 pl-11 pr-4 rounded-2xl bg-zinc-900/60 border border-white/10 text-[15px] font-medium text-white placeholder:text-white/25 outline-none focus:border-[#007AFF]/40 transition-all"
+          />
+        </div>
       </header>
 
-      <div className="px-6 py-8 flex flex-col gap-10">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-24 rounded-[32px] bg-zinc-900 animate-pulse"
-              />
-            ))
-          : ['text', 'image', 'video', 'audio'].map((cat) => {
+      <div className="px-6 py-6 flex flex-col gap-10">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-24 rounded-[32px] bg-zinc-900 animate-pulse"
+            />
+          ))
+        ) : (
+          <>
+            {favoriteModels.length > 0 && (
+              <div className="flex flex-col gap-4">
+                <h2 className="text-[13px] font-black uppercase tracking-widest text-amber-400/60 px-2 flex items-center gap-2">
+                  <Star size={14} className="fill-amber-400/60" /> Избранное
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {favoriteModels.map(renderCard)}
+                </div>
+              </div>
+            )}
+
+            {['text', 'image', 'video', 'audio'].map((cat) => {
               const catModels = models.filter(
-                (m) => m.mainCategory === cat || m.categories?.includes(cat)
+                (m) =>
+                  (m.mainCategory === cat || m.categories?.includes(cat)) &&
+                  matchesSearch(m)
               );
               if (!catModels.length) return null;
               return (
@@ -452,8 +603,6 @@ export const Generate = () => {
                   <h2 className="text-[13px] font-black uppercase tracking-widest text-white/30 px-2 flex items-center gap-2">
                     {cat === 'text' ? (
                       <Sparkles size={14} />
-                    ) : cat === 'image' ? (
-                      <Zap size={14} />
                     ) : (
                       <Zap size={14} />
                     )}{' '}
@@ -462,50 +611,21 @@ export const Generate = () => {
                     )}
                   </h2>
                   <div className="flex flex-col gap-3">
-                    {catModels.map((m) => {
-                      const cost =
-                        m.versions?.find((v: any) => v.default)?.cost ??
-                        m.versions?.[0]?.cost ??
-                        1;
-                      return (
-                        <button
-                          key={m.tech_name}
-                          onClick={() => {
-                            haptic.light();
-                            setSelectedTech(m.tech_name);
-                          }}
-                          className="flex items-center gap-4 p-5 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-white/15 transition-all group active:scale-[0.98]"
-                        >
-                          <div className="w-14 h-14 overflow-hidden rounded-full transition-colors">
-                            <Avatar className="size-full">
-                              <AvatarImage src={m.avatar} />
-                              <AvatarFallback>{m.model_name[0]}</AvatarFallback>
-                            </Avatar>
-                          </div>
-                          <div className="flex-1 text-left min-w-0">
-                            <p className="text-[17px] font-black text-white group-hover:text-[#007AFF] transition-colors truncate">
-                              {m.model_name}
-                            </p>
-                            <p className="text-[12px] font-bold text-white/20 uppercase tracking-widest mt-1">
-                              {m.versions?.[0]?.label}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[13px] font-black text-white/40">
-                              ◈ {cost}
-                            </div>
-                            <ChevronRight
-                              size={18}
-                              className="text-white/10 group-hover:text-white transition-colors"
-                            />
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {catModels.map(renderCard)}
                   </div>
                 </div>
               );
             })}
+
+            {q &&
+              !favoriteModels.length &&
+              !models.some(matchesSearch) && (
+                <p className="text-center text-white/30 text-[15px] py-10">
+                  Ничего не найдено по запросу «{search}»
+                </p>
+              )}
+          </>
+        )}
       </div>
     </div>
   );

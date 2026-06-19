@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { getAppSource } from '@/lib/source';
 import { getPlatformInitData } from './platform';
-// хуесос
+import { newRequestId, logEvent } from '@/lib/telemetry';
+
 const AUTH_FREE_PATHS = [
   '/api/auth/create/email',
   '/api/auth/login/email',
@@ -70,6 +71,9 @@ function getBotId(): number | string | undefined {
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: { 'Content-Type': 'application/json' },
+  // Защита от «зависших» запросов: без таймаута упавшая сеть держит UI
+  // в состоянии загрузки бесконечно (одна из причин ощущения «приложение зависло»).
+  timeout: 30_000,
 });
 
 api.interceptors.request.use((config) => {
@@ -77,6 +81,11 @@ api.interceptors.request.use((config) => {
 
   const url = config.url || '';
   const isFree = isAuthFreePath(url);
+
+  // Сквозной request_id для трассировки: уходит на бекенд и попадает в логи.
+  const requestId = newRequestId();
+  config.headers['X-Request-Id'] = requestId;
+  (config as any).metadata = { requestId, startedAt: Date.now() };
 
   if (!isFree) {
     const token = localStorage.getItem('auth_token');
@@ -123,9 +132,41 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const meta = (response.config as any)?.metadata;
+    if (meta) {
+      const ms = Date.now() - meta.startedAt;
+      // Логируем только заметно медленные ответы, чтобы не засорять консоль.
+      if (ms > 1500) {
+        logEvent({
+          level: 'warn',
+          scope: 'api',
+          msg: 'slow_response',
+          request_id: meta.requestId,
+          url: response.config.url,
+          status: response.status,
+          ms,
+        });
+      }
+    }
+    return response;
+  },
   (error) => {
     const url = error.config?.url || '';
+    const meta = (error.config as any)?.metadata;
+
+    logEvent({
+      level: 'error',
+      scope: 'api',
+      msg: 'request_failed',
+      request_id: meta?.requestId,
+      url,
+      method: error.config?.method,
+      status: error.response?.status ?? null,
+      code: error.code ?? null,
+      ms: meta ? Date.now() - meta.startedAt : null,
+      error: error.message,
+    });
 
     if (error.response?.status === 401 && !isAuthFreePath(url)) {
       localStorage.removeItem('auth_token');

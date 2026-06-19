@@ -13,6 +13,7 @@ import { useAIModels } from '@/hooks/useModels';
 import { useRoles } from '@/hooks/useRoles';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { saveMediaToDevice } from '@/lib/telegramMedia';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -502,27 +503,15 @@ export default function ChatPage() {
     }
   };
 
-  const handleDownload = (url: string) => {
+  const handleDownload = async (url: string) => {
     haptic.selection();
-    const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`;
-    const isTelegram =
-      typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
-    if (isTelegram && (window as any).Telegram?.WebApp?.openLink) {
-      try {
-        const absoluteProxyUrl = new URL(
-          proxyUrl,
-          window.location.origin
-        ).toString();
-        (window as any).Telegram.WebApp.openLink(absoluteProxyUrl);
-        return;
-      } catch (err) {
-        console.warn(
-          '[handleDownload] Telegram openLink with proxy failed, trying standard download:',
-          err
-        );
-      }
+    const res = await saveMediaToDevice(url);
+    if (res.ok) {
+      haptic.success();
+      toast.success('Сохранено');
+    } else if (res.method !== 'aborted') {
+      toast.error('Не удалось сохранить');
     }
-    window.location.href = proxyUrl;
   };
 
   const acceptTypes = 'image/*,.heic,video/*,audio/*';

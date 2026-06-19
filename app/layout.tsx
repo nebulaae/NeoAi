@@ -14,10 +14,54 @@ import './globals.css';
 import { ThemeProviders } from './providers/ThemeProviders';
 import { TelegramLoginScript } from './providers/TelegramLoginScript';
 
-// metadata
+// Базовый URL приложения для canonical/OG. Задаётся через NEXT_PUBLIC_APP_URL.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.neoaipro.com';
+const APP_NAME = 'NeoAI';
+const APP_DESC =
+  'NeoAI — все нейросети в одном приложении: генерация фото и видео, AI-чаты (GPT, Claude, Gemini), музыка и роли. Опишите идею — получите результат за секунды.';
+
 export const metadata: Metadata = {
-  title: 'NeoAI',
-  description: 'AI Platform',
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: `${APP_NAME} — генерация фото, видео и AI-чаты`,
+    template: `%s · ${APP_NAME}`,
+  },
+  description: APP_DESC,
+  applicationName: APP_NAME,
+  keywords: [
+    'нейросеть',
+    'генерация изображений',
+    'генерация видео',
+    'AI чат',
+    'GPT',
+    'Claude',
+    'Gemini',
+    'Suno',
+    'Kling',
+    'нейросеть онлайн',
+  ],
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: APP_NAME,
+    title: `${APP_NAME} — генерация фото, видео и AI-чаты`,
+    description: APP_DESC,
+    url: APP_URL,
+    locale: 'ru_RU',
+    images: [{ url: '/logo-neo.jpg', width: 1200, height: 630, alt: APP_NAME }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${APP_NAME} — генерация фото, видео и AI-чаты`,
+    description: APP_DESC,
+    images: ['/logo-neo.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
+  icons: { icon: '/favicon.ico' },
 };
 
 export default async function RootLayout({
@@ -42,6 +86,22 @@ export default async function RootLayout({
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+        {/* Structured data (schema.org) — помогает поисковикам понять продукт */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: APP_NAME,
+              applicationCategory: 'MultimediaApplication',
+              operatingSystem: 'Web, Telegram',
+              description: APP_DESC,
+              url: APP_URL,
+              offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
+            }),
+          }}
         />
       </head>
       <body style={{ fontFamily: GeistSans.style.fontFamily, margin: 0 }}>

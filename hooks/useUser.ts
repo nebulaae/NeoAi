@@ -9,6 +9,8 @@ export interface User {
   name?: string;
   tokens: number;
   balance?: number;
+  total_rewards?: number; // всего заработано
+  total_withdrawals?: number; // всего выведено
   lang?: string;
   premium?: boolean;
   premium_end?: number;
