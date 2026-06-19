@@ -248,8 +248,12 @@ export const Login = () => {
         response_type: 'post_message',
       },
       async (result: any) => {
+        // TODO(tg-oauth): убрать после того, как увидим форму payload в консоли
+        console.log('[tg-oauth] auth result:', result);
+
+        // popup_closed заглушаем — реальный результат ловит слушатель message выше
         if (result?.error) {
-          toast.error(result.error);
+          if (result.error !== 'popup_closed') toast.error(result.error);
           return;
         }
 
@@ -331,6 +335,9 @@ export const Login = () => {
   /* Telegram Widget Success */
   const handleTelegramSuccess = async (tgData: any) => {
     try {
+      // TODO(tg-oauth): убрать после того, как увидим форму payload в консоли
+      console.log('[tg-oauth] payload → /auth/telegram:', tgData);
+
       const { data } = await api.post(
         `/api/auth/telegram?bot_id=${bot?.bot_id}`,
         tgData
@@ -343,6 +350,40 @@ export const Login = () => {
       toast.error(e?.response?.data?.error || t('telegramLoginError'));
     }
   };
+
+  /* Ловим postMessage от Telegram напрямую — легаси-мост telegram-login.js
+     не распознаёт ответ нового OAuth и отдаёт popup_closed. Слушаем сами. */
+  const handleSuccessRef = useRef(handleTelegramSuccess);
+  handleSuccessRef.current = handleTelegramSuccess;
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://oauth.telegram.org') return;
+
+      let data: any = event.data;
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          /* не JSON — оставляем строкой */
+        }
+      }
+      console.log('[tg-oauth] postMessage from telegram:', data);
+
+      // Достаём результат из любой формы: {event:'auth_result', result},
+      // либо объект сразу с id_token / id / user.
+      const result =
+        data?.result ??
+        (data?.id_token || data?.id || data?.user ? data : null);
+
+      if (result && !result.error) {
+        handleSuccessRef.current(result);
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   /* Email Handlers */
   const handleEmailLogin = async () => {
