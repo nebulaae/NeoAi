@@ -165,11 +165,11 @@ export const Home = () => {
                           <video
                             src={mediaUrl}
                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            autoPlay
                             muted
                             loop
                             playsInline
-                            onMouseEnter={(e) => e.currentTarget.play()}
-                            onMouseLeave={(e) => e.currentTarget.pause()}
+                            preload="auto"
                           />
                         ) : (
                           <img

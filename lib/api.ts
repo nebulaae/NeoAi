@@ -113,7 +113,7 @@ api.interceptors.request.use((config) => {
   // 8782963451 - конкретное айди для прогрузки трендов в дев режиме
 
   if (botId && !config.params.bot_id) {
-    config.params.bot_id = 8782963451;
+    config.params.bot_id = botId;
   }
 
   if (userId && !skipUserId && !config.params.user_id) {

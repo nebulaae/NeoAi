@@ -273,6 +273,7 @@ const FeedItem = memo(({ post }: { post: Post }) => {
 
   const [burst, setBurst] = useState(false);
   const lastTap = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Модалка «Повторить» — подстановка фото перед генерацией
   const upload = useUpload();
@@ -289,6 +290,23 @@ const FeedItem = memo(({ post }: { post: Post }) => {
   const isVideo =
     media?.type === 'video' ||
     (typeof mediaUrl === 'string' && /\.(mp4|webm|mov)(\?|$)/i.test(mediaUrl));
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [isVideo, mediaUrl]);
 
   const trendName = (post as any).name || post.inputs?.text || t('trend');
   const model = allModels?.find((m: any) => m.tech_name === post.model_tech_name);
@@ -431,12 +449,14 @@ const FeedItem = memo(({ post }: { post: Post }) => {
         {mediaUrl ? (
           isVideo ? (
             <video
+              ref={videoRef}
               src={mediaUrl}
               className="absolute inset-0 w-full h-full object-cover"
               autoPlay
               muted
               loop
               playsInline
+              preload="auto"
             />
           ) : (
             <SmartImage
@@ -733,11 +753,11 @@ export const TrendCard = memo(({ post }: { post: Post }) => {
             <video
               src={mediaUrl}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              autoPlay
               muted
               loop
               playsInline
-              onMouseEnter={(e) => e.currentTarget.play()}
-              onMouseLeave={(e) => e.currentTarget.pause()}
+              preload="auto"
             />
           ) : (
             <SmartImage
@@ -1058,11 +1078,11 @@ export const TrendDetail = ({
               <video
                 src={mediaUrl}
                 className="w-full h-full object-cover"
-                controls
                 autoPlay
                 loop
                 muted
                 playsInline
+                preload="auto"
               />
             ) : (
               <img
