@@ -401,7 +401,8 @@
     "tgAppLinkDesc": "Launch bot with your referral",
     "webBrowserLink": "Browser Link",
     "webBrowserLinkDesc": "Open in any browser",
-    "refLinkCopied": "Trend link copied"
+    "refLinkCopied": "Trend link copied",
+    "variables": "Variables"
   },
   "Referrals": {
     "title": "Referrals",

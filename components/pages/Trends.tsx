@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState, memo } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useInfinitePosts, useLikePost, Post } from '@/hooks/usePosts';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -271,6 +271,7 @@ const FeedItem = memo(({ post }: { post: Post }) => {
   const userId = userData?.user?.user_id ?? (userData?.user as any)?.id ?? 0;
   const botId = (bot as any)?.bot_id ?? 0;
 
+  const locale = useLocale();
   const [burst, setBurst] = useState(false);
   const lastTap = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -280,6 +281,7 @@ const FeedItem = memo(({ post }: { post: Post }) => {
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
   const [urlDraft, setUrlDraft] = useState('');
+  const [variablesValues, setVariablesValues] = useState<Record<string, string>>({});
   const repeatFileRef = useRef<HTMLInputElement>(null);
   const mediaSlots = post.inputs?.media || [];
   const chosenPhoto = photoUrl || sanitizeMediaUrl(urlDraft);
@@ -394,6 +396,7 @@ const FeedItem = memo(({ post }: { post: Post }) => {
           inputs,
           params: post.params,
           post_id: post.id,
+          variables: Object.keys(variablesValues).length > 0 ? variablesValues : undefined,
         },
         {
           onSuccess: (data) => {
@@ -406,24 +409,25 @@ const FeedItem = memo(({ post }: { post: Post }) => {
         }
       );
     },
-    [generate, mediaSlots, post, haptic, router]
+    [generate, mediaSlots, post, haptic, router, variablesValues]
   );
 
-  // Клик по «Повторить»: есть входные фото — спрашиваем фото; нет — генерим сразу.
+  // Клик по «Повторить»: есть входные фото или переменные — спрашиваем в модалке; нет — генерим сразу.
   const handleCreate = useCallback(() => {
     if (generate.isPending) return;
     if (!authUser) {
       router.push('/login');
       return;
     }
-    if (mediaSlots.length > 0) {
+    if (mediaSlots.length > 0 || (post.variables && post.variables.length > 0)) {
       setPhotoUrl('');
       setUrlDraft('');
+      setVariablesValues({});
       setRepeatOpen(true);
     } else {
       runGenerate();
     }
-  }, [generate.isPending, authUser, router, mediaSlots.length, runGenerate]);
+  }, [generate.isPending, authUser, router, mediaSlots.length, post.variables, runGenerate]);
 
   const handleRepeatFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -589,85 +593,141 @@ const FeedItem = memo(({ post }: { post: Post }) => {
               {t('repeat') || 'Повторить'}
             </DialogTitle>
             <DialogDescription className="text-white/40 text-[13px] font-medium">
-              Добавьте своё фото или продолжите без него
+              {mediaSlots.length > 0
+                ? (locale === 'ru' ? 'Добавьте своё фото или продолжите без него' : 'Add your photo or continue without it')
+                : (locale === 'ru' ? 'Настройте переменные для повтора' : 'Configure variables for repeat')}
             </DialogDescription>
           </DialogHeader>
 
           {/* Превью / зона загрузки */}
-          {chosenPhoto ? (
-            <div className="relative aspect-square w-full rounded-[24px] overflow-hidden border border-[#007AFF]/40 mb-3">
-              <SmartImage src={chosenPhoto} className="absolute inset-0 w-full h-full" />
-              <button
-                onClick={() => {
-                  setPhotoUrl('');
-                  setUrlDraft('');
-                }}
-                className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-white active:scale-90 transition-all"
-              >
-                <X size={15} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => repeatFileRef.current?.click()}
-              disabled={upload.isPending}
-              className="w-full aspect-[2/1] rounded-[24px] bg-zinc-900/60 border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-2 text-white/40 hover:border-[#007AFF]/40 hover:text-[#007AFF] active:scale-[0.98] transition-all mb-3"
-            >
-              {upload.isPending ? (
-                <Loader2 size={24} className="animate-spin" />
+          {mediaSlots.length > 0 && (
+            <>
+              {chosenPhoto ? (
+                <div className="relative aspect-square w-full rounded-[24px] overflow-hidden border border-[#007AFF]/40 mb-3">
+                  <SmartImage src={chosenPhoto} className="absolute inset-0 w-full h-full" />
+                  <button
+                    onClick={() => {
+                      setPhotoUrl('');
+                      setUrlDraft('');
+                    }}
+                    className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-white active:scale-90 transition-all"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
               ) : (
-                <Camera size={26} />
+                <button
+                  onClick={() => repeatFileRef.current?.click()}
+                  disabled={upload.isPending}
+                  className="w-full aspect-[2/1] rounded-[24px] bg-zinc-900/60 border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-2 text-white/40 hover:border-[#007AFF]/40 hover:text-[#007AFF] active:scale-[0.98] transition-all mb-3"
+                >
+                  {upload.isPending ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <Camera size={26} />
+                  )}
+                  <span className="text-[13px] font-bold">
+                    {upload.isPending ? 'Загрузка…' : 'Загрузить фото'}
+                  </span>
+                </button>
               )}
-              <span className="text-[13px] font-bold">
-                {upload.isPending ? 'Загрузка…' : 'Загрузить фото'}
-              </span>
-            </button>
+
+              {/* Ссылка на фото */}
+              <div className="relative mb-4">
+                <Link2
+                  size={16}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
+                />
+                <input
+                  type="url"
+                  inputMode="url"
+                  value={urlDraft}
+                  onChange={(e) => {
+                    setUrlDraft(e.target.value);
+                    if (photoUrl) setPhotoUrl('');
+                  }}
+                  placeholder="…или вставьте ссылку на фото"
+                  className="w-full h-12 pl-11 pr-4 rounded-2xl bg-zinc-900/60 border border-white/10 text-[14px] text-white placeholder:text-white/25 outline-none focus:border-[#007AFF]/50 transition-colors"
+                />
+              </div>
+            </>
           )}
 
-          {/* Ссылка на фото */}
-          <div className="relative mb-4">
-            <Link2
-              size={16}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
-            />
-            <input
-              type="url"
-              inputMode="url"
-              value={urlDraft}
-              onChange={(e) => {
-                setUrlDraft(e.target.value);
-                if (photoUrl) setPhotoUrl('');
-              }}
-              placeholder="…или вставьте ссылку на фото"
-              className="w-full h-12 pl-11 pr-4 rounded-2xl bg-zinc-900/60 border border-white/10 text-[14px] text-white placeholder:text-white/25 outline-none focus:border-[#007AFF]/50 transition-colors"
-            />
-          </div>
+          {/* Переменные */}
+          {post.variables && post.variables.length > 0 && (
+            <div className="flex flex-col gap-3 mb-4">
+              <p className="text-[12px] font-black uppercase tracking-widest text-white/30 px-1">
+                {t('variables') || 'Переменные'}
+              </p>
+              {post.variables.map((variable: string) => (
+                <div key={variable} className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider px-1">
+                    {variable}
+                  </label>
+                  <input
+                    type="text"
+                    value={variablesValues[variable] || ''}
+                    onChange={(e) => {
+                      setVariablesValues((prev) => ({
+                        ...prev,
+                        [variable]: e.target.value,
+                      }));
+                    }}
+                    placeholder={locale === 'ru' ? `Введите значение для ${variable}...` : `Enter value for ${variable}...`}
+                    className="w-full h-11 px-4 rounded-xl bg-zinc-900/60 border border-white/10 text-[14px] text-white placeholder:text-white/20 outline-none focus:border-[#007AFF]/50 transition-colors"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => runGenerate(chosenPhoto || undefined)}
-              disabled={!chosenPhoto || generate.isPending}
-              className={cn(
-                'w-full h-14 rounded-2xl flex items-center justify-center gap-2 font-black text-[16px] transition-all active:scale-[0.98]',
-                chosenPhoto && !generate.isPending
-                  ? 'bg-[#007AFF] text-white shadow-[0_0_24px_rgba(0,122,255,0.4)]'
-                  : 'bg-white/5 text-white/25'
-              )}
-            >
-              {generate.isPending ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Zap size={18} fill="currentColor" />
-              )}
-              Продолжить с фото
-            </button>
-            <button
-              onClick={() => runGenerate(undefined)}
-              disabled={generate.isPending}
-              className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white/70 font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-              Продолжить без фото
-            </button>
+            {mediaSlots.length > 0 ? (
+              <>
+                <button
+                  onClick={() => runGenerate(chosenPhoto || undefined)}
+                  disabled={!chosenPhoto || generate.isPending}
+                  className={cn(
+                    'w-full h-14 rounded-2xl flex items-center justify-center gap-2 font-black text-[16px] transition-all active:scale-[0.98]',
+                    chosenPhoto && !generate.isPending
+                      ? 'bg-[#007AFF] text-white shadow-[0_0_24px_rgba(0,122,255,0.4)]'
+                      : 'bg-white/5 text-white/25'
+                  )}
+                >
+                  {generate.isPending ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Zap size={18} fill="currentColor" />
+                  )}
+                  Продолжить с фото
+                </button>
+                <button
+                  onClick={() => runGenerate(undefined)}
+                  disabled={generate.isPending}
+                  className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white/70 font-bold text-[14px] active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  Продолжить без фото
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => runGenerate(undefined)}
+                disabled={generate.isPending}
+                className={cn(
+                  'w-full h-14 rounded-2xl flex items-center justify-center gap-2 font-black text-[16px] transition-all active:scale-[0.98]',
+                  generate.isPending
+                    ? 'bg-white/5 text-white/25'
+                    : 'bg-[#007AFF] text-white shadow-[0_0_24px_rgba(0,122,255,0.4)]'
+                )}
+              >
+                {generate.isPending ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Zap size={18} fill="currentColor" />
+                )}
+                Продолжить
+              </button>
+            )}
           </div>
 
           <input
@@ -802,14 +862,28 @@ export const TrendCard = memo(({ post }: { post: Post }) => {
           </div>
         )}
 
-        {/* ── Add to Album — top right, on hover ── */}
-        <motion.button
-          whileTap={{ scale: 0.82 }}
-          onClick={handleAddToAlbum}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/15 flex items-center justify-center shadow-lg hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-        >
-          <FolderPlus size={14} className="text-white/80" />
-        </motion.button>
+        {/* ── Top right actions and variables ── */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          {post.variables && post.variables.length > 0 && (
+            <div className="flex gap-1 flex-wrap justify-end max-w-[120px] transition-opacity duration-300 group-hover:opacity-40">
+              {post.variables.map((v: string) => (
+                <span
+                  key={v}
+                  className="backdrop-blur-md bg-black/50 border border-white/15 px-1.5 py-0.5 rounded-full text-[8px] font-black text-white/90 shadow-md uppercase tracking-wider"
+                >
+                  {`{${v}}`}
+                </span>
+              ))}
+            </div>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.82 }}
+            onClick={handleAddToAlbum}
+            className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/15 flex items-center justify-center shadow-lg hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto shrink-0"
+          >
+            <FolderPlus size={14} className="text-white/80" />
+          </motion.button>
+        </div>
 
         {/* Bottom info */}
         <div className="absolute inset-x-0 bottom-0 p-3 text-start">
@@ -874,8 +948,32 @@ export const TrendCard = memo(({ post }: { post: Post }) => {
 });
 
 TrendCard.displayName = 'TrendCard';
+const renderFormattedPrompt = (text: string, values: Record<string, string>) => {
+  if (!text) return '';
+  const parts = text.split(/(\{.*?\})/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('{') && part.endsWith('}')) {
+      const varName = part.slice(1, -1);
+      const val = values[varName];
+      return (
+        <span
+          key={i}
+          className={cn(
+            'inline-block px-1.5 py-0.5 mx-0.5 rounded-md text-[13px] font-bold transition-all duration-200',
+            val
+              ? 'bg-[#007AFF]/20 text-[#007AFF] border border-[#007AFF]/35'
+              : 'bg-white/5 text-white/40 border border-white/10'
+          )}
+        >
+          {val || part}
+        </span>
+      );
+    }
+    return part;
+  });
+};
 
-// ─── TrendDetail (unchanged) ──────────────────────────────────────────────────
+// ─── TrendDetail ──────────────────────────────────────────────────────────────
 
 export const TrendDetail = ({
   post,
@@ -896,12 +994,14 @@ export const TrendDetail = ({
   const userId =
     userData?.user?.user_id ?? (userData?.user as any)?.id ?? authUser?.id;
 
+  const locale = useLocale();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
 
   const [userMedia, setUserMedia] = useState<
     Record<number, { url: string; file?: File }>
   >({});
+  const [variablesValues, setVariablesValues] = useState<Record<string, string>>({});
   const [userText] = useState<string>(post.inputs?.text || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
@@ -979,6 +1079,7 @@ export const TrendDetail = ({
         inputs,
         params: post.params,
         post_id: post.id,
+        variables: Object.keys(variablesValues).length > 0 ? variablesValues : undefined,
       },
       {
         onSuccess: (data) => {
@@ -1211,6 +1312,35 @@ export const TrendDetail = ({
             </div>
           )}
 
+          {post.variables && post.variables.length > 0 && (
+            <div className="flex flex-col gap-4">
+              <h3 className="text-[13px] font-black uppercase tracking-[0.15em] text-white/30 px-2">
+                {t('variables') || 'Variables'}
+              </h3>
+              <div className="flex flex-col gap-3">
+                {post.variables.map((variable: string) => (
+                  <div key={variable} className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-white/40 uppercase tracking-wider px-2">
+                      {variable}
+                    </label>
+                    <input
+                      type="text"
+                      value={variablesValues[variable] || ''}
+                      onChange={(e) => {
+                        setVariablesValues((prev) => ({
+                          ...prev,
+                          [variable]: e.target.value,
+                        }));
+                      }}
+                      placeholder={locale === 'ru' ? `Введите значение для ${variable}...` : `Enter value for ${variable}...`}
+                      className="w-full h-12 px-5 rounded-2xl bg-zinc-900/60 border border-white/10 text-[15px] text-white placeholder:text-white/20 outline-none focus:border-[#007AFF]/50 transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             <h3 className="text-[13px] font-black uppercase tracking-[0.15em] text-white/30 px-2">
               {t('prompt')}
@@ -1226,9 +1356,9 @@ export const TrendDetail = ({
               </div>
             ) : (
               <div className="p-6 rounded-[32px] bg-zinc-900/40 border border-white/5">
-                <p className="text-[16px] font-medium text-white/90 leading-relaxed italic">
-                  "{post.inputs?.text || t('noPrompt')}"
-                </p>
+                <div className="text-[16px] font-medium text-white/90 leading-relaxed italic">
+                  &ldquo;{renderFormattedPrompt(post.inputs?.text || t('noPrompt'), variablesValues)}&rdquo;
+                </div>
               </div>
             )}
           </div>

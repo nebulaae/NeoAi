@@ -18,6 +18,7 @@ export interface GenerateAIParams {
   dialogue_id?: string;
   role_id?: number | null;
   post_id?: number;
+  variables?: Record<string, string>;
   callback_webhook?: string;
 }
 

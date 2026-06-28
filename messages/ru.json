@@ -402,7 +402,8 @@
     "tgAppLinkDesc": "Запуск бота с вашей рефкой",
     "webBrowserLink": "Браузерная Ссылка",
     "webBrowserLinkDesc": "Открыть в любом браузере",
-    "refLinkCopied": "Ссылка на тренд скопирована"
+    "refLinkCopied": "Ссылка на тренд скопирована",
+    "variables": "Переменные"
   },
   "Publish": {
     "title": "Опубликовать в Тренды",

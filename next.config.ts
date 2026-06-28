@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  devIndicators: false,
 };
 
 const withNextIntl = createNextIntlPlugin('./app/i18n/requests.ts');

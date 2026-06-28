@@ -37,10 +37,9 @@ function LikeButton({
       onClick={handleClick}
       className={`
         flex items-center gap-1.5 px-2.5 py-1.5 rounded-full backdrop-blur-md border transition-all duration-200 active:scale-90
-        ${
-          liked
-            ? 'bg-red-500/20 border-red-500/40 text-red-400'
-            : 'bg-black/40 border-white/10 text-white/50 hover:text-white/80 hover:bg-black/60'
+        ${liked
+          ? 'bg-red-500/20 border-red-500/40 text-red-400'
+          : 'bg-black/40 border-white/10 text-white/50 hover:text-white/80 hover:bg-black/60'
         }
       `}
     >
@@ -136,96 +135,101 @@ export const Home = () => {
         <div className="grid grid-cols-2 gap-4">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="aspect-3/4 rounded-3xl animate-pulse bg-white/5 border border-white/10"
-                />
-              ))
+              <div
+                key={i}
+                className="aspect-3/4 rounded-3xl animate-pulse bg-white/5 border border-white/10"
+              />
+            ))
             : posts.map((post, index) => {
-                const result = post.result as any;
-                const media = result?.media?.[0] || result;
-                const isVideo =
-                  media?.type === 'video' ||
-                  (typeof media?.input === 'string' &&
-                    media.input.includes('.mp4'));
-                const mediaUrl = media?.url || media?.input || result?.url;
-                const trendName =
-                  (post as any).name || post.inputs?.text || t('trend');
-                const isLast = index === posts.length - 1;
+              const result = post.result as any;
+              const media = result?.media?.[0] || result;
+              const isVideo =
+                media?.type === 'video' ||
+                (typeof media?.input === 'string' &&
+                  media.input.includes('.mp4'));
+              const mediaUrl = media?.url || media?.input || result?.url;
+              const trendName =
+                (post as any).name || post.inputs?.text || t('trend');
+              const isLast = index === posts.length - 1;
 
-                return (
-                  <div key={post.id} ref={isLast ? lastPostRef : null}>
-                    <div
-                      onClick={() => router.push(`/trend/${post.id}`)}
-                      className="group relative aspect-3/4 rounded-3xl overflow-hidden bg-zinc-900 border border-white/10 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-full cursor-pointer"
-                    >
-                      {/* Media */}
-                      {mediaUrl ? (
-                        isVideo ? (
-                          <video
-                            src={mediaUrl}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            preload="auto"
-                          />
-                        ) : (
-                          <img
-                            src={mediaUrl}
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          />
-                        )
+              return (
+                <div key={post.id} ref={isLast ? lastPostRef : null}>
+                  <div
+                    onClick={() => router.push(`/trend/${post.id}`)}
+                    className="group relative aspect-3/4 rounded-3xl overflow-hidden bg-zinc-900 border border-white/10 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] hover:border-white/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-full cursor-pointer"
+                  >
+                    {/* Media */}
+                    {mediaUrl ? (
+                      isVideo ? (
+                        <video
+                          src={mediaUrl}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          preload="auto"
+                        />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/5">
-                          <span className="text-[40px] animate-pulse">✨</span>
-                        </div>
-                      )}
-
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
-
-                      {/* Bottom info */}
-                      <div className="absolute inset-x-0 bottom-0 p-4 transform transition-transform duration-500">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-base text-start font-black text-white line-clamp-2 leading-tight group-hover:text-[#007AFF] transition-colors">
-                            {trendName}
-                          </h3>
-
-                          {/* Like button — bottom left */}
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <LikeButton
-                              postId={post.id}
-                              botId={post.bot_id}
-                              userId={userId}
-                              liked={post.liked}
-                              likes={post.likes}
-                            />
-                          </div>
-                        </div>
+                        <img
+                          src={mediaUrl}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      )
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+                        <span className="text-[40px] animate-pulse">✨</span>
                       </div>
+                    )}
 
-                      {/* Cost badge — top right */}
-                      {/* <div className="absolute top-4 right-4">
-                      <div className="backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full text-[12px] font-bold text-white shadow-lg">
-                        ◈ {post.cost || 15}
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+
+                    {/* Bottom info */}
+                    <div className="absolute inset-x-0 bottom-0 p-4 transform transition-transform duration-500">
+                      <div className="flex flex-col items-start justify-between gap-2">
+                        <span
+                          key={post.tag}
+                          className="backdrop-blur-md bg-black/50 border border-white/15 px-2 py-0.5 rounded-full text-[9px] font-black text-white/95 shadow-md uppercase tracking-wider"
+                        >
+                          {post.tag}
+                        </span>
+                        <h3 className="text-base text-start font-black text-white line-clamp-2 leading-tight group-hover:text-[#007AFF] transition-colors">
+                          {trendName}
+                        </h3>
+
                       </div>
-                    </div> */}
-
-                      {/* Video play icon — top left */}
-                      {isVideo && (
-                        <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
-                            <Play className="size-4 fill-white text-white" />
-                          </div>
-                        </div>
-                      )}
                     </div>
+
+                    {/* Variables badges — top right */}
+                    {post.tag && post.tag.length > 0 && (
+                      <div className="absolute top-3.5 right-3.5 flex flex-wrap gap-1 justify-end max-w-[85%] z-10">
+                        {/* Like button — top right */}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <LikeButton
+                            postId={post.id}
+                            botId={post.bot_id}
+                            userId={userId}
+                            liked={post.liked}
+                            likes={post.likes}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video play icon — top left */}
+                    {isVideo && (
+                      <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
+                          <Play className="size-4 fill-white text-white" />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
         </div>
 
         {isFetchingNextPage && (
