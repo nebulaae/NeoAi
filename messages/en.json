@@ -19,6 +19,7 @@
     "generating": "Generating...",
     "startDialogue": "Start a dialogue — write something",
     "chooseAssistant": "Or choose an assistant",
+    "changeRole": "Change role",
     "audioLabel": "🎵 Audio",
     "responseReceived": "Response received",
     "placeholder": "Write a message...",

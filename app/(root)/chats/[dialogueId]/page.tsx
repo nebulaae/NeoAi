@@ -10,7 +10,7 @@ import {
   normalizeResultMedia,
 } from '@/hooks/useGenerations';
 import { useAIModels } from '@/hooks/useModels';
-import { useRoles } from '@/hooks/useRoles';
+import { useRoles, localizeRoleDescription } from '@/hooks/useRoles';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { saveMediaToDevice } from '@/lib/telegramMedia';
@@ -45,7 +45,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn, localize } from '@/lib/utils';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
@@ -262,6 +262,7 @@ function AudioPlayer({ src }: { src: string }) {
 export default function ChatPage() {
   const t = useTranslations('ChatPage');
   const tModels = useTranslations('Models');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const params = useParams();
@@ -520,8 +521,6 @@ export default function ChatPage() {
     isProcessing ||
     generate.isPending ||
     (!text.trim() && uploadedFiles.length === 0);
-  const showRoles =
-    msgsFromHistory.length === 0 && !isHistoryLoading && !!roles;
   const selectedRole = roles?.find((r) => r.id === selectedRoleId) ?? null;
   const hasRoles = !!roles && roles.length > 0;
 
@@ -622,47 +621,58 @@ export default function ChatPage() {
                 <p className="text-sm font-medium">{t('loadingPlaceholder')}</p>
               </div>
             ) : msgs.length === 0 && optimisticMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center flex-1 gap-6 text-center px-10">
-                <div className="w-20 h-20 rounded-[32px] bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl">
-                  <span className="text-3xl">💬</span>
-                </div>
-                <p className="text-[16px] font-medium text-white/40 leading-relaxed">
-                  {t('startDialogue')}
-                </p>
-                {showRoles && hasRoles && (
-                  <div className="w-full max-w-sm mt-2 flex flex-col items-center gap-3">
-                    {selectedRole && (
-                      <div className="flex items-center gap-3 p-3 w-full rounded-2xl bg-[#007AFF]/10 border border-[#007AFF]/30">
-                        <Avatar className="w-10 h-10 rounded-xl">
-                          <AvatarImage
-                            src={selectedRole.image || ''}
-                            className="object-cover"
-                          />
-                          <AvatarFallback className="bg-zinc-800 text-sm">
-                            {localize(selectedRole.label)[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-[14px] font-bold text-[#007AFF] truncate">
-                            {localize(selectedRole.label)}
-                          </p>
-                          <p className="text-[11px] text-white/30 line-clamp-1">
-                            {localize(selectedRole.description)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+              <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-10 py-12">
+                {selectedRole ? (
+                  <>
+                    <Avatar className="w-28 h-28 rounded-[28px] shadow-2xl border border-white/10">
+                      <AvatarImage
+                        src={selectedRole.image || ''}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="bg-zinc-800 text-3xl font-black">
+                        {localize(selectedRole.label)[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-2 max-w-[280px]">
+                      <h2 className="text-[20px] font-black text-white tracking-tight">
+                        {localize(selectedRole.label)}
+                      </h2>
+                      <p className="text-[13px] text-white/40 leading-relaxed">
+                        {localizeRoleDescription(selectedRole.description, locale)}
+                      </p>
+                    </div>
                     <button
                       onClick={() => {
                         haptic.light();
                         setIsRoleDialogOpen(true);
                       }}
-                      className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-zinc-900/60 border border-white/10 text-[15px] font-black text-white hover:border-[#007AFF]/30 transition-all active:scale-[0.98]"
+                      className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/5 border border-white/10 text-[15px] font-bold text-white/60 hover:text-white hover:border-white/20 transition-all active:scale-[0.98]"
                     >
-                      <Sparkles size={16} className="text-[#007AFF]" />
-                      {selectedRole ? t('chooseAssistant') : tModels('selectRole')}
+                      <Sparkles size={15} className="text-[#007AFF]" />
+                      {t('changeRole')}
                     </button>
-                  </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 rounded-[32px] bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl">
+                      <span className="text-3xl">💬</span>
+                    </div>
+                    <p className="text-[16px] font-medium text-white/40 leading-relaxed">
+                      {t('startDialogue')}
+                    </p>
+                    {hasRoles && (
+                      <button
+                        onClick={() => {
+                          haptic.light();
+                          setIsRoleDialogOpen(true);
+                        }}
+                        className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 text-[15px] font-black text-white hover:border-[#007AFF]/30 transition-all active:scale-[0.98]"
+                      >
+                        <Sparkles size={16} className="text-[#007AFF]" />
+                        {tModels('selectRole')}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             ) : (

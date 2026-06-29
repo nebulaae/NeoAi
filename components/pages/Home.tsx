@@ -189,34 +189,41 @@ export const Home = () => {
                     {/* Bottom info */}
                     <div className="absolute inset-x-0 bottom-0 p-4 transform transition-transform duration-500">
                       <div className="flex flex-col items-start justify-between gap-2">
-                        <span
-                          key={post.tag}
-                          className="backdrop-blur-md bg-black/50 border border-white/15 px-2 py-0.5 rounded-full text-[9px] font-black text-white/95 shadow-md uppercase tracking-wider"
-                        >
-                          {post.tag}
-                        </span>
+                        {post.tag && (
+                          <span className="backdrop-blur-md bg-black/50 border border-white/15 px-2 py-0.5 rounded-full text-[9px] font-black text-white/95 shadow-md uppercase tracking-wider">
+                            {post.tag}
+                          </span>
+                        )}
                         <h3 className="text-base text-start font-black text-white line-clamp-2 leading-tight group-hover:text-[#007AFF] transition-colors">
                           {trendName}
                         </h3>
-
                       </div>
                     </div>
 
-                    {/* Variables badges — top right */}
-                    {post.tag && post.tag.length > 0 && (
-                      <div className="absolute top-3.5 right-3.5 flex flex-wrap gap-1 justify-end max-w-[85%] z-10">
-                        {/* Like button — top right */}
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <LikeButton
-                            postId={post.id}
-                            botId={post.bot_id}
-                            userId={userId}
-                            liked={post.liked}
-                            likes={post.likes}
-                          />
-                        </div>
+                    {/* Top right: like button + variable badges */}
+                    <div className="absolute top-3.5 right-3.5 flex flex-col items-end gap-1.5 z-10">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <LikeButton
+                          postId={post.id}
+                          botId={post.bot_id}
+                          userId={userId}
+                          liked={post.liked}
+                          likes={post.likes}
+                        />
                       </div>
-                    )}
+                      {post.variables && post.variables.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          {post.variables.map((v: string) => (
+                            <span
+                              key={v}
+                              className="backdrop-blur-md bg-black/50 border border-white/15 px-2 py-0.5 rounded-full text-[9px] font-bold text-white/60 shadow-md"
+                            >
+                              {`{${v}}`}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Video play icon — top left */}
                     {isVideo && (

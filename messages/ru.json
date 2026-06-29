@@ -19,6 +19,7 @@
     "generating": "Генерация...",
     "startDialogue": "Начните диалог — напишите что-нибудь",
     "chooseAssistant": "Или выберите ассистента",
+    "changeRole": "Сменить роль",
     "audioLabel": "🎵 Аудио",
     "responseReceived": "Ответ получен",
     "placeholder": "Напишите сообщение...",
