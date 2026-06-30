@@ -21,6 +21,7 @@ import {
   type Album,
 } from '@/hooks/useAlbums';
 
+
 const ALBUM_GRADIENTS = [
   'from-[#007AFF] via-[#5856D6] to-[#AF52DE]',
   'from-[#FF2D55] via-[#FF6B35] to-[#FF9500]',
