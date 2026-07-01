@@ -182,7 +182,7 @@ export const Home = () => {
                         <span className="text-[40px] animate-pulse">✨</span>
                       </div>
                     )}
-
+                    
                     {/* Gradient overlay */}
                     <div className="absolute inset-0 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
 
