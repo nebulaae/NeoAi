@@ -13,11 +13,26 @@ export type WithdrawalStatus =
   | 'completed'
   | 'declined';
 
+export type WithdrawalType = 'rub' | 'crypto';
+
+export interface WithdrawalTypeOption {
+  type: WithdrawalType;
+  fee_percent: number;
+}
+
+export interface WithdrawalMinAmountData {
+  min_withdraw_amount: number;
+  withdrawal_types: WithdrawalTypeOption[];
+}
+
 export interface Withdrawal {
   id: number;
   bot_id: number;
   user_id: number;
   amount: number;
+  amount_without_fee: number;
+  fee: number;
+  type: WithdrawalType;
   status: WithdrawalStatus;
   requisites: string | null;
   notes: string | null;
@@ -32,7 +47,10 @@ export const useMinWithdrawAmount = () => {
     queryFn: async () => {
       const { data } = await api.get('/api/withdrawal/min-amount');
       if (!data.success) throw new Error(data.error || 'Failed');
-      return data.min_withdraw_amount as number;
+      return {
+        min_withdraw_amount: data.min_withdraw_amount as number,
+        withdrawal_types: (data.withdrawal_types || []) as WithdrawalTypeOption[],
+      } as WithdrawalMinAmountData;
     },
     staleTime: 5 * 60_000,
   });
@@ -58,6 +76,7 @@ export const useCreateWithdrawal = () => {
   return useMutation({
     mutationFn: async (payload: {
       amount: number;
+      type: WithdrawalType;
       requisites?: string;
       notes?: string;
     }) => {
@@ -75,7 +94,10 @@ export const useCreateWithdrawal = () => {
         success: true;
         id: number;
         status: WithdrawalStatus;
+        type: WithdrawalType;
         amount: number;
+        amount_without_fee: number;
+        fee: number;
         requisites: string | null;
         notes: string | null;
         balance: number;

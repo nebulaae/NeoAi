@@ -1,10 +1,22 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Wallet, TrendingUp, ArrowUpRight, Loader2, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  Wallet,
+  TrendingUp,
+  ArrowUpRight,
+  Loader2,
+  X,
+  Banknote,
+  Bitcoin,
+  CreditCard,
+  ChevronDown,
+  Check,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatBankRequisites } from '@/lib/utils';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useUser } from '@/hooks/useUser';
 import {
@@ -13,10 +25,52 @@ import {
   useCreateWithdrawal,
   useCancelWithdrawal,
   type WithdrawalStatus,
+  type WithdrawalType,
+  type WithdrawalTypeOption,
 } from '@/hooks/useWithdrawal';
+
+/* Fallback-типы: показываем селект даже если /withdrawal/min-amount
+   не вернул withdrawal_types (404 / старый бэкенд). Комиссию считает бэкенд. */
+const DEFAULT_WITHDRAWAL_TYPES: WithdrawalTypeOption[] = [
+  { type: 'rub', fee_percent: 0 },
+  { type: 'crypto', fee_percent: 0 },
+];
 
 const glass =
   'bg-zinc-900/50 backdrop-blur-2xl border border-white/[.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_4px_20px_rgba(0,0,0,0.28)]';
+
+/* ── Per-type field config: поля меняются в зависимости от типа вывода ── */
+const TYPE_META: Record<
+  WithdrawalType,
+  {
+    label: string;
+    emoji: string;
+    icon: typeof Banknote;
+    reqLabel: string;
+    reqPlaceholder: string;
+    reqHint: string;
+    numeric: boolean;
+  }
+> = {
+  rub: {
+    label: 'Рубли',
+    emoji: '🏦',
+    icon: Banknote,
+    reqLabel: 'Номер карты',
+    reqPlaceholder: '4444 5555 6666 7777',
+    reqHint: 'Карта или счёт для вывода в рублях',
+    numeric: true,
+  },
+  crypto: {
+    label: 'Криптокошелёк',
+    emoji: '₿',
+    icon: Bitcoin,
+    reqLabel: 'Адрес кошелька',
+    reqPlaceholder: 'TXk… адрес USDT',
+    reqHint: 'Сеть USDT TRC-20',
+    numeric: false,
+  },
+};
 
 const STATUS_LABEL: Record<WithdrawalStatus, string> = {
   pending: 'В обработке',
@@ -64,7 +118,7 @@ export const Withdrawal = () => {
   const user = userData?.user;
   const balance = user?.balance ?? 0;
 
-  const { data: minAmount } = useMinWithdrawAmount();
+  const { data: minData } = useMinWithdrawAmount();
   const { data: items = [], isLoading } = useWithdrawals();
   const createWithdrawal = useCreateWithdrawal();
   const cancelWithdrawal = useCancelWithdrawal();
@@ -72,9 +126,44 @@ export const Withdrawal = () => {
   const [amount, setAmount] = useState('');
   const [requisites, setRequisites] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedType, setSelectedType] = useState<WithdrawalType>('rub');
 
-  const min = minAmount ?? 0;
+  const min = minData?.min_withdraw_amount ?? 0;
+  const withdrawalTypes = minData?.withdrawal_types?.length
+    ? minData.withdrawal_types
+    : DEFAULT_WITHDRAWAL_TYPES;
   const numAmount = parseInt(amount, 10) || 0;
+
+  const feePercent =
+    withdrawalTypes.find((t) => t.type === selectedType)?.fee_percent ?? 0;
+  const feeAmount = Math.round((numAmount * feePercent) / 100);
+  const amountAfterFee = numAmount - feeAmount;
+
+  const typeMeta = TYPE_META[selectedType];
+  const TypeIcon = typeMeta.icon;
+
+  // Кастомный дропдаун типа вывода.
+  const [typeOpen, setTypeOpen] = useState(false);
+  const typeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!typeOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (typeRef.current && !typeRef.current.contains(e.target as Node)) {
+        setTypeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [typeOpen]);
+
+  const changeType = (type: WithdrawalType) => {
+    setTypeOpen(false);
+    if (type === selectedType) return;
+    haptic.light();
+    setSelectedType(type);
+    // Реквизиты специфичны для типа вывода — очищаем при переключении.
+    setRequisites('');
+  };
 
   const error = useMemo(() => {
     if (!amount) return null;
@@ -92,6 +181,7 @@ export const Withdrawal = () => {
     createWithdrawal.mutate(
       {
         amount: numAmount,
+        type: selectedType,
         requisites: requisites.trim() || undefined,
         notes: notes.trim() || undefined,
       },
@@ -159,6 +249,99 @@ export const Withdrawal = () => {
 
         {/* Форма */}
         <div className={cn('flex flex-col gap-4 p-5 rounded-[24px]', glass)}>
+          {/* ── Кастомный дропдаун типа вывода: выбираешь тип → поля меняются ── */}
+          {withdrawalTypes.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <label className="text-[12px] font-bold uppercase tracking-widest text-white/40">
+                Способ вывода
+              </label>
+              <div className="relative" ref={typeRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic.light();
+                    setTypeOpen((o) => !o);
+                  }}
+                  className={cn(
+                    'w-full flex items-center gap-3 bg-black/30 border rounded-2xl px-3 py-3 transition-all',
+                    typeOpen ? 'border-[#007AFF]/50' : 'border-white/10'
+                  )}
+                >
+                  <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#007AFF]/12 text-[#4da3ff]">
+                    <TypeIcon size={18} />
+                  </span>
+                  <span className="flex-1 text-left">
+                    <span className="block text-[15px] font-black text-white leading-tight">
+                      {typeMeta.label}
+                    </span>
+                    <span className="text-[11px] font-medium text-white/35">
+                      {feePercent > 0
+                        ? `комиссия ${feePercent}%`
+                        : 'нажмите, чтобы выбрать'}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={cn(
+                      'text-white/40 transition-transform duration-200',
+                      typeOpen && 'rotate-180'
+                    )}
+                  />
+                </button>
+
+                {typeOpen && (
+                  <div className="absolute z-20 mt-2 w-full rounded-2xl bg-zinc-900/95 backdrop-blur-2xl border border-white/10 p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
+                    {withdrawalTypes.map((opt) => {
+                      const m = TYPE_META[opt.type];
+                      const Icon = m.icon;
+                      const active = opt.type === selectedType;
+                      return (
+                        <button
+                          key={opt.type}
+                          type="button"
+                          onClick={() => changeType(opt.type)}
+                          className={cn(
+                            'w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition-colors',
+                            active ? 'bg-[#007AFF]/12' : 'hover:bg-white/5'
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'flex items-center justify-center w-9 h-9 rounded-lg',
+                              active
+                                ? 'bg-[#007AFF]/20 text-[#4da3ff]'
+                                : 'bg-white/5 text-white/50'
+                            )}
+                          >
+                            <Icon size={16} />
+                          </span>
+                          <span className="flex-1 text-left">
+                            <span
+                              className={cn(
+                                'block text-[14px] font-black leading-tight',
+                                active ? 'text-white' : 'text-white/70'
+                              )}
+                            >
+                              {m.label}
+                            </span>
+                            {opt.fee_percent > 0 && (
+                              <span className="text-[11px] font-medium text-white/35">
+                                комиссия {opt.fee_percent}%
+                              </span>
+                            )}
+                          </span>
+                          {active && (
+                            <Check size={16} className="text-[#4da3ff]" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <label className="text-[12px] font-bold uppercase tracking-widest text-white/40">
               Сумма {min > 0 && <span className="text-white/25">(мин. {min})</span>}
@@ -170,18 +353,47 @@ export const Withdrawal = () => {
               placeholder="0"
               className="w-full bg-black/30 border border-white/10 rounded-2xl px-4 py-3.5 text-[18px] font-black text-white placeholder:text-white/20 outline-none focus:border-[#007AFF]/40 transition-all"
             />
+            {numAmount > 0 && feePercent > 0 && (
+              <p className="text-[12px] font-medium text-white/40 px-1">
+                Комиссия {feePercent}% (−{feeAmount.toLocaleString('ru-RU')} ₽) →
+                получите{' '}
+                <span className="text-white/70 font-bold">
+                  {amountAfterFee.toLocaleString('ru-RU')} ₽
+                </span>
+              </p>
+            )}
           </div>
 
+          {/* Реквизиты — динамически меняются под тип вывода */}
           <div className="flex flex-col gap-2">
             <label className="text-[12px] font-bold uppercase tracking-widest text-white/40">
-              Реквизиты
+              {typeMeta.reqLabel}
             </label>
-            <input
-              value={requisites}
-              onChange={(e) => setRequisites(e.target.value)}
-              placeholder="на карту: 4444 5555 6666 7777"
-              className="w-full bg-black/30 border border-white/10 rounded-2xl px-4 py-3 text-[15px] font-medium text-white placeholder:text-white/20 outline-none focus:border-[#007AFF]/40 transition-all"
-            />
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                {selectedType === 'rub' ? (
+                  <CreditCard size={16} />
+                ) : (
+                  <Wallet size={16} />
+                )}
+              </span>
+              <input
+                inputMode={typeMeta.numeric ? 'numeric' : 'text'}
+                value={requisites}
+                onChange={(e) =>
+                  setRequisites(
+                    typeMeta.numeric
+                      ? formatBankRequisites(e.target.value)
+                      : e.target.value
+                  )
+                }
+                placeholder={typeMeta.reqPlaceholder}
+                className="w-full bg-black/30 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-[15px] font-medium text-white placeholder:text-white/20 outline-none focus:border-[#007AFF]/40 transition-all"
+              />
+            </div>
+            <p className="text-[11px] font-medium text-white/25 px-1">
+              {typeMeta.reqHint}
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -244,6 +456,12 @@ export const Withdrawal = () => {
                     <span className="text-[18px] font-black text-white">
                       {w.amount}
                     </span>
+                    {w.amount_without_fee != null &&
+                      w.amount_without_fee !== w.amount && (
+                        <span className="text-[12px] text-white/30 font-medium line-through">
+                          {w.amount_without_fee}
+                        </span>
+                      )}
                     <span
                       className={cn(
                         'text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border',
@@ -253,6 +471,20 @@ export const Withdrawal = () => {
                       {STATUS_LABEL[w.status]}
                     </span>
                   </div>
+                  {(w.type || w.fee > 0) && (
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {w.type && (
+                        <span className="text-[10px] font-bold uppercase text-white/30">
+                          {w.type === 'rub' ? '🏦 Рубли' : '₿ Крипто'}
+                        </span>
+                      )}
+                      {w.fee > 0 && (
+                        <span className="text-[10px] text-white/25">
+                          комис. {w.fee} ₽
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {w.requisites && (
                     <p className="text-[12px] font-medium text-white/40 truncate mt-1">
                       {w.requisites}
