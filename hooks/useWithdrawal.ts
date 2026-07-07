@@ -7,6 +7,15 @@ import { queryKeys } from '@/lib/queryKeys';
  * автоматически добавляются интерсептором в lib/api.ts — здесь их не передаём.
  */
 
+/**
+ * Бекенд оборачивает успешные ответы в конверт { success, data: {...} }.
+ * Ошибки приходят плоскими ({ success:false, error }). Разворачиваем оба вида:
+ * если есть вложенный data — берём его, иначе исходный объект.
+ */
+function unwrap<T = any>(raw: any): T {
+  return (raw && typeof raw === 'object' && 'data' in raw ? raw.data : raw) as T;
+}
+
 export type WithdrawalStatus =
   | 'pending'
   | 'canceled'
@@ -46,10 +55,11 @@ export const useMinWithdrawAmount = () => {
     queryKey: queryKeys.withdrawalMin,
     queryFn: async () => {
       const { data } = await api.get('/api/withdrawal/min-amount');
-      if (!data.success) throw new Error(data.error || 'Failed');
+      const body = unwrap(data);
+      if (!body.success) throw new Error(body.error || 'Failed');
       return {
-        min_withdraw_amount: data.min_withdraw_amount as number,
-        withdrawal_types: (data.withdrawal_types || []) as WithdrawalTypeOption[],
+        min_withdraw_amount: body.min_withdraw_amount as number,
+        withdrawal_types: (body.withdrawal_types || []) as WithdrawalTypeOption[],
       } as WithdrawalMinAmountData;
     },
     staleTime: 5 * 60_000,
@@ -64,8 +74,9 @@ export const useWithdrawals = (status?: string) => {
       const { data } = await api.get('/api/withdrawal', {
         params: status ? { status } : {},
       });
-      if (!data.success) throw new Error(data.error || 'Failed');
-      return (data.items || []) as Withdrawal[];
+      const body = unwrap(data);
+      if (!body.success) throw new Error(body.error || 'Failed');
+      return (body.items || []) as Withdrawal[];
     },
   });
 };
@@ -81,16 +92,17 @@ export const useCreateWithdrawal = () => {
       notes?: string;
     }) => {
       const { data } = await api.post('/api/withdrawal', payload);
-      if (!data.success) {
+      const body = unwrap(data);
+      if (!body.success) {
         // Бекенд возвращает {success:false, error} при недостатке средств /
         // сумме меньше минимума — пробрасываем текст ошибки.
-        const err = new Error(data.error || 'Withdrawal failed') as Error & {
+        const err = new Error(body.error || 'Withdrawal failed') as Error & {
           apiError?: string;
         };
-        err.apiError = data.error;
+        err.apiError = body.error;
         throw err;
       }
-      return data as {
+      return body as {
         success: true;
         id: number;
         status: WithdrawalStatus;
@@ -119,14 +131,15 @@ export const useCancelWithdrawal = () => {
       const { data } = await api.post('/api/withdrawal/cancel', null, {
         params: { id },
       });
-      if (!data.success) {
-        const err = new Error(data.error || 'Cancel failed') as Error & {
+      const body = unwrap(data);
+      if (!body.success) {
+        const err = new Error(body.error || 'Cancel failed') as Error & {
           apiError?: string;
         };
-        err.apiError = data.error;
+        err.apiError = body.error;
         throw err;
       }
-      return data as {
+      return body as {
         success: true;
         id: number;
         status: WithdrawalStatus;
