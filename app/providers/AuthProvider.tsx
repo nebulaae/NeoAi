@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { AuthContext, TelegramUser } from '@/hooks/useAuth';
 import { useBot } from './BotProvider';
@@ -110,6 +111,7 @@ function getInitialAuthUser(): TelegramUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { bot } = useBot();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<TelegramUser | null>(getInitialAuthUser);
   const isLoading = false;
   const telegramAuthInFlight = useRef(false);
@@ -130,10 +132,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback((u: TelegramUser) => {
-    localStorage.setItem('auth_user_id', String(u.id));
-    setUser(u);
-  }, []);
+  const login = useCallback(
+    (u: TelegramUser) => {
+      localStorage.setItem('auth_user_id', String(u.id));
+      setUser(u);
+      // Тихий вход (initData) завершается ПОСЛЕ того, как useUser и другие
+      // хуки уже сходили в API без токена и закэшировали пустой ответ.
+      // Без инвалидации баланс/токены не появятся до перелогина.
+      // Токен уже записан в localStorage вызывающей стороной, поэтому
+      // рефетч уйдёт уже авторизованным.
+      queryClient.invalidateQueries();
+    },
+    [queryClient]
+  );
 
   const getFallbackBotId = useCallback(() => {
     if (bot?.bot_id) return bot.bot_id;

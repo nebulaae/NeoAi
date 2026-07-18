@@ -6,7 +6,10 @@ import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useBot } from '@/app/providers/BotProvider';
 import { getAppSource } from '@/lib/source';
-import { waitForPlatformInitData } from '@/lib/platform';
+import {
+  waitForPlatformInitData,
+  configureMiniAppViewport,
+} from '@/lib/platform';
 import { markAuthSettled } from '@/lib/authState';
 import { telemetry } from '@/lib/telemetry';
 
@@ -93,6 +96,12 @@ export const MaxProvider = ({ children }: { children: React.ReactNode }) => {
     },
     [login]
   );
+
+  // Разворот на весь экран и запрет свайпов — независимо от авторизации.
+  useEffect(() => {
+    if (getAppSource() !== 'max') return;
+    return configureMiniAppViewport();
+  }, []);
 
   useEffect(() => {
     const source = getAppSource();
