@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { AuthContext, TelegramUser } from '@/hooks/useAuth';
 import { useBot } from './BotProvider';
+import { decodeBase64Utf8 } from '@/lib/utils';
 
 export interface AuthUser {
   id: number;
@@ -34,8 +35,8 @@ function decodeJwtPayload(token: string) {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
 
-  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(atob(base64)) as AuthPayload;
+  const base64 = parts[1];
+  return JSON.parse(decodeBase64Utf8(base64)) as AuthPayload;
 }
 
 function normalizeAuthUser(u?: AuthPayload | null): TelegramUser | null {
@@ -61,12 +62,7 @@ function parseTelegramAuthResult(): TelegramUser | null {
   const tgAuthResult = hashParams.get('tgAuthResult');
   if (!tgAuthResult) return null;
 
-  const normalized = tgAuthResult
-    .replace(/-/g, '+')
-    .replace(/_/g, '/')
-    .padEnd(Math.ceil(tgAuthResult.length / 4) * 4, '=');
-
-  return JSON.parse(atob(normalized)) as TelegramUser;
+  return JSON.parse(decodeBase64Utf8(tgAuthResult)) as TelegramUser;
 }
 
 function getInitialAuthUser(): TelegramUser | null {

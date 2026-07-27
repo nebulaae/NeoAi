@@ -1,9 +1,10 @@
+import { decodeBase64Utf8 } from './utils';
+
 function decodeJwtUser(token: string): any | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = JSON.parse(atob(base64));
+    const decoded = JSON.parse(decodeBase64Utf8(parts[1]));
     return decoded?.user || decoded || null;
   } catch {
     return null;

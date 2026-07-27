@@ -7,6 +7,31 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Декодирует base64 в строку с корректной обработкой UTF-8.
+ *
+ * Обычный `atob()` возвращает «бинарную» строку, где каждый байт трактуется
+ * как отдельный символ Latin-1. Для base64, содержащего UTF-8 (например
+ * кириллические имена из Telegram initData / tgAuthResult / JWT), это даёт
+ * «крякозябры»: «С» (байты 0xD0 0xA1) превращается в «Ð¡». Ниже мы
+ * пересобираем исходные байты и декодируем их как UTF-8.
+ *
+ * Принимает как обычный, так и URL-safe base64 (`-`/`_`), при необходимости
+ * добавляет padding.
+ */
+export function decodeBase64Utf8(base64: string): string {
+  const normalized = base64
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(Math.ceil(base64.length / 4) * 4, '=');
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/**
  * Чистит URL медиа от типичных повреждений при копировании/вставке и
  * переносах строк на бекенде: символы новой строки (`\n`, `\r`, а также
  * их закодированные формы `%0A`/`%0D`), табуляции и пробелы внутри ссылки

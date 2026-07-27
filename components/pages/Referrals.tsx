@@ -68,7 +68,6 @@ export const Referrals = () => {
 
   const stats = (refData as any)?.stats || {};
   const referrals = (refData as any)?.referrals || [];
-  const levelStats = (refData as any)?.levelStats || [];
   const userId = tgUser?.id;
   const referralLink =
     bot?.bot_username && userId
@@ -128,6 +127,36 @@ export const Referrals = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+        {/* Reward hero — простая 1-уровневая программа: 50% с каждой оплаты */}
+        <div
+          className={cn(
+            gr.regular,
+            'rounded-[20px] p-5 flex flex-col gap-3 overflow-hidden relative'
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'w-11 h-11 rounded-2xl flex items-center justify-center shrink-0',
+                'bg-emerald-400/15 border border-emerald-400/25'
+              )}
+            >
+              <Gift size={20} className="text-emerald-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold tracking-[0.5px] uppercase text-emerald-400/80">
+                {t('rewardBadge')}
+              </span>
+              <span className="text-[16px] font-bold tracking-[-0.3px] text-white/90 leading-tight">
+                {t('rewardTitle')}
+              </span>
+            </div>
+          </div>
+          <p className="text-[13px] text-white/45 leading-relaxed">
+            {t('rewardDesc')}
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             icon={<Users size={13} />}
@@ -182,37 +211,6 @@ export const Referrals = () => {
           </div>
         )}
 
-        {levelStats && levelStats.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/35 mb-2.5 px-1">
-              {t('byLevels')}
-            </p>
-            <div className="flex flex-col gap-2">
-              {levelStats.map((level: any, idx: number) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    gr.regular,
-                    'rounded-[14px] px-4 py-3 flex items-center justify-between'
-                  )}
-                >
-                  <div>
-                    <p className="text-[13px] font-semibold text-white/80">
-                      {t('level', { n: level.level || idx + 1 })}
-                    </p>
-                    <p className="text-[11px] text-white/35 mt-0.5">
-                      {t('referralsCount', { count: level.count || 0 })}
-                    </p>
-                  </div>
-                  <p className="text-[13px] font-semibold text-white/50">
-                    {level.tokens || 0} ◈
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {referrals && referrals.length > 0 && (
           <div>
             <p className="text-[10px] font-semibold tracking-[0.6px] uppercase text-white/35 mb-2.5 px-1">
@@ -240,16 +238,6 @@ export const Referrals = () => {
                         ? new Date(ref.created_at).toLocaleDateString()
                         : t('recently')}
                     </span>
-                    {ref.level && (
-                      <span
-                        className={cn(
-                          'text-[10px] font-medium px-2 py-0.5 rounded-full text-white/40',
-                          gr.thin
-                        )}
-                      >
-                        {t('level', { n: ref.level })}
-                      </span>
-                    )}
                   </div>
                 </div>
               ))}

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getAppSource } from '@/lib/source';
 import { getPlatformInitData } from './platform';
+import { decodeBase64Utf8 } from './utils';
 import { newRequestId, logEvent } from '@/lib/telemetry';
 // xyecoc
 const AUTH_FREE_PATHS = [
@@ -38,8 +39,7 @@ function getUserId(): number | null {
     if (token) {
       const parts = token.split('.');
       if (parts.length === 3) {
-        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const decoded = JSON.parse(atob(base64));
+        const decoded = JSON.parse(decodeBase64Utf8(parts[1]));
         return decoded?.user?.id ?? decoded?.id ?? decoded?.user_id ?? null;
       }
     }
