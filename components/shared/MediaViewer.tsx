@@ -91,7 +91,7 @@ export function MediaViewer({
       className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in-0"
       onClick={onClose}
     >
-      <div className="flex justify-end p-4 pt-[calc(16px+env(safe-area-inset-top))]">
+      <div className="flex justify-end p-4 pt-[calc(16px+var(--sa-top))]">
         <button
           onClick={onClose}
           className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white active:scale-90 transition-all"
@@ -124,7 +124,7 @@ export function MediaViewer({
       </div>
 
       <div
-        className="flex items-center justify-center gap-3 p-6 pb-[calc(24px+env(safe-area-inset-bottom))]"
+        className="flex items-center justify-center gap-3 p-6 pb-[calc(24px+var(--sa-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <ActionButton

@@ -65,7 +65,27 @@
     "trend3": "Photorealistic images",
     "trend4": "Music generation",
     "noTrends": "No trends yet",
-    "buy": "Buy"
+    "buy": "Buy",
+    "balance": "Balance",
+    "topUp": "Top up",
+    "balanceUnknown": "Refreshing balance",
+    "startTitle": "Where to start",
+    "startTemplate": "From a template",
+    "startTemplateHint": "Pick a trend and just upload a photo",
+    "startScratch": "From scratch",
+    "startScratchHint": "Your own prompt and model",
+    "createTitle": "What are we making",
+    "createPhoto": "Photo",
+    "createVideo": "Video",
+    "createAudio": "Audio",
+    "createText": "Chat",
+    "modelsCount": "{count} models",
+    "partnerTitle": "Affiliate program",
+    "partnerCta": "Start earning",
+    "groupPopular": "Popular",
+    "groupVideo": "Video",
+    "groupPhoto": "Use your photo",
+    "feedTitle": "Feed"
   },
   "Login": {
     "tagline": "Next-generation AI platform",
@@ -241,7 +261,8 @@
         "1536x1024": "1536×1024",
         "1024x1536": "1024×1536"
       }
-    }
+    },
+    "catAll": "All"
   },
   "Profile": {
     "title": "Profile",
@@ -430,7 +451,9 @@
     "noReferralsHint": "Share your referral link to start earning",
     "linkCopied": "Link copied",
     "recently": "Recently",
-    "user": "User #{id}"
+    "user": "User #{id}",
+    "share": "Share",
+    "copy": "Copy"
   },
   "Empty": {
     "noModels": "No models",
@@ -486,5 +509,19 @@
     "promoInvalid": "Invalid or expired promo code",
     "promoError": "Failed to apply promo code. Try again.",
     "promoDiscountActive": "{discount}% discount active"
+  },
+  "Promo": {
+    "webKicker": "Same account, same balance",
+    "webTitle": "NeoAI is now in the browser",
+    "webCta": "Open web version",
+    "partnerTitle": "Affiliate program",
+    "partnerCta": "Start earning",
+    "feedKicker": "Publish your work and collect likes",
+    "feedTitle": "The feed is here",
+    "feedCta": "Open the feed",
+    "topUpKicker": "Enough for dozens of generations",
+    "topUpTitle": "Top up your balance",
+    "topUpCta": "Top up",
+    "allGroup": "All"
   }
 }

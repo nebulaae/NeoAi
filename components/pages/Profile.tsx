@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { useBalance } from '@/hooks/useBalance';
 import { useRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -264,7 +265,9 @@ export const Profile = () => {
     'my-posts'
   );
 
-  const tokens = userData?.user?.tokens ?? 0;
+  // known=false — баланс ещё не получен или запрос упал. Показываем «···»,
+  // а не «0»: фальшивый ноль на весь экран читается как «списали все токены».
+  const { tokens, known: balanceKnown } = useBalance();
   const isPremium = userData?.user?.premium ?? false;
   const premiumEnd = userData?.user?.premium_end;
   const requests = reqData?.pages.flatMap((p) => p) ?? [];
@@ -380,7 +383,7 @@ export const Profile = () => {
   return (
     <div className="min-h-screen text-white font-sans overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 px-6 py-6">
+      <header className="sticky top-0 z-50 px-6 pb-6 pt-[calc(1.5rem+var(--sa-top))]">
         <h1 className="text-[28px] font-black tracking-tight text-[#007AFF] leading-none mb-6">
           {t('title')}
         </h1>
@@ -459,8 +462,8 @@ export const Profile = () => {
                   {t('tokens')}
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[48px] font-black tracking-tighter leading-none">
-                    {tokens}
+                  <span className="text-[48px] font-black tracking-tighter leading-none tabular-nums">
+                    {balanceKnown ? tokens : '···'}
                   </span>
                   <span className="text-[20px] font-bold text-[#007AFF]">
                     ◈

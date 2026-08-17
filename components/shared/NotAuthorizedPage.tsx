@@ -74,7 +74,7 @@ export function NotAuthorizedPage({
   return (
     <div className="flex flex-col w-full min-h-svh pb-32" style={{ background: 'var(--page-bg)' }}>
       {/* HERO */}
-      <div className="relative px-6 pt-[calc(48px+env(safe-area-inset-top))] pb-10 overflow-hidden">
+      <div className="relative px-6 pt-[calc(48px+var(--sa-top))] pb-10 overflow-hidden">
         <div
           aria-hidden
           className="absolute -top-24 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full opacity-30 blur-[90px]"
@@ -175,7 +175,7 @@ export function NotAuthorizedPage({
       )}
 
       {/* STICKY CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pt-4 pb-[calc(16px+env(safe-area-inset-bottom))] bg-gradient-to-t from-black via-black/90 to-transparent">
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pt-4 pb-[calc(16px+var(--sa-bottom))] bg-gradient-to-t from-black via-black/90 to-transparent">
         <button
           onClick={goLogin}
           className="w-full h-14 rounded-2xl bg-[#007AFF] text-white font-black text-[16px] flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(0,122,255,0.45)] max-w-md mx-auto"

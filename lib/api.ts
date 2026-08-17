@@ -3,6 +3,7 @@ import { getAppSource } from '@/lib/source';
 import { getPlatformInitData } from './platform';
 import { decodeBase64Utf8 } from './utils';
 import { newRequestId, logEvent } from '@/lib/telemetry';
+import { notifyAuthInvalidated } from '@/lib/authState';
 // xyecoc
 const AUTH_FREE_PATHS = [
   '/api/auth/create/email',
@@ -169,12 +170,19 @@ api.interceptors.response.use(
     });
 
     if (error.response?.status === 401 && !isAuthFreePath(url)) {
+      const hadSession = !!localStorage.getItem('auth_token');
+
       localStorage.removeItem('auth_token');
       localStorage.removeItem('session_data');
       localStorage.removeItem('session_hash');
       localStorage.removeItem('session_user');
       localStorage.removeItem('auth_user_id');
       sessionStorage.removeItem('tg_user');
+
+      // Токен был и протух — просим провайдеров повторить тихий вход.
+      // Без этого приложение остаётся «залогиненным» с пустыми данными
+      // (в шапке 0 токенов) до ручного перелогина.
+      if (hadSession) notifyAuthInvalidated();
     }
 
     return Promise.reject(error);

@@ -138,7 +138,7 @@ export const Chats = () => {
   return (
     <div className="flex flex-col min-h-svh pb-32 w-full max-w-2xl mx-auto">
       {/* Header */}
-      <header className="sticky top-0 z-50 px-8 py-8 flex items-center justify-between">
+      <header className="sticky top-0 z-50 px-8 pb-8 pt-[calc(2rem+var(--sa-top))] flex items-center justify-between">
         <h1 className="text-[34px] font-black tracking-tighter leading-none text-[#007AFF]">
           {t('title')}
         </h1>

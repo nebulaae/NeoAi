@@ -41,6 +41,9 @@ export interface Post {
     }>;
   };
   model_name?: string;
+  /** Название тренда («Селфи», «Портрет») — по нему строятся тематические полки */
+  name?: string;
+  tag?: string | null;
   variables?: string[];
   cost?: number;
   priority: number;
@@ -57,6 +60,8 @@ export interface GetPostsParams {
   limit?: number;
   page?: number;
   min_likes?: number;
+  /** Не подставлять user_id из сессии — иначе бекенд вернёт только свои посты */
+  skipUserId?: boolean;
 }
 export interface PostsResponse {
   success: boolean;

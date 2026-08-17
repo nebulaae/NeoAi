@@ -80,9 +80,9 @@ export const Models = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-svh pb-[calc(80px+max(16px,env(safe-area-inset-bottom)))]">
+    <div className="flex flex-col min-h-svh pb-[calc(80px+max(16px,var(--sa-bottom)))]">
       {/* Header */}
-      <header className="sticky top-0 z-40 px-6 py-5">
+      <header className="sticky top-0 z-40 px-6 pb-5 pt-[calc(1.25rem+var(--sa-top))]">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-[34px] font-black tracking-tighter leading-none text-[#007AFF]">
             {t('title')}

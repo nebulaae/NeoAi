@@ -34,6 +34,11 @@ import { getParamLabel, getParamValueLabel } from '@/lib/paramHelpers';
 
 const ACCENT_BLUE = '#007AFF';
 
+// Категории моделей в порядке показа. Тот же список принимается в ?cat= —
+// кнопки быстрого старта на главной ведут сразу в нужный раздел.
+const MODEL_CATEGORIES = ['image', 'video', 'audio', 'text'] as const;
+type ModelCategory = (typeof MODEL_CATEGORIES)[number];
+
 function useGenerationStatus(dialogueId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ['gen-status', dialogueId],
@@ -54,6 +59,7 @@ export const Generate = () => {
   const locale = useLocale();
   const searchParams = useSearchParams();
   const modelParam = searchParams.get('model');
+  const catParam = searchParams.get('cat');
   const haptic = useHaptic();
   const t = useTranslations('Generate');
 
@@ -68,6 +74,11 @@ export const Generate = () => {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isWaiting, setIsWaiting] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeCat, setActiveCat] = useState<ModelCategory | 'all'>(() =>
+    MODEL_CATEGORIES.includes(catParam as ModelCategory)
+      ? (catParam as ModelCategory)
+      : 'all'
+  );
   const [favorites, setFavorites] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -107,6 +118,15 @@ export const Generate = () => {
   useEffect(() => {
     if (modelParam) setSelectedTech(modelParam);
   }, [modelParam]);
+
+  // Смена ?cat= без размонтирования: переход с главной на другую категорию,
+  // когда экран генерации уже открыт.
+  useEffect(() => {
+    if (MODEL_CATEGORIES.includes(catParam as ModelCategory)) {
+      setActiveCat(catParam as ModelCategory);
+      setSelectedTech(null);
+    }
+  }, [catParam]);
 
   // Медиа, переданное из Trends/чата/альбома кнопкой «В генерацию» —
   // нативное переиспользование без скачивания и повторной загрузки.
@@ -284,7 +304,7 @@ export const Generate = () => {
 
     return (
       <div className="flex flex-col min-h-svh pb-32">
-        <header className="sticky top-0 z-50 px-6 py-5 flex items-center justify-between">
+        <header className="sticky top-0 z-50 px-6 pb-5 pt-[calc(1.25rem+var(--sa-top))] flex items-center justify-between">
           <button
             onClick={() => {
               haptic.light();
@@ -470,9 +490,24 @@ export const Generate = () => {
     m.tech_name.toLowerCase().includes(q) ||
     (m.categories || []).some((c) => c.toLowerCase().includes(q));
 
+  const inCategory = (m: (typeof models)[number], cat: string) =>
+    m.mainCategory === cat || !!m.categories?.includes(cat);
+
+  const visibleCats =
+    activeCat === 'all' ? MODEL_CATEGORIES : [activeCat as ModelCategory];
+
   const favoriteModels = models.filter(
-    (m) => favorites.includes(m.tech_name) && matchesSearch(m)
+    (m) =>
+      favorites.includes(m.tech_name) &&
+      matchesSearch(m) &&
+      (activeCat === 'all' || inCategory(m, activeCat))
   );
+
+  const nothingFound =
+    !favoriteModels.length &&
+    !visibleCats.some((cat) =>
+      models.some((m) => inCategory(m, cat) && matchesSearch(m))
+    );
 
   const renderCard = (m: (typeof models)[number]) => {
     const cost =
@@ -480,54 +515,72 @@ export const Generate = () => {
       m.versions?.[0]?.cost ??
       1;
     const isFav = favorites.includes(m.tech_name);
+
+    const open = () => {
+      haptic.light();
+      setSelectedTech(m.tech_name);
+    };
+
+    // Кликабельна вся карточка, а не только левая колонка: раньше кнопкой был
+    // лишь блок с аватаром и названием, поэтому тап по цене, стрелке или мимо
+    // звезды не открывал модель — выглядело как «карточка не нажимается».
+    // Звезда — отдельная кнопка поверх, она гасит всплытие.
     return (
       <div
         key={m.tech_name}
-        className="flex items-center gap-4 p-5 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-white/15 transition-all group"
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        }}
+        className="flex items-center gap-4 p-5 rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-white/15 focus-visible:border-[#007AFF]/50 focus-visible:outline-none active:scale-[0.98] transition-all group cursor-pointer select-none"
       >
-        <button
-          onClick={() => {
-            haptic.light();
-            setSelectedTech(m.tech_name);
-          }}
-          className="flex items-center gap-4 flex-1 min-w-0 text-left active:scale-[0.98] transition-all"
-        >
-          <div className="w-14 h-14 overflow-hidden rounded-full">
-            <Avatar className="size-full">
-              <AvatarImage src={m.avatar} />
-              <AvatarFallback>{m.model_name[0]}</AvatarFallback>
-            </Avatar>
+        <div className="w-14 h-14 overflow-hidden rounded-full shrink-0">
+          <Avatar className="size-full">
+            <AvatarImage src={m.avatar} />
+            <AvatarFallback>{m.model_name[0]}</AvatarFallback>
+          </Avatar>
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <p className="text-[17px] font-black text-white group-hover:text-[#007AFF] transition-colors truncate">
+            {m.model_name}
+          </p>
+          {/* Поддерживаемые типы ввода — самообъясняющая карточка */}
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {(m.input || []).map((inp) => (
+              <span
+                key={inp}
+                className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40"
+              >
+                {inp === 'text'
+                  ? 'текст'
+                  : inp === 'image'
+                    ? 'фото'
+                    : inp === 'video'
+                      ? 'видео'
+                      : inp === 'audio'
+                        ? 'аудио'
+                        : inp}
+              </span>
+            ))}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[17px] font-black text-white group-hover:text-[#007AFF] transition-colors truncate">
-              {m.model_name}
-            </p>
-            {/* Поддерживаемые типы ввода — самообъясняющая карточка */}
-            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-              {(m.input || []).map((inp) => (
-                <span
-                  key={inp}
-                  className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40"
-                >
-                  {inp === 'text'
-                    ? 'текст'
-                    : inp === 'image'
-                      ? 'фото'
-                      : inp === 'video'
-                        ? 'видео'
-                        : inp === 'audio'
-                          ? 'аудио'
-                          : inp}
-                </span>
-              ))}
-            </div>
-          </div>
-        </button>
-        <div className="flex items-center gap-2 shrink-0">
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => toggleFavorite(m.tech_name)}
-            className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all"
-            aria-label="favorite"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              haptic.selection();
+              toggleFavorite(m.tech_name);
+            }}
+            // -m-1 + p-1: зона нажатия 44×44 (минимум по HIG) без роста строки
+            className="w-11 h-11 -m-1 rounded-full flex items-center justify-center active:scale-90 transition-all"
+            aria-label={isFav ? 'Убрать из избранного' : 'В избранное'}
+            aria-pressed={isFav}
           >
             <Star
               size={17}
@@ -548,7 +601,7 @@ export const Generate = () => {
 
   return (
     <div className="flex flex-col min-h-svh pb-32">
-      <header className="sticky top-0 z-50 px-6 pt-8 pb-4 bg-zinc-950/70 backdrop-blur-2xl">
+      <header className="sticky top-0 z-50 px-6 pt-[calc(2rem+var(--sa-top))] pb-4">
         <h1 className="text-[34px] font-black tracking-tighter leading-none mb-2 text-[#007AFF]">
           {t('title')}
         </h1>
@@ -567,6 +620,31 @@ export const Generate = () => {
             placeholder="Поиск модели…"
             className="w-full h-12 pl-11 pr-4 rounded-2xl bg-zinc-900/60 border border-white/10 text-[15px] font-medium text-white placeholder:text-white/25 outline-none focus:border-[#007AFF]/40 transition-all"
           />
+        </div>
+
+        {/* Фильтр по типу. Раньше список моделей был одной длинной простынёй:
+            чтобы дойти до видео, приходилось пролистывать все фото-модели. */}
+        <div className="flex items-center gap-2 mt-3 -mx-6 px-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {(['all', ...MODEL_CATEGORIES] as const).map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => {
+                haptic.selection();
+                setActiveCat(cat);
+              }}
+              className={cn(
+                'shrink-0 px-4 h-9 rounded-full text-[13px] font-black whitespace-nowrap border transition-all active:scale-95',
+                activeCat === cat
+                  ? 'bg-[#007AFF] border-[#007AFF] text-white'
+                  : 'bg-white/5 border-white/10 text-white/45 hover:text-white/70'
+              )}
+            >
+              {cat === 'all'
+                ? t('catAll')
+                : t(`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as any)}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -591,11 +669,9 @@ export const Generate = () => {
               </div>
             )}
 
-            {['text', 'image', 'video', 'audio'].map((cat) => {
+            {visibleCats.map((cat) => {
               const catModels = models.filter(
-                (m) =>
-                  (m.mainCategory === cat || m.categories?.includes(cat)) &&
-                  matchesSearch(m)
+                (m) => inCategory(m, cat) && matchesSearch(m)
               );
               if (!catModels.length) return null;
               return (
@@ -609,6 +685,7 @@ export const Generate = () => {
                     {t(
                       `cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as any
                     )}
+                    <span className="text-white/15">{catModels.length}</span>
                   </h2>
                   <div className="flex flex-col gap-3">
                     {catModels.map(renderCard)}
@@ -617,13 +694,13 @@ export const Generate = () => {
               );
             })}
 
-            {q &&
-              !favoriteModels.length &&
-              !models.some(matchesSearch) && (
-                <p className="text-center text-white/30 text-[15px] py-10">
-                  Ничего не найдено по запросу «{search}»
-                </p>
-              )}
+            {nothingFound && (
+              <p className="text-center text-white/30 text-[15px] py-10">
+                {q
+                  ? `Ничего не найдено по запросу «${search}»`
+                  : 'В этой категории пока нет моделей'}
+              </p>
+            )}
           </>
         )}
       </div>
